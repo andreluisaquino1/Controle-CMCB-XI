@@ -21,42 +21,50 @@ export function useReports(
 
         // 2.1 Associação
         const associacaoSection = `
-2.1 Associação
-Saldos atuais:
-Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}
-PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}
-Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}
+*2.1 Associação*
 
-Resumo do período:
-Entradas espécie: ${formatCurrencyBRL(reportData.weeklyEntriesCash)}
-Entradas PIX: ${formatCurrencyBRL(reportData.weeklyEntriesPix)}
-Saídas espécie: ${formatCurrencyBRL(reportData.weeklyExpensesCash)}
-Saídas PIX: ${formatCurrencyBRL(reportData.weeklyExpensesPix)}
+💰 *Saldos Atuais*
+💵 Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}
+💠 PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}
+🏦 Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}
+
+📈 *Resumo do Período*
+📥 Entradas (Espécie): ${formatCurrencyBRL(reportData.weeklyEntriesCash)}
+📥 Entradas (PIX): ${formatCurrencyBRL(reportData.weeklyEntriesPix)}
+📤 Saídas (Espécie): ${formatCurrencyBRL(reportData.weeklyExpensesCash)}
+📤 Saídas (PIX): ${formatCurrencyBRL(reportData.weeklyExpensesPix)}
 `.trim();
 
         // 2.2 Saldos dos Estabelecimentos
         const activeMerchants = dashboardData.merchantBalances.filter(m => m.balance !== 0);
-        let estabelecimentosSection = "2.2 Saldos dos Estabelecimentos\n";
+        let estabelecimentosSection = "*2.2 Saldos dos Estabelecimentos*\n";
 
         if (activeMerchants.length > 0) {
-            estabelecimentosSection += activeMerchants.map(m => `${m.name}: ${formatCurrencyBRL(m.balance)}`).join('\n');
+            estabelecimentosSection += activeMerchants.map(m => `🏪 ${m.name}: ${formatCurrencyBRL(m.balance)}`).join('\n');
         } else {
-            estabelecimentosSection += "Todos os saldos zerados";
+            estabelecimentosSection += "✅ Todos os saldos zerados";
         }
 
         // 2.3 Recursos (Opcional)
         let recursosSection = "";
         if (showResources) {
+            const listUe = dashboardData.resourceBalances.UE.map(a => `• ${a.name}: ${formatCurrencyBRL(a.balance)}`).join('\n');
+            const listCx = dashboardData.resourceBalances.CX.map(a => `• ${a.name}: ${formatCurrencyBRL(a.balance)}`).join('\n');
+
             recursosSection = `
-2.3 Recursos (UE/CX)
-UE: ${dashboardData.resourceBalances.UE.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`).join(', ')}
-CX: ${dashboardData.resourceBalances.CX.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`).join(', ')}
+*2.3 Recursos (UE/CX)*
+
+🏛️ *UE (Unidade Executora)*
+${listUe}
+
+🏫 *CX (Caixa Escolar)*
+${listCx}
 `.trim();
         }
 
         const parts = [
-            `📊 PRESTAÇÃO DE CONTAS CMCB-XI`,
-            `📅 DE ${formatDateBR(startDate)} À ${formatDateBR(endDate)}`,
+            `📊 *PRESTAÇÃO DE CONTAS CMCB-XI*`,
+            `📅 *Período:* ${formatDateBR(startDate)} a ${formatDateBR(endDate)}`,
             associacaoSection,
             estabelecimentosSection,
             recursosSection
