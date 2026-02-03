@@ -2,8 +2,8 @@
  * Account name constants to prevent breakage if names are changed
  */
 export const ACCOUNT_NAMES = {
-  BOLSINHA: "Espécie",
-  RESERVA: "Cofre",
+  ESPECIE: "Espécie",
+  COFRE: "Cofre",
   BB_ASSOCIACAO_PIX: "BB Associação (PIX)",
 } as const;
 
@@ -22,10 +22,10 @@ export const ENTITY_NAMES = {
 export const MODULE_LABELS: Record<string, string> = {
   mensalidade: "Mensalidade",
   gasto_associacao: "Gasto Associação",
-  bolsinha_transfer: "Movimentação Saldo",
-  bolsinha_deposito_pix: "Depósito PIX",
-  bolsinha_ajuste: "Ajuste Espécie",
-  reserva_ajuste: "Ajuste Cofre",
+  especie_transfer: "Movimentação Saldo",
+  especie_deposito_pix: "Depósito PIX",
+  especie_ajuste: "Ajuste Espécie",
+  cofre_ajuste: "Ajuste Cofre",
   aporte_saldo: "Aporte Saldo",
   consumo_saldo: "Consumo Saldo",
   pix_direto_uecx: "Recurso (PIX Direto)",

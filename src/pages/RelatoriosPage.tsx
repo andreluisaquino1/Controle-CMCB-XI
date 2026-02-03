@@ -71,7 +71,7 @@ export default function RelatoriosPage() {
     report += `📅 DE ${startStr} À ${endStr}\n\n`;
 
     report += `🏛️ *ASSOCIAÇÃO*\n`;
-    report += `├ Saldo Espécie: ${formatCurrencyBRL(dashboardData.bolsinhaBalance)}\n`;
+    report += `├ Saldo Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}\n`;
     report += `├ Saldo PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}\n`;
     report += `├ Gastos espécie: ${formatCurrencyBRL(dashboardData.weeklyExpensesCash)}\n`;
     report += `├ Gastos PIX: ${formatCurrencyBRL(dashboardData.weeklyExpensesPix)}\n`;
@@ -123,9 +123,9 @@ export default function RelatoriosPage() {
       [`Período: ${formatDateBR(startDate)} a ${formatDateBR(endDate)}`],
       [],
       ["ASSOCIAÇÃO"],
-      ["Saldo Espécie", formatCurrencyBRL(dashboardData.bolsinhaBalance)],
+      ["Saldo Espécie", formatCurrencyBRL(dashboardData.especieBalance)],
       ["Saldo PIX", formatCurrencyBRL(dashboardData.pixBalance)],
-      ["Saldo Cofre", formatCurrencyBRL(dashboardData.reservaBalance)],
+      ["Saldo Cofre", formatCurrencyBRL(dashboardData.cofreBalance)],
       ["Gastos Espécie", formatCurrencyBRL(dashboardData.weeklyExpensesCash)],
       ["Gastos PIX", formatCurrencyBRL(dashboardData.weeklyExpensesPix)],
       ["Entradas Espécie", formatCurrencyBRL(dashboardData.weeklyEntriesCash)],
@@ -176,9 +176,9 @@ export default function RelatoriosPage() {
     doc.setFontSize(14);
     doc.text("Associação", 14, 45);
     doc.setFontSize(10);
-    doc.text(`Saldo Espécie: ${formatCurrencyBRL(dashboardData.bolsinhaBalance)}`, 14, 55);
+    doc.text(`Saldo Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}`, 14, 55);
     doc.text(`Saldo PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}`, 14, 62);
-    doc.text(`Saldo Cofre: ${formatCurrencyBRL(dashboardData.reservaBalance)}`, 14, 69);
+    doc.text(`Saldo Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}`, 14, 69);
     doc.text(`Gastos Espécie: ${formatCurrencyBRL(dashboardData.weeklyExpensesCash)}`, 14, 76);
     doc.text(`Gastos PIX: ${formatCurrencyBRL(dashboardData.weeklyExpensesPix)}`, 14, 83);
     doc.text(`Entradas Espécie: ${formatCurrencyBRL(dashboardData.weeklyEntriesCash)}`, 14, 90);

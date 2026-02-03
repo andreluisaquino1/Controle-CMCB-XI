@@ -67,20 +67,20 @@ export default function AssociacaoPage() {
   const [movObs, setMovObs] = useState("");
 
   // Ajuste Espécie state
-  const [ajusteBolsinhaDate, setAjusteBolsinhaDate] = useState(getTodayString());
-  const [ajusteBolsinhaValor, setAjusteBolsinhaValor] = useState(0);
-  const [ajusteBolsinhaMotivo, setAjusteBolsinhaMotivo] = useState("");
-  const [ajusteBolsinhaObs, setAjusteBolsinhaObs] = useState("");
+  const [ajusteEspecieDate, setAjusteEspecieDate] = useState(getTodayString());
+  const [ajusteEspecieValor, setAjusteEspecieValor] = useState(0);
+  const [ajusteEspecieMotivo, setAjusteEspecieMotivo] = useState("");
+  const [ajusteEspecieObs, setAjusteEspecieObs] = useState("");
 
   // Ajuste Cofre state
-  const [ajusteReservaDate, setAjusteReservaDate] = useState(getTodayString());
-  const [ajusteReservaValor, setAjusteReservaValor] = useState(0);
-  const [ajusteReservaMotivo, setAjusteReservaMotivo] = useState("");
-  const [ajusteReservaObs, setAjusteReservaObs] = useState("");
+  const [ajusteCofreDate, setAjusteCofreDate] = useState(getTodayString());
+  const [ajusteCofreValor, setAjusteCofreValor] = useState(0);
+  const [ajusteCofreMotivo, setAjusteCofreMotivo] = useState("");
+  const [ajusteCofreObs, setAjusteCofreObs] = useState("");
 
   const associacaoEntity = entities?.find(e => e.type === "associacao");
-  const bolsinhaAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.BOLSINHA);
-  const reservaAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.RESERVA);
+  const especieAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE);
+  const cofreAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.COFRE);
   const pixAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.BB_ASSOCIACAO_PIX);
 
   const resetMensalidade = () => {
@@ -116,7 +116,7 @@ export default function AssociacaoPage() {
       toast({ title: "Erro", description: "Informe pelo menos um valor.", variant: "destructive" });
       return;
     }
-    if (!bolsinhaAccount || !pixAccount || !associacaoEntity) return;
+    if (!especieAccount || !pixAccount || !associacaoEntity) return;
 
     if (mensalidadeCash > 0) {
       await createTransaction.mutateAsync({
@@ -124,7 +124,7 @@ export default function AssociacaoPage() {
           transaction_date: mensalidadeDate,
           module: "mensalidade",
           entity_id: associacaoEntity.id,
-          destination_account_id: bolsinhaAccount.id,
+          destination_account_id: especieAccount.id,
           amount: mensalidadeCash,
           direction: "in",
           payment_method: "cash",
@@ -170,7 +170,7 @@ export default function AssociacaoPage() {
     }
     if (!associacaoEntity) return;
 
-    const sourceAccount = gastoMeio === "cash" ? bolsinhaAccount : pixAccount;
+    const sourceAccount = gastoMeio === "cash" ? especieAccount : pixAccount;
     if (!sourceAccount) return;
 
     await createTransaction.mutateAsync({
@@ -228,7 +228,7 @@ export default function AssociacaoPage() {
     await createTransaction.mutateAsync({
       transaction: {
         transaction_date: movDate,
-        module: "bolsinha_transfer",
+        module: "especie_transfer",
         entity_id: associacaoEntity.id,
         source_account_id: sourceAccount.id,
         destination_account_id: destAccount.id,
@@ -244,80 +244,74 @@ export default function AssociacaoPage() {
     setOpenDialog(null);
   };
 
-  const handleAjusteBolsinhaSubmit = async () => {
-    if (!ajusteBolsinhaMotivo.trim()) {
-      toast({ title: "Erro", description: "Informe o motivo do ajuste.", variant: "destructive" });
+  const handleAjusteEspecieSubmit = async () => {
+    if (!ajusteEspecieMotivo.trim()) {
+      toast({ title: "Erro", description: "Informe o motivo.", variant: "destructive" });
       return;
     }
-    if (ajusteBolsinhaValor === 0) {
-      toast({ title: "Erro", description: "Informe o valor do ajuste.", variant: "destructive" });
+    if (ajusteEspecieValor === 0) {
+      toast({ title: "Erro", description: "Informe o valor.", variant: "destructive" });
       return;
     }
-    if (!bolsinhaAccount || !associacaoEntity) return;
-
-    const direction = ajusteBolsinhaValor > 0 ? "in" : "out";
-    const absAmount = Math.abs(ajusteBolsinhaValor);
-
+    if (!especieAccount || !associacaoEntity) return;
+    const direction = ajusteEspecieValor > 0 ? "in" : "out";
+    const absAmount = Math.abs(ajusteEspecieValor);
     await createTransaction.mutateAsync({
       transaction: {
-        transaction_date: ajusteBolsinhaDate,
-        module: "bolsinha_ajuste",
+        transaction_date: ajusteEspecieDate,
+        module: "especie_ajuste",
         entity_id: associacaoEntity.id,
-        destination_account_id: bolsinhaAccount.id,
+        destination_account_id: especieAccount.id,
         amount: absAmount,
-        direction: direction,
-        description: ajusteBolsinhaMotivo,
-        notes: ajusteBolsinhaObs || null,
+        direction,
+        description: ajusteEspecieMotivo,
+        notes: ajusteEspecieObs || null,
       },
     });
-
     toast({ title: "Sucesso", description: "Ajuste registrado." });
-    setAjusteBolsinhaDate(getTodayString());
-    setAjusteBolsinhaValor(0);
-    setAjusteBolsinhaMotivo("");
-    setAjusteBolsinhaObs("");
+    setAjusteEspecieDate(getTodayString());
+    setAjusteEspecieValor(0);
+    setAjusteEspecieMotivo("");
+    setAjusteEspecieObs("");
     setOpenDialog(null);
   };
 
-  const handleAjusteReservaSubmit = async () => {
-    if (!ajusteReservaMotivo.trim()) {
-      toast({ title: "Erro", description: "Informe o motivo do ajuste.", variant: "destructive" });
+  const handleAjusteCofreSubmit = async () => {
+    if (!ajusteCofreMotivo.trim()) {
+      toast({ title: "Erro", description: "Informe o motivo.", variant: "destructive" });
       return;
     }
-    if (ajusteReservaValor === 0) {
-      toast({ title: "Erro", description: "Informe o valor do ajuste.", variant: "destructive" });
+    if (ajusteCofreValor === 0) {
+      toast({ title: "Erro", description: "Informe o valor.", variant: "destructive" });
       return;
     }
-    if (!reservaAccount || !associacaoEntity) return;
-
-    const direction = ajusteReservaValor > 0 ? "in" : "out";
-    const absAmount = Math.abs(ajusteReservaValor);
-
+    if (!cofreAccount || !associacaoEntity) return;
+    const direction = ajusteCofreValor > 0 ? "in" : "out";
+    const absAmount = Math.abs(ajusteCofreValor);
     await createTransaction.mutateAsync({
       transaction: {
-        transaction_date: ajusteReservaDate,
-        module: "reserva_ajuste",
+        transaction_date: ajusteCofreDate,
+        module: "cofre_ajuste",
         entity_id: associacaoEntity.id,
-        destination_account_id: reservaAccount.id,
+        destination_account_id: cofreAccount.id,
         amount: absAmount,
-        direction: direction,
-        description: ajusteReservaMotivo,
-        notes: ajusteReservaObs || null,
+        direction,
+        description: ajusteCofreMotivo,
+        notes: ajusteCofreObs || null,
       },
     });
-
     toast({ title: "Sucesso", description: "Ajuste registrado." });
-    setAjusteReservaDate(getTodayString());
-    setAjusteReservaValor(0);
-    setAjusteReservaMotivo("");
-    setAjusteReservaObs("");
+    setAjusteCofreDate(getTodayString());
+    setAjusteCofreValor(0);
+    setAjusteCofreMotivo("");
+    setAjusteCofreObs("");
     setOpenDialog(null);
   };
 
   // Get display name for account
   const getAccountDisplayName = (name: string) => {
-    if (name === ACCOUNT_NAMES.BOLSINHA) return "Espécie";
-    if (name === ACCOUNT_NAMES.RESERVA) return "Cofre";
+    if (name === ACCOUNT_NAMES.ESPECIE) return "Espécie";
+    if (name === ACCOUNT_NAMES.COFRE) return "Cofre";
     if (name === ACCOUNT_NAMES.BB_ASSOCIACAO_PIX) return "PIX";
     return name;
   };
@@ -350,7 +344,7 @@ export default function AssociacaoPage() {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <p className="text-2xl font-bold text-foreground">
-                  {formatCurrencyBRL(bolsinhaAccount?.balance || 0)}
+                  {formatCurrencyBRL(especieAccount?.balance || 0)}
                 </p>
               )}
             </CardContent>
@@ -368,7 +362,7 @@ export default function AssociacaoPage() {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <p className="text-2xl font-bold text-foreground">
-                  {formatCurrencyBRL(reservaAccount?.balance || 0)}
+                  {formatCurrencyBRL(cofreAccount?.balance || 0)}
                 </p>
               )}
             </CardContent>
@@ -589,7 +583,7 @@ export default function AssociacaoPage() {
           <h2 className="text-lg font-semibold text-foreground mb-4">Ajustes</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {/* Ajustar Espécie */}
-            <Dialog open={openDialog === "ajuste-bolsinha"} onOpenChange={(open) => setOpenDialog(open ? "ajuste-bolsinha" : null)}>
+            <Dialog open={openDialog === "ajuste-especie"} onOpenChange={(open) => setOpenDialog(open ? "ajuste-especie" : null)}>
               <DialogTrigger asChild>
                 <Card className="cursor-pointer hover:shadow-elevated transition-shadow">
                   <CardContent className="pt-6">
@@ -607,36 +601,36 @@ export default function AssociacaoPage() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Ajustar Espécie</DialogTitle>
+                  <DialogTitle>Ajustar Saldo em Espécie</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label>Data *</Label>
-                    <DateInput value={ajusteBolsinhaDate} onChange={setAjusteBolsinhaDate} />
+                    <DateInput value={ajusteEspecieDate} onChange={setAjusteEspecieDate} />
                   </div>
                   <div className="space-y-2">
                     <Label>Valor do Ajuste (R$) *</Label>
                     <Input
                       type="text"
                       placeholder="Use - para reduzir (ex: -50,00)"
-                      value={ajusteBolsinhaValor === 0 ? "" : ajusteBolsinhaValor.toString().replace(".", ",")}
+                      value={ajusteEspecieValor === 0 ? "" : ajusteEspecieValor.toString().replace(".", ",")}
                       onChange={(e) => {
                         const val = e.target.value.replace(",", ".");
                         const num = parseFloat(val);
-                        setAjusteBolsinhaValor(isNaN(num) ? 0 : num);
+                        setAjusteEspecieValor(isNaN(num) ? 0 : num);
                       }}
                     />
                     <p className="text-xs text-muted-foreground">Positivo para adicionar, negativo para remover</p>
                   </div>
                   <div className="space-y-2">
                     <Label>Motivo *</Label>
-                    <Input value={ajusteBolsinhaMotivo} onChange={(e) => setAjusteBolsinhaMotivo(e.target.value)} placeholder="Ex: Valor inicial do caixa" />
+                    <Input value={ajusteEspecieMotivo} onChange={(e) => setAjusteEspecieMotivo(e.target.value)} placeholder="Ex: Valor inicial do caixa" />
                   </div>
                   <div className="space-y-2">
                     <Label>Observação</Label>
-                    <Input value={ajusteBolsinhaObs} onChange={(e) => setAjusteBolsinhaObs(e.target.value)} placeholder="Opcional" />
+                    <Input value={ajusteEspecieObs} onChange={(e) => setAjusteEspecieObs(e.target.value)} placeholder="Opcional" />
                   </div>
-                  <Button className="w-full" onClick={handleAjusteBolsinhaSubmit} disabled={createTransaction.isPending}>
+                  <Button className="w-full" onClick={handleAjusteEspecieSubmit} disabled={createTransaction.isPending}>
                     {createTransaction.isPending ? "Registrando..." : "Registrar Ajuste"}
                   </Button>
                 </div>
@@ -644,7 +638,7 @@ export default function AssociacaoPage() {
             </Dialog>
 
             {/* Ajustar Cofre */}
-            <Dialog open={openDialog === "ajuste-reserva"} onOpenChange={(open) => setOpenDialog(open ? "ajuste-reserva" : null)}>
+            <Dialog open={openDialog === "ajuste-cofre"} onOpenChange={(open) => setOpenDialog(open ? "ajuste-cofre" : null)}>
               <DialogTrigger asChild>
                 <Card className="cursor-pointer hover:shadow-elevated transition-shadow">
                   <CardContent className="pt-6">
@@ -662,36 +656,36 @@ export default function AssociacaoPage() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Ajustar Cofre</DialogTitle>
+                  <DialogTitle>Ajustar Saldo do Cofre</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label>Data *</Label>
-                    <DateInput value={ajusteReservaDate} onChange={setAjusteReservaDate} />
+                    <DateInput value={ajusteCofreDate} onChange={setAjusteCofreDate} />
                   </div>
                   <div className="space-y-2">
                     <Label>Valor do Ajuste (R$) *</Label>
                     <Input
                       type="text"
                       placeholder="Use - para reduzir (ex: -50,00)"
-                      value={ajusteReservaValor === 0 ? "" : ajusteReservaValor.toString().replace(".", ",")}
+                      value={ajusteCofreValor === 0 ? "" : ajusteCofreValor.toString().replace(".", ",")}
                       onChange={(e) => {
                         const val = e.target.value.replace(",", ".");
                         const num = parseFloat(val);
-                        setAjusteReservaValor(isNaN(num) ? 0 : num);
+                        setAjusteCofreValor(isNaN(num) ? 0 : num);
                       }}
                     />
                     <p className="text-xs text-muted-foreground">Positivo para adicionar, negativo para remover</p>
                   </div>
                   <div className="space-y-2">
                     <Label>Motivo *</Label>
-                    <Input value={ajusteReservaMotivo} onChange={(e) => setAjusteReservaMotivo(e.target.value)} placeholder="Ex: Valor inicial do cofre" />
+                    <Input value={ajusteCofreMotivo} onChange={(e) => setAjusteCofreMotivo(e.target.value)} placeholder="Ex: Valor inicial do cofre" />
                   </div>
                   <div className="space-y-2">
                     <Label>Observação</Label>
-                    <Input value={ajusteReservaObs} onChange={(e) => setAjusteReservaObs(e.target.value)} placeholder="Opcional" />
+                    <Input value={ajusteCofreObs} onChange={(e) => setAjusteCofreObs(e.target.value)} placeholder="Opcional" />
                   </div>
-                  <Button className="w-full" onClick={handleAjusteReservaSubmit} disabled={createTransaction.isPending}>
+                  <Button className="w-full" onClick={handleAjusteCofreSubmit} disabled={createTransaction.isPending}>
                     {createTransaction.isPending ? "Registrando..." : "Registrar Ajuste"}
                   </Button>
                 </div>

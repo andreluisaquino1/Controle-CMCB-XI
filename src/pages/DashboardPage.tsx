@@ -78,7 +78,7 @@ export default function DashboardPage() {
   const ueEntity = entitiesData?.entities?.find(e => e.type === "ue");
   const cxEntity = entitiesData?.entities?.find(e => e.type === "cx");
 
-  const bolsinhaAccount = assocAccounts?.find(a => a.name === ACCOUNT_NAMES.BOLSINHA);
+  const especieAccount = assocAccounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE);
   const pixAccount = assocAccounts?.find(a => a.name === ACCOUNT_NAMES.BB_ASSOCIACAO_PIX);
 
   const resetMensalidade = () => {
@@ -91,7 +91,7 @@ export default function DashboardPage() {
   const handleMensalidadeSubmit = async () => {
     if (!mensalidadeTurno) return toast({ title: "Erro", description: "Selecione o turno.", variant: "destructive" });
     if (mensalidadeCash === 0 && mensalidadePix === 0) return toast({ title: "Erro", description: "Informe um valor.", variant: "destructive" });
-    if (!bolsinhaAccount || !pixAccount || !associacaoEntity) return;
+    if (!especieAccount || !pixAccount || !associacaoEntity) return;
 
     if (mensalidadeCash > 0) {
       await createTransaction.mutateAsync({
@@ -99,7 +99,7 @@ export default function DashboardPage() {
           transaction_date: mensalidadeDate,
           module: "mensalidade",
           entity_id: associacaoEntity.id,
-          destination_account_id: bolsinhaAccount.id,
+          destination_account_id: especieAccount.id,
           amount: mensalidadeCash,
           direction: "in",
           payment_method: "cash",
@@ -137,7 +137,7 @@ export default function DashboardPage() {
     if (!gastoAssocDesc.trim()) return toast({ title: "Erro", description: "Informe a descrição.", variant: "destructive" });
     if (!associacaoEntity) return;
 
-    const sourceAccount = gastoAssocMeio === "cash" ? bolsinhaAccount : pixAccount;
+    const sourceAccount = gastoAssocMeio === "cash" ? especieAccount : pixAccount;
     if (!sourceAccount) return;
 
     await createTransaction.mutateAsync({
@@ -355,7 +355,7 @@ export default function DashboardPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             <Card className="stat-card-primary">
               <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2"><Wallet className="h-4 w-4" />Espécie</CardTitle></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{formatCurrencyBRL(data.bolsinhaBalance)}</p></CardContent>
+              <CardContent><p className="text-2xl font-bold">{formatCurrencyBRL(data.especieBalance)}</p></CardContent>
             </Card>
             <Card className="stat-card-secondary">
               <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2"><CreditCard className="h-4 w-4" />PIX</CardTitle></CardHeader>
@@ -363,7 +363,7 @@ export default function DashboardPage() {
             </Card>
             <Card className="stat-card-accent">
               <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2"><Wallet className="h-4 w-4" />Cofre</CardTitle></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{formatCurrencyBRL(data.reservaBalance)}</p></CardContent>
+              <CardContent><p className="text-2xl font-bold">{formatCurrencyBRL(data.cofreBalance)}</p></CardContent>
             </Card>
           </div>
         </section>

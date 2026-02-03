@@ -10,8 +10,8 @@ interface MerchantBalance {
 }
 
 export interface DashboardData {
-  bolsinhaBalance: number;
-  reservaBalance: number;
+  especieBalance: number;
+  cofreBalance: number;
   pixBalance: number;
   weeklyExpensesCash: number;
   weeklyExpensesPix: number;
@@ -39,8 +39,8 @@ async function fetchCurrentBalances(): Promise<Partial<DashboardData>> {
 
   const result = data as any;
   return {
-    bolsinhaBalance: Number(result?.bolsinhaBalance || 0),
-    reservaBalance: Number(result?.reservaBalance || 0),
+    especieBalance: Number(result?.especieBalance || 0),
+    cofreBalance: Number(result?.cofreBalance || 0),
     pixBalance: Number(result?.pixBalance || 0),
     merchantBalances: result?.merchantBalances || [],
     resourceBalances: result?.resourceBalances || { UE: [], CX: [] },
