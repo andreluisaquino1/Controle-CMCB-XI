@@ -102,8 +102,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            // Restriction: Only admin can see Users and Logs
-            const isRestricted = item.label === "Usuários" || item.label === "Logs";
+            // Restriction: Only admin can see Users
+            const isRestricted = item.label === "Usuários";
             if (isRestricted && !isAdmin) {
               return null;
             }

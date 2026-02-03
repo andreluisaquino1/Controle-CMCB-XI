@@ -21,13 +21,19 @@ export default function LogPage() {
             const { data, error } = await supabase
                 .from("audit_logs")
                 .select(`
-          *,
-          profiles:user_id (name),
-          transactions:transaction_id (module, amount, description)
+          id,
+          created_at,
+          action,
+          reason,
+          profiles:profiles!audit_logs_user_id_profiles_fkey(name),
+          transactions:transactions!audit_logs_transaction_id_fkey(description, amount)
         `)
                 .order("created_at", { ascending: false });
 
-            if (error) throw error;
+            if (error) {
+                console.error("Erro ao buscar logs:", error);
+                throw error;
+            }
             return data;
         },
     });
@@ -36,7 +42,7 @@ export default function LogPage() {
         <DashboardLayout>
             <div className="space-y-6 animate-fade-in">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Auditogria e Logs</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Auditoria e Logs</h1>
                     <p className="text-muted-foreground">Rastreabilidade de edições e anulações de transações</p>
                 </div>
 
