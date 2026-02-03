@@ -66,13 +66,13 @@ export default function AssociacaoPage() {
   const [movDescricao, setMovDescricao] = useState("");
   const [movObs, setMovObs] = useState("");
 
-  // Ajuste Bolsinha state
+  // Ajuste Espécie state
   const [ajusteBolsinhaDate, setAjusteBolsinhaDate] = useState(getTodayString());
   const [ajusteBolsinhaValor, setAjusteBolsinhaValor] = useState(0);
   const [ajusteBolsinhaMotivo, setAjusteBolsinhaMotivo] = useState("");
   const [ajusteBolsinhaObs, setAjusteBolsinhaObs] = useState("");
 
-  // Ajuste Reserva state
+  // Ajuste Cofre state
   const [ajusteReservaDate, setAjusteReservaDate] = useState(getTodayString());
   const [ajusteReservaValor, setAjusteReservaValor] = useState(0);
   const [ajusteReservaMotivo, setAjusteReservaMotivo] = useState("");
@@ -131,9 +131,6 @@ export default function AssociacaoPage() {
           shift: mensalidadeTurno as "matutino" | "vespertino",
           description: `Mensalidade ${mensalidadeTurno}`,
         },
-        accountUpdates: [
-          { accountId: bolsinhaAccount.id, amount: mensalidadeCash, operation: "add" },
-        ],
       });
     }
 
@@ -150,9 +147,6 @@ export default function AssociacaoPage() {
           shift: mensalidadeTurno as "matutino" | "vespertino",
           description: `Mensalidade ${mensalidadeTurno}`,
         },
-        accountUpdates: [
-          { accountId: pixAccount.id, amount: mensalidadePix, operation: "add" },
-        ],
       });
     }
 
@@ -191,9 +185,6 @@ export default function AssociacaoPage() {
         description: gastoDescricao,
         notes: gastoObs || null,
       },
-      accountUpdates: [
-        { accountId: sourceAccount.id, amount: gastoValor, operation: "subtract" },
-      ],
     });
 
     toast({ title: "Sucesso", description: "Gasto registrado." });
@@ -226,10 +217,10 @@ export default function AssociacaoPage() {
 
     // Validate balance
     if (movValor > sourceAccount.balance) {
-      toast({ 
-        title: "Erro", 
-        description: `Saldo insuficiente. Disponível: ${formatCurrencyBRL(sourceAccount.balance)}`, 
-        variant: "destructive" 
+      toast({
+        title: "Erro",
+        description: `Saldo insuficiente. Disponível: ${formatCurrencyBRL(sourceAccount.balance)}`,
+        variant: "destructive"
       });
       return;
     }
@@ -246,10 +237,6 @@ export default function AssociacaoPage() {
         description: movDescricao,
         notes: movObs || null,
       },
-      accountUpdates: [
-        { accountId: sourceAccount.id, amount: movValor, operation: "subtract" },
-        { accountId: destAccount.id, amount: movValor, operation: "add" },
-      ],
     });
 
     toast({ title: "Sucesso", description: "Movimentação registrada." });
@@ -282,13 +269,6 @@ export default function AssociacaoPage() {
         description: ajusteBolsinhaMotivo,
         notes: ajusteBolsinhaObs || null,
       },
-      accountUpdates: [
-        { 
-          accountId: bolsinhaAccount.id, 
-          amount: absAmount, 
-          operation: ajusteBolsinhaValor > 0 ? "add" : "subtract" 
-        },
-      ],
     });
 
     toast({ title: "Sucesso", description: "Ajuste registrado." });
@@ -324,13 +304,6 @@ export default function AssociacaoPage() {
         description: ajusteReservaMotivo,
         notes: ajusteReservaObs || null,
       },
-      accountUpdates: [
-        { 
-          accountId: reservaAccount.id, 
-          amount: absAmount, 
-          operation: ajusteReservaValor > 0 ? "add" : "subtract" 
-        },
-      ],
     });
 
     toast({ title: "Sucesso", description: "Ajuste registrado." });
@@ -643,9 +616,9 @@ export default function AssociacaoPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Valor do Ajuste (R$) *</Label>
-                    <Input 
-                      type="text" 
-                      placeholder="Use - para reduzir (ex: -50,00)" 
+                    <Input
+                      type="text"
+                      placeholder="Use - para reduzir (ex: -50,00)"
                       value={ajusteBolsinhaValor === 0 ? "" : ajusteBolsinhaValor.toString().replace(".", ",")}
                       onChange={(e) => {
                         const val = e.target.value.replace(",", ".");
@@ -698,9 +671,9 @@ export default function AssociacaoPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Valor do Ajuste (R$) *</Label>
-                    <Input 
-                      type="text" 
-                      placeholder="Use - para reduzir (ex: -50,00)" 
+                    <Input
+                      type="text"
+                      placeholder="Use - para reduzir (ex: -50,00)"
                       value={ajusteReservaValor === 0 ? "" : ajusteReservaValor.toString().replace(".", ",")}
                       onChange={(e) => {
                         const val = e.target.value.replace(",", ".");
@@ -768,10 +741,9 @@ export default function AssociacaoPage() {
                             {MODULE_LABELS[t.module] || t.module}
                           </span>
                         </TableCell>
-                        <TableCell className={`text-right font-medium ${
-                          t.direction === "in" ? "text-success" : 
+                        <TableCell className={`text-right font-medium ${t.direction === "in" ? "text-success" :
                           t.direction === "out" ? "text-destructive" : ""
-                        }`}>
+                          }`}>
                           {t.direction === "in" ? "+" : t.direction === "out" ? "-" : ""}
                           {formatCurrencyBRL(Number(t.amount))}
                         </TableCell>
@@ -806,7 +778,7 @@ export default function AssociacaoPage() {
               <strong>CNPJ:</strong> 37.812.756/0001-45
             </p>
             <p className="mt-2">
-              A Associação é a única entidade com dinheiro em espécie (Espécie e Cofre). 
+              A Associação é a única entidade com dinheiro em espécie (Espécie e Cofre).
               Recebe mensalidades escolares e é usada para despesas do dia-a-dia.
             </p>
           </CardContent>

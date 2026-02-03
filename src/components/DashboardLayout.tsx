@@ -155,10 +155,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen">
-        <div className="p-4 lg:p-6 max-w-7xl mx-auto">
+      <main className="lg:ml-64 min-h-screen flex flex-col">
+        <div className="flex-1 p-4 lg:p-6 max-w-7xl mx-auto w-full">
           {children}
         </div>
+        <footer className="p-4 border-t border-sidebar-border text-center text-xs text-muted-foreground bg-sidebar/5">
+          <p>CMCB-XI • Sistema de Prestação de Contas • Build: 8a4809d</p>
+        </footer>
       </main>
     </div>
   );

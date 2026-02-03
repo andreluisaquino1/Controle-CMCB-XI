@@ -6,25 +6,19 @@ interface Merchant {
   id: string;
   name: string;
   balance: number;
-  mode: "saldo";
   active: boolean;
 }
 
-export function useMerchants(mode?: "saldo") {
+export function useMerchants() {
   return useQuery({
-    queryKey: ["merchants", mode],
+    queryKey: ["merchants"],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("merchants")
         .select("*")
         .eq("active", true)
         .order("name");
 
-      if (mode) {
-        query = query.eq("mode", mode);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return data as Merchant[];
     },
@@ -38,14 +32,12 @@ export function useCreateMerchant() {
   return useMutation({
     mutationFn: async ({
       name,
-      mode,
     }: {
       name: string;
-      mode: "saldo";
     }) => {
       const { data, error } = await supabase
         .from("merchants")
-        .insert({ name, mode })
+        .insert({ name })
         .select()
         .single();
 

@@ -113,6 +113,55 @@ export default function RecursosPage() {
           </div>
         </div>
 
+        {/* Saldos por Conta Block */}
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Unidade Executora Column */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Building2 className="h-4 w-4" /> Unidade Executora
+              </h3>
+              <div className="grid gap-2">
+                {entitiesLoading ? (
+                  <div className="h-20 flex items-center justify-center bg-muted/20 rounded-lg"><Loader2 className="h-5 w-5 animate-spin" /></div>
+                ) : entitiesData?.accounts?.filter(a => a.entity_id === ueEntity?.id).map(acc => (
+                  <Card key={acc.id} className="bg-card border-none shadow-sm">
+                    <CardContent className="p-4 flex justify-between items-center">
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium text-foreground">{cleanAccountDisplayName(acc.name)}</p>
+                        <p className="text-[10px] text-muted-foreground">{acc.account_number || "Sem conta"}</p>
+                      </div>
+                      <p className={`font-bold ${acc.balance < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrencyBRL(acc.balance)}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Caixa Escolar Column */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Building2 className="h-4 w-4" /> Caixa Escolar
+              </h3>
+              <div className="grid gap-2">
+                {entitiesLoading ? (
+                  <div className="h-20 flex items-center justify-center bg-muted/20 rounded-lg"><Loader2 className="h-5 w-5 animate-spin" /></div>
+                ) : entitiesData?.accounts?.filter(a => a.entity_id === cxEntity?.id).map(acc => (
+                  <Card key={acc.id} className="bg-card border-none shadow-sm">
+                    <CardContent className="p-4 flex justify-between items-center">
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium text-foreground">{cleanAccountDisplayName(acc.name)}</p>
+                        <p className="text-[10px] text-muted-foreground">{acc.account_number || "Sem conta"}</p>
+                      </div>
+                      <p className={`font-bold ${acc.balance < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrencyBRL(acc.balance)}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Action Cards */}
         <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
           <Dialog open={openDialog === "entrada"} onOpenChange={(open) => { setOpenDialog(open ? "entrada" : null); if (!open) resetForm(); }}>
@@ -270,7 +319,7 @@ export default function RecursosPage() {
                     {entitiesData?.accounts
                       ?.filter(a => a.entity_id === ueEntity?.id)
                       .map(a => (
-                        <li key={a.id}>• {cleanAccountDisplayName(a.name)}</li>
+                        <li key={a.id}>• {cleanAccountDisplayName(a.name)} ({a.account_number || "Sem número"})</li>
                       ))}
                     {!entitiesData?.accounts?.some(a => a.entity_id === ueEntity?.id) && (
                       <li>Nenhuma conta encontrada</li>
@@ -287,7 +336,7 @@ export default function RecursosPage() {
                     {entitiesData?.accounts
                       ?.filter(a => a.entity_id === cxEntity?.id)
                       .map(a => (
-                        <li key={a.id}>• {cleanAccountDisplayName(a.name)}</li>
+                        <li key={a.id}>• {cleanAccountDisplayName(a.name)} ({a.account_number || "Sem número"})</li>
                       ))}
                     {!entitiesData?.accounts?.some(a => a.entity_id === cxEntity?.id) && (
                       <li>Nenhuma conta encontrada</li>

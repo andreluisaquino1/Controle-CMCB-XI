@@ -37,9 +37,6 @@ import { formatCurrencyBRL } from "@/lib/currency";
 import { formatDateBR, getWeekStartDate, formatDateString, getTodayString } from "@/lib/date-utils";
 import { MODULE_LABELS } from "@/lib/constants";
 import { DateInput } from "@/components/forms/DateInput";
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 export default function RelatoriosPage() {
   const { toast } = useToast();
@@ -111,8 +108,11 @@ export default function RelatoriosPage() {
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
   };
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
     if (!dashboardData || !transactions) return;
+
+    // Dynamically import XLSX
+    const XLSX = await import("xlsx");
 
     // Create workbook
     const wb = XLSX.utils.book_new();
@@ -132,7 +132,7 @@ export default function RelatoriosPage() {
       ["Entradas PIX", formatCurrencyBRL(dashboardData.weeklyEntriesPix)],
       [],
       ["SALDOS EM ESTABELECIMENTOS"],
-      ...dashboardData.merchantBalances.map(m => [m.name, formatCurrencyBRL(Number(m.balance))]),
+      ...(dashboardData.merchantBalances || []).map(m => [m.name, formatCurrencyBRL(Number(m.balance))]),
     ];
     const wsSum = XLSX.utils.aoa_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(wb, wsSum, "Resumo");
@@ -157,8 +157,12 @@ export default function RelatoriosPage() {
     toast({ title: "Sucesso", description: "Arquivo Excel exportado." });
   };
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     if (!dashboardData || !transactions) return;
+
+    // Dynamically import jsPDF and autoTable
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
 
     const doc = new jsPDF();
 
@@ -186,7 +190,7 @@ export default function RelatoriosPage() {
 
     let yPos = 122;
     doc.setFontSize(10);
-    dashboardData.merchantBalances.forEach(m => {
+    (dashboardData.merchantBalances || []).forEach(m => {
       doc.text(`${m.name}: ${formatCurrencyBRL(Number(m.balance))}`, 14, yPos);
       yPos += 7;
     });

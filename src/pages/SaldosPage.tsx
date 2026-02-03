@@ -47,7 +47,7 @@ export default function SaldosPage() {
   const [deletingMerchant, setDeletingMerchant] = useState<{ id: string; name: string } | null>(null);
   const { toast } = useToast();
 
-  const { data: merchants, refetch: refetchMerchants } = useMerchants("saldo");
+  const { data: merchants, refetch: refetchMerchants } = useMerchants();
   const { data: entitiesData } = useEntitiesWithAccounts();
   const { data: transactions, isLoading: transactionsLoading } = useSaldosTransactions();
   const createMerchant = useCreateMerchant();
@@ -106,7 +106,7 @@ export default function SaldosPage() {
 
   const handleAddMerchant = async () => {
     if (!newMerchantName.trim()) return;
-    await createMerchant.mutateAsync({ name: newMerchantName, mode: "saldo" });
+    await createMerchant.mutateAsync({ name: newMerchantName });
     setNewMerchantName("");
     setOpenDialog(null);
     refetchMerchants();

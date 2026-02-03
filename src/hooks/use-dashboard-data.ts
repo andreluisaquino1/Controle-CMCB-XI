@@ -29,45 +29,68 @@ export interface DashboardData {
   periodEnd: string;
 }
 
-async function fetchDashboardSummary(startDate?: string, endDate?: string): Promise<DashboardData> {
-  const start = startDate || formatDateString(getWeekStartDate());
-  const end = endDate || getTodayString();
-
-  const { data, error } = await supabase.rpc("get_dashboard_summary", {
-    start_date: start,
-    end_date: end,
-  });
+async function fetchCurrentBalances(): Promise<Partial<DashboardData>> {
+  const { data, error } = await supabase.rpc("get_current_balances");
 
   if (error) {
-    console.error("Error fetching dashboard summary:", error);
+    console.error("Error fetching current balances:", error);
     throw error;
   }
 
   const result = data as any;
-
   return {
     bolsinhaBalance: Number(result?.bolsinhaBalance || 0),
     reservaBalance: Number(result?.reservaBalance || 0),
     pixBalance: Number(result?.pixBalance || 0),
+    merchantBalances: result?.merchantBalances || [],
+    resourceBalances: result?.resourceBalances || { UE: [], CX: [] },
+  };
+}
+
+async function fetchReportSummary(startDate: string, endDate: string): Promise<Partial<DashboardData>> {
+  const { data, error } = await supabase.rpc("get_report_summary", {
+    p_start_date: startDate,
+    p_end_date: endDate,
+  });
+
+  if (error) {
+    console.error("Error fetching report summary:", error);
+    throw error;
+  }
+
+  const result = data as any;
+  return {
     weeklyExpensesCash: Number(result?.weeklyExpensesCash || 0),
     weeklyExpensesPix: Number(result?.weeklyExpensesPix || 0),
     weeklyEntriesCash: Number(result?.weeklyEntriesCash || 0),
     weeklyEntriesPix: Number(result?.weeklyEntriesPix || 0),
-    weeklyDeposits: Number(result?.weeklyDeposits || 0),
-    weeklyConsumption: Number(result?.weeklyConsumption || 0),
-    weeklyDirectPix: Number(result?.weeklyDirectPix || 0),
-    merchantBalances: result?.merchantBalances || [],
-    resourceBalances: result?.resourceBalances || { UE: [], CX: [] },
-    periodStart: result?.periodStart || start,
-    periodEnd: result?.periodEnd || end,
   };
 }
 
 export function useDashboardData(startDate?: string, endDate?: string) {
   return useQuery({
-    queryKey: ["dashboard-summary", startDate, endDate],
-    queryFn: () => fetchDashboardSummary(startDate, endDate),
-    staleTime: 1000 * 30, // Consider data fresh for 30 seconds
+    queryKey: ["dashboard-data", startDate, endDate],
+    queryFn: async () => {
+      const current = await fetchCurrentBalances();
+      let report = {};
+
+      if (startDate && endDate) {
+        report = await fetchReportSummary(startDate, endDate);
+      } else {
+        // Default to current week for summary if no dates provided
+        const start = formatDateString(getWeekStartDate());
+        const end = getTodayString();
+        report = await fetchReportSummary(start, end);
+      }
+
+      return {
+        ...current,
+        ...report,
+        periodStart: startDate || formatDateString(getWeekStartDate()),
+        periodEnd: endDate || getTodayString(),
+      } as DashboardData;
+    },
+    staleTime: 1000 * 30,
     refetchOnWindowFocus: true,
   });
 }
