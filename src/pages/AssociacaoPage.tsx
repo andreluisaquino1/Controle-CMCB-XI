@@ -350,24 +350,6 @@ export default function AssociacaoPage() {
             </CardContent>
           </Card>
 
-          <Card className="stat-card-accent">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Wallet className="h-4 w-4" />
-                Cofre
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {accountsLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <p className="text-2xl font-bold text-foreground">
-                  {formatCurrencyBRL(cofreAccount?.balance || 0)}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
           <Card className="stat-card-secondary">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -381,6 +363,24 @@ export default function AssociacaoPage() {
               ) : (
                 <p className={`text-2xl font-bold ${(pixAccount?.balance || 0) < 0 ? "text-destructive" : "text-foreground"}`}>
                   {formatCurrencyBRL(pixAccount?.balance || 0)}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="stat-card-accent">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Wallet className="h-4 w-4" />
+                Cofre
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {accountsLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <p className="text-2xl font-bold text-foreground">
+                  {formatCurrencyBRL(cofreAccount?.balance || 0)}
                 </p>
               )}
             </CardContent>

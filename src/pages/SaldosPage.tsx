@@ -78,12 +78,20 @@ export default function SaldosPage() {
   const cxEntity = entitiesData?.entities?.find(e => e.type === "cx");
 
   // Get accounts filtered by origin
-  const filteredAccounts = entitiesData?.accounts?.filter(acc => {
+  const filteredAccounts = (entitiesData?.accounts?.filter(acc => {
     if (aporteOrigem === "ASSOC") return acc.entity_id === associacaoEntity?.id;
     if (aporteOrigem === "UE") return acc.entity_id === ueEntity?.id;
     if (aporteOrigem === "CX") return acc.entity_id === cxEntity?.id;
     return false;
-  }) || [];
+  }) || []).sort((a, b) => {
+    const order = ["Espécie", "BB Associação (PIX)", "Cofre"];
+    const idxA = order.indexOf(a.name);
+    const idxB = order.indexOf(b.name);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.name.localeCompare(b.name);
+  });
 
   const resetAporte = () => {
     setAporteDate(getTodayString());
