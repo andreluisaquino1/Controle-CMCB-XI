@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { toast } from "sonner";
-import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrencyBRL } from '@/lib/currency';
@@ -12,41 +11,59 @@ export function useReports(
     endDate: string,
     dashboardData: DashboardData | undefined,
     reportData: ReportData | undefined,
-    transactions: TransactionWithCreator[] | undefined
+    transactions: TransactionWithCreator[] | undefined,
+    showResources: boolean
 ) {
     const getWhatsAppReportText = useCallback(() => {
         if (!dashboardData || !reportData) {
             return "Carregando dados...";
         }
 
-        return `
-📊 *RELATÓRIO FINANCEIRO CMCB-XI* 📊
-📅 Período: ${formatDateBR(startDate)} a ${formatDateBR(endDate)}
+        // 2.1 Associação
+        const associacaoSection = `
+2.1 Associação
+Saldos atuais:
+Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}
+PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}
+Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}
 
-💰 *SALDOS ATUAIS*
-💵 Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}
-🏦 Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}
-📱 PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}
-_________________________
+Resumo do período:
+Entradas espécie: ${formatCurrencyBRL(reportData.weeklyEntriesCash)}
+Entradas PIX: ${formatCurrencyBRL(reportData.weeklyEntriesPix)}
+Saídas espécie: ${formatCurrencyBRL(reportData.weeklyExpensesCash)}
+Saídas PIX: ${formatCurrencyBRL(reportData.weeklyExpensesPix)}
+`.trim();
 
-📈 *RESUMO DO PERÍODO*
-📥 Entradas (Espécie): ${formatCurrencyBRL(reportData.weeklyEntriesCash)}
-📥 Entradas (PIX): ${formatCurrencyBRL(reportData.weeklyEntriesPix)}
-📤 Saídas (Espécie): ${formatCurrencyBRL(reportData.weeklyExpensesCash)}
-📤 Saídas (PIX): ${formatCurrencyBRL(reportData.weeklyExpensesPix)}
-_________________________
+        // 2.2 Saldos dos Estabelecimentos
+        const activeMerchants = dashboardData.merchantBalances.filter(m => m.balance !== 0);
+        let estabelecimentosSection = "2.2 Saldos dos Estabelecimentos\n";
 
-🏪 *SALDOS NOS ESTABELECIMENTOS*
-${dashboardData.merchantBalances.map(m => `• ${m.name}: ${formatCurrencyBRL(m.balance)}`).join('\n')}
-_________________________
+        if (activeMerchants.length > 0) {
+            estabelecimentosSection += activeMerchants.map(m => `${m.name}: ${formatCurrencyBRL(m.balance)}`).join('\n');
+        } else {
+            estabelecimentosSection += "Todos os saldos zerados";
+        }
 
-🏫 *RECURSOS POR ENTIDADE*
-*UE:* ${dashboardData.resourceBalances.UE.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`).join(', ')}
-*CX:* ${dashboardData.resourceBalances.CX.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`).join(', ')}
+        // 2.3 Recursos (Opcional)
+        let recursosSection = "";
+        if (showResources) {
+            recursosSection = `
+2.3 Recursos (UE/CX)
+UE: ${dashboardData.resourceBalances.UE.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`).join(', ')}
+CX: ${dashboardData.resourceBalances.CX.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`).join(', ')}
+`.trim();
+        }
 
-✅ Gerado automaticamente pelo Sistema de Gestão CMCB-XI
-        `.trim();
-    }, [dashboardData, reportData, startDate, endDate]);
+        const parts = [
+            `📊 PRESTAÇÃO DE CONTAS CMCB-XI`,
+            `📅 DE ${formatDateBR(startDate)} À ${formatDateBR(endDate)}`,
+            associacaoSection,
+            estabelecimentosSection,
+            recursosSection
+        ].filter(Boolean);
+
+        return parts.join('\n\n');
+    }, [dashboardData, reportData, startDate, endDate, showResources]);
 
     const copyReport = useCallback(() => {
         const text = getWhatsAppReportText();
@@ -68,63 +85,115 @@ _________________________
         window.open(`https://wa.me/?text=${encodedText}`, '_blank');
     }, [getWhatsAppReportText]);
 
-    const exportExcel = useCallback(() => {
-        if (!transactions || transactions.length === 0) {
-            toast.error("Nenhuma transação para exportar.");
-            return;
-        }
-
-        const data = transactions.map(t => ({
-            Data: formatDateBR(t.transaction_date),
-            Descrição: t.description,
-            Valor: t.amount,
-            Tipo: t.direction === 'in' ? 'Entrada' : t.direction === 'out' ? 'Saída' : 'Transferência',
-            Método: t.payment_method || '-',
-            Entidade: t.entity_name || '-',
-            Conta: t.source_account_name || t.destination_account_name || '-',
-            Criado_Por: t.creator_name || 'Sistema'
-        }));
-
-        const worksheet = XLSX.utils.json_to_sheet(data);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Transações");
-
-        XLSX.writeFile(workbook, `transacoes_${new Date().toISOString().split('T')[0]}.xlsx`);
-        toast.success("Arquivo Excel gerado com sucesso!");
-    }, [transactions]);
-
     const exportPDF = useCallback(() => {
-        if (!transactions || transactions.length === 0) {
-            toast.error("Nenhuma transação para exportar.");
+        if (!dashboardData || !reportData || !transactions) {
+            toast.error("Aguarde o carregamento dos dados.");
             return;
         }
 
         const doc = new jsPDF();
-        doc.text("Relatório de Transações CMCB-XI", 14, 15);
+        let yPos = 20;
+
+        // Cabeçalho
+        doc.setFontSize(16);
+        doc.text("Prestação de Contas CMCB-XI", 14, yPos);
+        yPos += 10;
+        doc.setFontSize(12);
+        doc.text(`Período: ${formatDateBR(startDate)} a ${formatDateBR(endDate)}`, 14, yPos);
+        yPos += 15;
+
+        // 2.1 Associação
+        doc.setFontSize(14);
+        doc.text("Associação", 14, yPos);
+        yPos += 8;
+        doc.setFontSize(12);
+        doc.text("Saldos atuais:", 14, yPos);
+        yPos += 6;
+        doc.text(`Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}`, 20, yPos);
+        yPos += 6;
+        doc.text(`PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}`, 20, yPos);
+        yPos += 10;
+
+        doc.text("Resumo do período:", 14, yPos);
+        yPos += 6;
+        doc.text(`Entradas espécie: ${formatCurrencyBRL(reportData.weeklyEntriesCash)}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Entradas PIX: ${formatCurrencyBRL(reportData.weeklyEntriesPix)}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Saídas espécie: ${formatCurrencyBRL(reportData.weeklyExpensesCash)}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Saídas PIX: ${formatCurrencyBRL(reportData.weeklyExpensesPix)}`, 20, yPos);
+        yPos += 15;
+
+        // 2.2 Saldos dos Estabelecimentos
+        doc.setFontSize(14);
+        doc.text("Saldos dos Estabelecimentos", 14, yPos);
+        yPos += 8;
+        doc.setFontSize(12);
+
+        const activeMerchants = dashboardData.merchantBalances.filter(m => m.balance !== 0);
+        if (activeMerchants.length > 0) {
+            activeMerchants.forEach(m => {
+                doc.text(`${m.name}: ${formatCurrencyBRL(m.balance)}`, 20, yPos);
+                yPos += 6;
+            });
+        } else {
+            doc.text("Todos os saldos zerados", 20, yPos);
+            yPos += 6;
+        }
+        yPos += 10;
+
+        // 2.3 Recursos (Always included in PDF)
+        doc.setFontSize(14);
+        doc.text("Recursos (UE/CX)", 14, yPos);
+        yPos += 8;
+        doc.setFontSize(12);
+
+        const ueText = `UE: ${dashboardData.resourceBalances.UE.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`).join(', ')}`;
+        const cxText = `CX: ${dashboardData.resourceBalances.CX.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`).join(', ')}`;
+
+        const splitUe = doc.splitTextToSize(ueText, 180);
+        doc.text(splitUe, 20, yPos);
+        yPos += (splitUe.length * 6);
+
+        const splitCx = doc.splitTextToSize(cxText, 180);
+        doc.text(splitCx, 20, yPos);
+        yPos += (splitCx.length * 6) + 10;
+
+        // Transações
+        doc.setFontSize(14);
+        doc.text("Transações do Período", 14, yPos);
+        yPos += 6;
 
         const tableData = transactions.map(t => [
             formatDateBR(t.transaction_date),
-            t.description || '',
+            t.module,
+            t.source_account_name || t.destination_account_name || '-',
+            t.entity_name || '-',
             formatCurrencyBRL(t.amount),
-            t.direction === 'in' ? 'Entrada' : t.direction === 'out' ? 'Saída' : 'Transferência',
-            t.entity_name || '-'
+            t.description || '',
+            t.notes || '',
+            t.creator_name || '-'
         ]);
 
         autoTable(doc, {
-            head: [['Data', 'Descrição', 'Valor', 'Tipo', 'Entidade']],
+            startY: yPos,
+            head: [['Data', 'Módulo', 'Conta', 'Estab.', 'Valor', 'Descrição', 'Obs.', 'Reg. Por']],
             body: tableData,
-            startY: 20
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [41, 128, 185] },
         });
 
-        doc.save(`transacoes_${new Date().toISOString().split('T')[0]}.pdf`);
-        toast.success("Arquivo PDF gerado com sucesso!");
-    }, [transactions]);
+        doc.save(`prestacao_contas_${endDate}.pdf`);
+        toast.success("PDF gerado com sucesso!");
+    }, [dashboardData, reportData, transactions, startDate, endDate]);
 
     return {
         getWhatsAppReportText,
         copyReport,
         openWhatsApp,
-        exportExcel,
         exportPDF
     };
 }
