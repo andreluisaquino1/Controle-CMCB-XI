@@ -66,6 +66,7 @@ export default function DashboardPage() {
   const [gastoAssocValor, setGastoAssocValor] = useState(0);
   const [gastoAssocDesc, setGastoAssocDesc] = useState("");
   const [newShortcut, setNewShortcut] = useState("");
+  const [showShortcutInput, setShowShortcutInput] = useState(false);
   const { shortcuts, addShortcut, removeShortcut } = useExpenseShortcuts();
   // Aporte Estabelecimento
   const [aporteDate, setAporteDate] = useState(getTodayString());
@@ -382,31 +383,55 @@ export default function DashboardPage() {
                           </button>
                         </div>
                       ))}
+                      {!showShortcutInput && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[10px] px-2 text-muted-foreground hover:text-foreground"
+                          onClick={() => setShowShortcutInput(true)}
+                        >
+                          <PlusCircle className="h-3 w-3 mr-1" />
+                          Adicionar
+                        </Button>
+                      )}
                     </div>
-                    <div className="flex gap-2 items-center mb-4">
-                      <Input
-                        value={newShortcut}
-                        onChange={(e) => setNewShortcut(e.target.value)}
-                        placeholder="Novo atalho (ex: Gelo)"
-                        className="h-8 text-xs"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
+                    {showShortcutInput && (
+                      <div className="flex gap-2 items-center mb-4">
+                        <Input
+                          value={newShortcut}
+                          onChange={(e) => setNewShortcut(e.target.value)}
+                          placeholder="Novo atalho (ex: Gelo)"
+                          className="h-8 text-xs"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              addShortcut(newShortcut);
+                              setNewShortcut("");
+                              setShowShortcutInput(false);
+                            }
+                            if (e.key === 'Escape') {
+                              setNewShortcut("");
+                              setShowShortcutInput(false);
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => {
                             addShortcut(newShortcut);
                             setNewShortcut("");
-                          }
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => { addShortcut(newShortcut); setNewShortcut(""); }}
-                      >
-                        <PlusCircle className="h-4 w-4" />
-                      </Button>
-                    </div>
+                            setShowShortcutInput(false);
+                          }}
+                        >
+                          <PlusCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                     <Input
                       value={gastoAssocDesc}
                       onChange={(e) => setGastoAssocDesc(e.target.value)}
