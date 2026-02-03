@@ -318,30 +318,31 @@ export default function DashboardPage() {
             <Dialog open={openDialog === "consumo-mer"} onOpenChange={(o) => setOpenDialog(o ? "consumo-mer" : null)}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="h-16 justify-start gap-4 px-4 bg-orange-500/5 border-orange-500/20 hover:bg-orange-500/10 group">
-                  <Settings className="h-6 w-6 text-orange-500 transition-transform group-hover:scale-110" />
+                  <ArrowRightLeft className="h-6 w-6 text-orange-500 transition-transform group-hover:scale-110" />
                   <div className="text-left">
-                    <p className="font-semibold text-orange-500">Gasto em Loja</p>
+                    <p className="font-semibold text-orange-500">Gasto Estabelecimento</p>
                     <p className="text-xs text-muted-foreground">Baixa de saldo</p>
                   </div>
                 </Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle>Registrar Consumo</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>Registrar Consumo Estabelecimento</DialogTitle></DialogHeader>
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2"><Label>Data *</Label><DateInput value={consumoDate} onChange={setConsumoDate} /></div>
                   <div className="space-y-2">
-                    <Label>Loja *</Label>
+                    <Label>Estabelecimento *</Label>
                     <Select value={consumoMerchant} onValueChange={setConsumoMerchant}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>{data.merchantBalances.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2"><Label>Valor *</Label><CurrencyInput value={consumoValor} onChange={setConsumoValor} /></div>
-                  <div className="space-y-2"><Label>Descrição *</Label><Input value={consumoDesc} onChange={(e) => setConsumoDesc(e.target.value)} /></div>
-                  <Button className="w-full" onClick={handleConsumoSubmit} disabled={createTransaction.isPending}>Registrar</Button>
+                  <div className="space-y-2"><Label>Descrição *</Label><Input value={consumoDesc} onChange={(e) => setConsumoDesc(e.target.value)} placeholder="Ex: Lanche alunos" /></div>
+                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={handleConsumoSubmit} disabled={createTransaction.isPending}>Registrar Consumo</Button>
                 </div>
               </DialogContent>
             </Dialog>
+
           </div>
         </section>
 
