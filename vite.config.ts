@@ -18,4 +18,15 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separate heavy export libraries into their own chunks
+          'export-libs': ['xlsx', 'jspdf', 'jspdf-autotable'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000, // Increase limit to 1000kb
+  },
 }));

@@ -28,13 +28,11 @@ interface Profile {
 }
 
 export default function UsuariosPage() {
-    const { profile } = useAuth();
+    const { profile, isAdmin } = useAuth();
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
-    // Security check: Only admin email allowed
-    const isAdmin = profile?.email === "andreluis_57@hotmail.com";
-
+    // Security check: Only admin role allowed
     if (!isAdmin && profile) {
         return <Navigate to="/" replace />;
     }

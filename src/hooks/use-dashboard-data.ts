@@ -1,6 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getWeekStartDate, formatDateString, getTodayString } from "@/lib/date-utils";
 
 interface MerchantBalance {
   id: string;
@@ -13,23 +12,24 @@ export interface DashboardData {
   especieBalance: number;
   cofreBalance: number;
   pixBalance: number;
-  weeklyExpensesCash: number;
-  weeklyExpensesPix: number;
-  weeklyEntriesCash: number;
-  weeklyEntriesPix: number;
   merchantBalances: MerchantBalance[];
   resourceBalances: {
     UE: any[];
     CX: any[];
   };
+}
+
+export interface ReportData {
+  weeklyExpensesCash: number;
+  weeklyExpensesPix: number;
+  weeklyEntriesCash: number;
+  weeklyEntriesPix: number;
   weeklyDeposits: number;
   weeklyConsumption: number;
   weeklyDirectPix: number;
-  periodStart: string;
-  periodEnd: string;
 }
 
-async function fetchCurrentBalances(): Promise<Partial<DashboardData>> {
+async function fetchCurrentBalances(): Promise<DashboardData> {
   const { data, error } = await supabase.rpc("get_current_balances");
 
   if (error) {
@@ -47,7 +47,7 @@ async function fetchCurrentBalances(): Promise<Partial<DashboardData>> {
   };
 }
 
-async function fetchReportSummary(startDate: string, endDate: string): Promise<Partial<DashboardData>> {
+async function fetchReportSummary(startDate: string, endDate: string): Promise<ReportData> {
   const { data, error } = await supabase.rpc("get_report_summary", {
     p_start_date: startDate,
     p_end_date: endDate,
@@ -64,34 +64,33 @@ async function fetchReportSummary(startDate: string, endDate: string): Promise<P
     weeklyExpensesPix: Number(result?.weeklyExpensesPix || 0),
     weeklyEntriesCash: Number(result?.weeklyEntriesCash || 0),
     weeklyEntriesPix: Number(result?.weeklyEntriesPix || 0),
+    weeklyDeposits: Number(result?.weeklyDeposits || 0),
+    weeklyConsumption: Number(result?.weeklyConsumption || 0),
+    weeklyDirectPix: Number(result?.weeklyDirectPix || 0),
   };
 }
 
-export function useDashboardData(startDate?: string, endDate?: string) {
+/**
+ * Hook for Dashboard page - returns only current balances (no period)
+ */
+export function useDashboardData() {
   return useQuery({
-    queryKey: ["dashboard-data", startDate, endDate],
-    queryFn: async () => {
-      const current = await fetchCurrentBalances();
-      let report = {};
-
-      if (startDate && endDate) {
-        report = await fetchReportSummary(startDate, endDate);
-      } else {
-        // Default to current week for summary if no dates provided
-        const start = formatDateString(getWeekStartDate());
-        const end = getTodayString();
-        report = await fetchReportSummary(start, end);
-      }
-
-      return {
-        ...current,
-        ...report,
-        periodStart: startDate || formatDateString(getWeekStartDate()),
-        periodEnd: endDate || getTodayString(),
-      } as DashboardData;
-    },
+    queryKey: ["dashboard-data"],
+    queryFn: fetchCurrentBalances,
     staleTime: 1000 * 30,
     refetchOnWindowFocus: true,
+  });
+}
+
+/**
+ * Hook for Reports page - returns period-based transaction summaries
+ */
+export function useReportData(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: ["report-data", startDate, endDate],
+    queryFn: () => fetchReportSummary(startDate, endDate),
+    staleTime: 1000 * 60,
+    enabled: !!startDate && !!endDate,
   });
 }
 
