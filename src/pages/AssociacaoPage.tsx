@@ -1,5 +1,6 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { useExpenseShortcuts } from "@/hooks/use-expense-shortcuts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useState } from "react";
-import { Building2, Banknote, CreditCard, ArrowRightLeft, Settings, Wallet, Loader2, XCircle } from "lucide-react";
+import { Building2, Banknote, CreditCard, ArrowRightLeft, Settings, Wallet, Loader2, XCircle, X, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
@@ -55,10 +56,12 @@ export default function AssociacaoPage() {
 
   // Gasto state
   const [gastoDate, setGastoDate] = useState(getTodayString());
-  const [gastoMeio, setGastoMeio] = useState<string>("");
+  const [gastoMeio, setGastoMeio] = useState<string>("cash");
   const [gastoValor, setGastoValor] = useState(0);
   const [gastoDescricao, setGastoDescricao] = useState("");
   const [gastoObs, setGastoObs] = useState("");
+  const [newShortcut, setNewShortcut] = useState("");
+  const { shortcuts, addShortcut, removeShortcut } = useExpenseShortcuts();
 
   // Movimentar Saldo state
   const [movDate, setMovDate] = useState(getTodayString());
@@ -527,7 +530,57 @@ export default function AssociacaoPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Descrição *</Label>
-                  <Input value={gastoDescricao} onChange={(e) => setGastoDescricao(e.target.value)} placeholder="Descreva o gasto" />
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {shortcuts.map((s) => (
+                      <div key={s} className="group relative">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[10px] px-2 bg-muted/30 border-muted-foreground/20 hover:bg-muted pr-6"
+                          onClick={() => setGastoDescricao(s)}
+                        >
+                          {s}
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeShortcut(s); }}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-all"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 items-center mb-4">
+                    <Input
+                      value={newShortcut}
+                      onChange={(e) => setNewShortcut(e.target.value)}
+                      placeholder="Novo atalho (ex: Gelo)"
+                      className="h-8 text-xs"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addShortcut(newShortcut);
+                          setNewShortcut("");
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => { addShortcut(newShortcut); setNewShortcut(""); }}
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Input
+                    value={gastoDescricao}
+                    onChange={(e) => setGastoDescricao(e.target.value)}
+                    placeholder="Descreva o gasto"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Observação</Label>
