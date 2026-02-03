@@ -26,8 +26,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useState } from "react";
-import { CreditCard, Building2, Loader2, ArrowUpCircle, ArrowDownCircle, AlertCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Building2, Loader2, ArrowUpCircle, ArrowDownCircle, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { useCreateTransaction } from "@/hooks/use-transactions";
@@ -40,7 +40,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function RecursosPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
-  const { toast } = useToast();
   const createTransaction = useCreateTransaction();
   const { data: entitiesData, isLoading: entitiesLoading } = useEntitiesWithAccounts();
   const { data: transactions, isLoading: transactionsLoading } = useRecursosTransactions();
@@ -76,31 +75,35 @@ export default function RecursosPage() {
 
   const handleSubmit = async (direction: "in" | "out") => {
     if (!date || !origem || !conta || valor <= 0 || !descricao.trim()) {
-      toast({ title: "Erro", description: "Preencha todos os campos obrigatórios (*).", variant: "destructive" });
+      toast.error("Preencha todos os campos obrigatórios (*).");
       return;
     }
 
     const entityId = origem === "UE" ? ueEntity?.id : cxEntity?.id;
 
-    await createTransaction.mutateAsync({
-      transaction: {
-        transaction_date: date,
-        module: "pix_direto_uecx",
-        entity_id: entityId || null,
-        source_account_id: direction === "out" ? conta : null,
-        destination_account_id: direction === "in" ? conta : null,
-        amount: valor,
-        direction: direction,
-        payment_method: "pix",
-        origin_fund: origem as "UE" | "CX",
-        description: descricao,
-        notes: obs || null,
-      },
-    });
+    try {
+      await createTransaction.mutateAsync({
+        transaction: {
+          transaction_date: date,
+          module: "pix_direto_uecx",
+          entity_id: entityId || null,
+          source_account_id: direction === "out" ? conta : null,
+          destination_account_id: direction === "in" ? conta : null,
+          amount: valor,
+          direction: direction,
+          payment_method: "pix",
+          origin_fund: origem as "UE" | "CX",
+          description: descricao,
+          notes: obs || null,
+        },
+      });
 
-    toast({ title: "Sucesso", description: direction === "in" ? "Entrada registrada." : "Gasto registrado." });
-    resetForm();
-    setOpenDialog(null);
+      toast.success(direction === "in" ? "Entrada registrada." : "Gasto registrado.");
+      resetForm();
+      setOpenDialog(null);
+    } catch (error) {
+      // Error toast is handled in useCreateTransaction but we can catch here if needed
+    }
   };
 
   return (
@@ -315,7 +318,7 @@ export default function RecursosPage() {
                 {entitiesLoading ? (
                   <p className="text-sm text-muted-foreground">Carregando...</p>
                 ) : (
-                  <ul className="space-y-1 text-sm text-muted-foreground">
+                  <ul className="space-y-1 text-sm text-muted-foreground" >
                     {entitiesData?.accounts
                       ?.filter(a => a.entity_id === ueEntity?.id)
                       .map(a => (

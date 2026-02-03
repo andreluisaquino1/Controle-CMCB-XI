@@ -28,64 +28,60 @@ import {
 } from "@/components/ui/table";
 import { useState } from "react";
 import { Wallet, Plus, Minus, Store, Pencil, Trash2, Loader2, XCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useMerchants, useCreateMerchant } from "@/hooks/use-merchants";
-import { useCreateTransaction, useVoidTransaction } from "@/hooks/use-transactions";
-import { useEntitiesWithAccounts, useUpdateMerchant, useDeactivateMerchant } from "@/hooks/use-accounts";
+import { useMerchants } from "@/hooks/use-merchants";
+import { useVoidTransaction } from "@/hooks/use-transactions";
+import { useEntitiesWithAccounts } from "@/hooks/use-accounts";
 import { useSaldosTransactions } from "@/hooks/use-entity-transactions";
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { formatCurrencyBRL } from "@/lib/currency";
-import { getTodayString, formatDateBR } from "@/lib/date-utils";
+import { formatDateBR } from "@/lib/date-utils";
 import { cleanAccountDisplayName } from "@/lib/account-display";
 import { MODULE_LABELS } from "@/lib/constants";
+import { useSaldosActions } from "@/hooks/use-saldos-actions";
 
 export default function SaldosPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
-  const [newMerchantName, setNewMerchantName] = useState("");
-  const [editingMerchant, setEditingMerchant] = useState<{ id: string; name: string } | null>(null);
-  const [deletingMerchant, setDeletingMerchant] = useState<{ id: string; name: string } | null>(null);
-  const { toast } = useToast();
-
   const { data: merchants, refetch: refetchMerchants } = useMerchants();
   const { data: entitiesData } = useEntitiesWithAccounts();
   const { data: transactions, isLoading: transactionsLoading } = useSaldosTransactions();
-  const createMerchant = useCreateMerchant();
-  const createTransaction = useCreateTransaction();
   const voidTransaction = useVoidTransaction();
-  const updateMerchant = useUpdateMerchant();
-  const deactivateMerchant = useDeactivateMerchant();
 
-  // Aporte state
-  const [aporteDate, setAporteDate] = useState(getTodayString());
-  const [aporteOrigem, setAporteOrigem] = useState<string>("");
-  const [aporteConta, setAporteConta] = useState<string>("");
-  const [aporteMerchant, setAporteMerchant] = useState<string>("");
-  const [aporteValor, setAporteValor] = useState(0);
-  const [aporteDescricao, setAporteDescricao] = useState("");
-  const [aporteObs, setAporteObs] = useState("");
-  const [aporteCapitalCusteio, setAporteCapitalCusteio] = useState<string>("");
+  const {
+    state,
+    setters,
+    handlers,
+    isLoading: actionsLoading
+  } = useSaldosActions(merchants, entitiesData?.entities);
 
-  // Gasto state
-  const [gastoDate, setGastoDate] = useState(getTodayString());
-  const [gastoMerchant, setGastoMerchant] = useState<string>("");
-  const [gastoValor, setGastoValor] = useState(0);
-  const [gastoDescricao, setGastoDescricao] = useState("");
-  const [gastoObs, setGastoObs] = useState("");
+  const { aporte, gasto, newMerchantName, editingMerchant, deletingMerchant } = state;
+  const {
+    setAporteDate, setAporteOrigem, setAporteConta, setAporteMerchant, setAporteValor, setAporteDescricao, setAporteObs, setAporteCapitalCusteio,
+    setGastoDate, setGastoMerchant, setGastoValor, setGastoDescricao, setGastoObs,
+    setNewMerchantName, setEditingMerchant, setDeletingMerchant
+  } = setters;
+  const {
+    handleAddMerchant, handleEditMerchant, handleDeleteMerchant, handleAporteSubmit, handleGastoSubmit, resetAporte, resetGasto
+  } = handlers;
 
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
 
-  // Get entities
+  const handleVoidTx = async () => {
+    if (!voidingId || !voidReason.trim()) return;
+    await voidTransaction.mutateAsync({ transactionId: voidingId, reason: voidReason });
+    setVoidingId(null);
+    setVoidReason("");
+  };
+
   const associacaoEntity = entitiesData?.entities?.find(e => e.type === "associacao");
   const ueEntity = entitiesData?.entities?.find(e => e.type === "ue");
   const cxEntity = entitiesData?.entities?.find(e => e.type === "cx");
 
-  // Get accounts filtered by origin
   const filteredAccounts = (entitiesData?.accounts?.filter(acc => {
-    if (aporteOrigem === "ASSOC") return acc.entity_id === associacaoEntity?.id;
-    if (aporteOrigem === "UE") return acc.entity_id === ueEntity?.id;
-    if (aporteOrigem === "CX") return acc.entity_id === cxEntity?.id;
+    if (aporte.origem === "ASSOC") return acc.entity_id === associacaoEntity?.id;
+    if (aporte.origem === "UE") return acc.entity_id === ueEntity?.id;
+    if (aporte.origem === "CX") return acc.entity_id === cxEntity?.id;
     return false;
   }) || []).sort((a, b) => {
     const order = ["Espécie", "PIX", "Cofre"];
@@ -96,142 +92,6 @@ export default function SaldosPage() {
     if (idxB !== -1) return 1;
     return a.name.localeCompare(b.name);
   });
-
-  const resetAporte = () => {
-    setAporteDate(getTodayString());
-    setAporteOrigem("");
-    setAporteConta("");
-    setAporteMerchant("");
-    setAporteValor(0);
-    setAporteDescricao("");
-    setAporteObs("");
-    setAporteCapitalCusteio("");
-  };
-
-  const resetGasto = () => {
-    setGastoDate(getTodayString());
-    setGastoMerchant("");
-    setGastoValor(0);
-    setGastoDescricao("");
-    setGastoObs("");
-  };
-
-  const handleAddMerchant = async () => {
-    if (!newMerchantName.trim()) return;
-    await createMerchant.mutateAsync({ name: newMerchantName });
-    setNewMerchantName("");
-    setOpenDialog(null);
-    refetchMerchants();
-  };
-
-  const handleEditMerchant = async () => {
-    if (!editingMerchant || !editingMerchant.name.trim()) return;
-    await updateMerchant.mutateAsync({ id: editingMerchant.id, name: editingMerchant.name });
-    setEditingMerchant(null);
-    refetchMerchants();
-  };
-
-  const handleDeleteMerchant = async () => {
-    if (!deletingMerchant) return;
-    await deactivateMerchant.mutateAsync(deletingMerchant.id);
-    setDeletingMerchant(null);
-    refetchMerchants();
-  };
-
-  const handleAporteSubmit = async () => {
-    if (!aporteOrigem) {
-      toast({ title: "Erro", description: "Selecione a origem.", variant: "destructive" });
-      return;
-    }
-    if (!aporteConta) {
-      toast({ title: "Erro", description: "Selecione a conta.", variant: "destructive" });
-      return;
-    }
-    if (!aporteMerchant) {
-      toast({ title: "Erro", description: "Selecione o estabelecimento.", variant: "destructive" });
-      return;
-    }
-    if (aporteValor <= 0) {
-      toast({ title: "Erro", description: "Informe o valor.", variant: "destructive" });
-      return;
-    }
-    if (!aporteDescricao.trim()) {
-      toast({ title: "Erro", description: "Informe a descrição.", variant: "destructive" });
-      return;
-    }
-
-    let entityId: string | undefined;
-    let originFund: "UE" | "CX" | null = null;
-
-    if (aporteOrigem === "ASSOC") {
-      entityId = associacaoEntity?.id;
-    } else if (aporteOrigem === "UE") {
-      entityId = ueEntity?.id;
-      originFund = "UE";
-    } else if (aporteOrigem === "CX") {
-      entityId = cxEntity?.id;
-      originFund = "CX";
-    }
-
-    await createTransaction.mutateAsync({
-      transaction: {
-        transaction_date: aporteDate,
-        module: "aporte_saldo",
-        entity_id: entityId || null,
-        source_account_id: aporteConta,
-        merchant_id: aporteMerchant,
-        amount: aporteValor,
-        direction: "out",
-        payment_method: "pix",
-        origin_fund: originFund,
-        capital_custeio: aporteCapitalCusteio ? (aporteCapitalCusteio as "capital" | "custeio") : null,
-        description: aporteDescricao,
-        notes: aporteObs || null,
-      },
-    });
-
-    toast({ title: "Sucesso", description: "Aporte registrado." });
-    resetAporte();
-    setOpenDialog(null);
-  };
-
-  const handleGastoSubmit = async () => {
-    if (!gastoMerchant) {
-      toast({ title: "Erro", description: "Selecione o estabelecimento.", variant: "destructive" });
-      return;
-    }
-    if (gastoValor <= 0) {
-      toast({ title: "Erro", description: "Informe o valor.", variant: "destructive" });
-      return;
-    }
-    if (!gastoDescricao.trim()) {
-      toast({ title: "Erro", description: "Informe a descrição.", variant: "destructive" });
-      return;
-    }
-
-    await createTransaction.mutateAsync({
-      transaction: {
-        transaction_date: gastoDate,
-        module: "consumo_saldo",
-        merchant_id: gastoMerchant,
-        amount: gastoValor,
-        direction: "out",
-        description: gastoDescricao,
-        notes: gastoObs || null,
-      },
-    });
-
-    toast({ title: "Sucesso", description: "Gasto registrado." });
-    resetGasto();
-    setOpenDialog(null);
-  };
-
-  const handleVoidTx = async () => {
-    if (!voidingId || !voidReason.trim()) return;
-    await voidTransaction.mutateAsync({ transactionId: voidingId, reason: voidReason });
-    setVoidingId(null);
-    setVoidReason("");
-  };
 
   return (
     <DashboardLayout>
@@ -264,8 +124,18 @@ export default function SaldosPage() {
                     onChange={(e) => setNewMerchantName(e.target.value)}
                   />
                 </div>
-                <Button className="w-full" onClick={handleAddMerchant} disabled={createMerchant.isPending}>
-                  {createMerchant.isPending ? "Adicionando..." : "Adicionar"}
+                <Button
+                  className="w-full"
+                  onClick={async () => {
+                    const success = await handleAddMerchant(newMerchantName);
+                    if (success) {
+                      setOpenDialog(null);
+                      refetchMerchants();
+                    }
+                  }}
+                  disabled={actionsLoading}
+                >
+                  {actionsLoading ? "Adicionando..." : "Adicionar"}
                 </Button>
               </div>
             </DialogContent>
@@ -339,8 +209,17 @@ export default function SaldosPage() {
                   onChange={(e) => setEditingMerchant(prev => prev ? { ...prev, name: e.target.value } : null)}
                 />
               </div>
-              <Button className="w-full" onClick={handleEditMerchant} disabled={updateMerchant.isPending}>
-                {updateMerchant.isPending ? "Salvando..." : "Salvar"}
+              <Button
+                className="w-full"
+                onClick={async () => {
+                  if (editingMerchant) {
+                    const success = await handleEditMerchant(editingMerchant.id, editingMerchant.name);
+                    if (success) refetchMerchants();
+                  }
+                }}
+                disabled={actionsLoading}
+              >
+                {actionsLoading ? "Salvando..." : "Salvar"}
               </Button>
             </div>
           </DialogContent>
@@ -359,8 +238,17 @@ export default function SaldosPage() {
               <Button variant="outline" onClick={() => setDeletingMerchant(null)}>
                 Cancelar
               </Button>
-              <Button variant="destructive" onClick={handleDeleteMerchant} disabled={deactivateMerchant.isPending}>
-                {deactivateMerchant.isPending ? "Desativando..." : "Desativar"}
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (deletingMerchant) {
+                    const success = await handleDeleteMerchant(deletingMerchant.id);
+                    if (success) refetchMerchants();
+                  }
+                }}
+                disabled={actionsLoading}
+              >
+                {actionsLoading ? "Desativando..." : "Desativar"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -392,11 +280,11 @@ export default function SaldosPage() {
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
                   <Label>Data *</Label>
-                  <DateInput value={aporteDate} onChange={setAporteDate} />
+                  <DateInput value={aporte.date} onChange={setAporteDate} />
                 </div>
                 <div className="space-y-2">
                   <Label>Origem do Recurso *</Label>
-                  <Select value={aporteOrigem} onValueChange={(v) => { setAporteOrigem(v); setAporteConta(""); }}>
+                  <Select value={aporte.origem} onValueChange={setAporteOrigem}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
@@ -409,9 +297,9 @@ export default function SaldosPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Conta *</Label>
-                  <Select value={aporteConta} onValueChange={setAporteConta} disabled={!aporteOrigem}>
+                  <Select value={aporte.conta} onValueChange={setAporteConta} disabled={!aporte.origem}>
                     <SelectTrigger>
-                      <SelectValue placeholder={aporteOrigem ? "Selecione a conta" : "Selecione origem primeiro"} />
+                      <SelectValue placeholder={aporte.origem ? "Selecione a conta" : "Selecione origem primeiro"} />
                     </SelectTrigger>
                     <SelectContent>
                       {filteredAccounts.map((acc) => (
@@ -424,7 +312,7 @@ export default function SaldosPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Estabelecimento *</Label>
-                  <Select value={aporteMerchant} onValueChange={setAporteMerchant}>
+                  <Select value={aporte.merchant} onValueChange={setAporteMerchant}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
@@ -437,19 +325,19 @@ export default function SaldosPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Valor (R$) *</Label>
-                  <CurrencyInput value={aporteValor} onChange={setAporteValor} />
+                  <CurrencyInput value={aporte.valor} onChange={setAporteValor} />
                 </div>
                 <div className="space-y-2">
                   <Label>Descrição *</Label>
-                  <Input value={aporteDescricao} onChange={(e) => setAporteDescricao(e.target.value)} placeholder="Descreva o aporte" />
+                  <Input value={aporte.descricao} onChange={(e) => setAporteDescricao(e.target.value)} placeholder="Descreva o aporte" />
                 </div>
                 <div className="space-y-2">
                   <Label>Observação</Label>
-                  <Input value={aporteObs} onChange={(e) => setAporteObs(e.target.value)} placeholder="Opcional" />
+                  <Input value={aporte.obs} onChange={(e) => setAporteObs(e.target.value)} placeholder="Opcional" />
                 </div>
                 <div className="space-y-2">
                   <Label>Capital/Custeio (opcional)</Label>
-                  <Select value={aporteCapitalCusteio} onValueChange={setAporteCapitalCusteio}>
+                  <Select value={aporte.capitalCusteio} onValueChange={setAporteCapitalCusteio}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
@@ -459,8 +347,15 @@ export default function SaldosPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button className="w-full" onClick={handleAporteSubmit} disabled={createTransaction.isPending}>
-                  {createTransaction.isPending ? "Registrando..." : "Registrar Aporte"}
+                <Button
+                  className="w-full"
+                  onClick={async () => {
+                    const success = await handleAporteSubmit();
+                    if (success) setOpenDialog(null);
+                  }}
+                  disabled={actionsLoading}
+                >
+                  {actionsLoading ? "Registrando..." : "Registrar Aporte"}
                 </Button>
               </div>
             </DialogContent>
@@ -490,11 +385,11 @@ export default function SaldosPage() {
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
                   <Label>Data *</Label>
-                  <DateInput value={gastoDate} onChange={setGastoDate} />
+                  <DateInput value={gasto.date} onChange={setGastoDate} />
                 </div>
                 <div className="space-y-2">
                   <Label>Estabelecimento *</Label>
-                  <Select value={gastoMerchant} onValueChange={setGastoMerchant}>
+                  <Select value={gasto.merchant} onValueChange={setGastoMerchant}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
@@ -509,21 +404,28 @@ export default function SaldosPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Valor (R$) *</Label>
-                  <CurrencyInput value={gastoValor} onChange={setGastoValor} />
+                  <CurrencyInput value={gasto.valor} onChange={setGastoValor} />
                 </div>
                 <div className="space-y-2">
                   <Label>Descrição *</Label>
-                  <Input value={gastoDescricao} onChange={(e) => setGastoDescricao(e.target.value)} placeholder="Descreva a compra" />
+                  <Input value={gasto.descricao} onChange={(e) => setGastoDescricao(e.target.value)} placeholder="Descreva a compra" />
                 </div>
                 <div className="space-y-2">
                   <Label>Observação</Label>
-                  <Input value={gastoObs} onChange={(e) => setGastoObs(e.target.value)} placeholder="Opcional" />
+                  <Input value={gasto.obs} onChange={(e) => setGastoObs(e.target.value)} placeholder="Opcional" />
                 </div>
                 <p className="text-xs text-muted-foreground">
                   * Gasto pode deixar o saldo negativo
                 </p>
-                <Button className="w-full" onClick={handleGastoSubmit} disabled={createTransaction.isPending}>
-                  {createTransaction.isPending ? "Registrando..." : "Registrar Gasto"}
+                <Button
+                  className="w-full"
+                  onClick={async () => {
+                    const success = await handleGastoSubmit();
+                    if (success) setOpenDialog(null);
+                  }}
+                  disabled={actionsLoading}
+                >
+                  {actionsLoading ? "Registrando..." : "Registrar Gasto"}
                 </Button>
               </div>
             </DialogContent>

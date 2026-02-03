@@ -1,32 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-interface Transaction {
-  id: string;
-  transaction_date: string;
-  module: string;
-  amount: number;
-  direction: string;
-  payment_method: string | null;
-  shift: string | null;
-  description: string | null;
-  notes: string | null;
-  status: string;
-  created_by: string;
-  source_account_id: string | null;
-  destination_account_id: string | null;
-  merchant_id: string | null;
-  origin_fund: string | null;
-  entity_id: string | null;
-  created_at: string;
-}
-
-interface TransactionWithCreator extends Transaction {
-  creator_name: string | null;
-  source_account_name: string | null;
-  destination_account_name: string | null;
-  merchant_name: string | null;
-}
+import { Transaction, TransactionWithCreator } from "@/types";
 
 export function useAssociacaoTransactions() {
   return useQuery({

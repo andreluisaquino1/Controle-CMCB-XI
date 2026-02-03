@@ -1,0 +1,113 @@
+import { useCallback } from 'react';
+import { toast } from "sonner";
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { formatCurrencyBRL } from '@/lib/currency';
+import { formatDateBR } from '@/lib/date-utils';
+import { DashboardData, ReportData, TransactionWithCreator } from '@/types';
+
+export function useReports(
+    dashboardData: DashboardData | undefined,
+    reportData: ReportData | undefined,
+    transactions: TransactionWithCreator[] | undefined
+) {
+    const generateWhatsAppReport = useCallback(() => {
+        if (!dashboardData || !reportData) {
+            toast.error("Dados insuficientes para gerar o relatório.");
+            return;
+        }
+
+        const report = `
+📊 *RELATÓRIO FINANCEIRO CMCB-XI* 📊
+📅 Período: ${new Date().toLocaleDateString('pt-BR')}
+
+💰 *SALDOS ATUAIS*
+💵 Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}
+🏦 Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}
+📱 PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}
+_________________________
+
+📈 *RESUMO DO PERÍODO*
+📥 Entradas (Espécie): ${formatCurrencyBRL(reportData.weeklyEntriesCash)}
+📥 Entradas (PIX): ${formatCurrencyBRL(reportData.weeklyEntriesPix)}
+📤 Saídas (Espécie): ${formatCurrencyBRL(reportData.weeklyExpensesCash)}
+📤 Saídas (PIX): ${formatCurrencyBRL(reportData.weeklyExpensesPix)}
+_________________________
+
+🏪 *SALDOS NOS ESTABELECIMENTOS*
+${dashboardData.merchantBalances.map(m => `• ${m.name}: ${formatCurrencyBRL(m.balance)}`).join('\n')}
+_________________________
+
+🏫 *RECURSOS POR ENTIDADE*
+*UE:* ${dashboardData.resourceBalances.UE.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`).join(', ')}
+*CX:* ${dashboardData.resourceBalances.CX.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`).join(', ')}
+
+✅ Gerado automaticamente pelo Sistema de Gestão CMCB-XI
+        `.trim();
+
+        navigator.clipboard.writeText(report);
+        toast.success("Relatório copiado para a área de transferência!");
+    }, [dashboardData, reportData]);
+
+    const exportToExcel = useCallback(() => {
+        if (!transactions || transactions.length === 0) {
+            toast.error("Nenhuma transação para exportar.");
+            return;
+        }
+
+        const data = transactions.map(t => ({
+            Data: formatDateBR(t.transaction_date),
+            Descrição: t.description,
+            Valor: t.amount,
+            Tipo: t.direction === 'in' ? 'Entrada' : t.direction === 'out' ? 'Saída' : 'Transferência',
+            Método: t.payment_method || '-',
+            Entidade: t.entities?.name || '-',
+            Conta: t.accounts?.name || '-',
+            Criado_Por: t.profiles?.full_name || 'Sistema'
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Transações");
+
+        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const finalData = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(finalData, `transacoes_${new Date().toISOString().split('T')[0]}.xlsx`);
+        toast.success("Arquivo Excel gerado com sucesso!");
+    }, [transactions]);
+
+    const exportToPDF = useCallback(() => {
+        if (!transactions || transactions.length === 0) {
+            toast.error("Nenhuma transação para exportar.");
+            return;
+        }
+
+        const doc = new jsPDF();
+        doc.text("Relatório de Transações CMCB-XI", 14, 15);
+
+        const tableData = transactions.map(t => [
+            formatDateBR(t.transaction_date),
+            t.description || '',
+            formatCurrencyBRL(t.amount),
+            t.direction === 'in' ? 'Entrada' : t.direction === 'out' ? 'Saída' : 'Transferência',
+            t.entities?.name || '-'
+        ]);
+
+        autoTable(doc, {
+            head: [['Data', 'Descrição', 'Valor', 'Tipo', 'Entidade']],
+            body: tableData,
+            startY: 20
+        });
+
+        doc.save(`transacoes_${new Date().toISOString().split('T')[0]}.pdf`);
+        toast.success("Arquivo PDF gerado com sucesso!");
+    }, [transactions]);
+
+    return {
+        generateWhatsAppReport,
+        exportToExcel,
+        exportToPDF
+    };
+}

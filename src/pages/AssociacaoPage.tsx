@@ -29,322 +29,57 @@ import {
 } from "@/components/ui/table";
 import { useState } from "react";
 import { Building2, Banknote, CreditCard, ArrowRightLeft, Settings, Wallet, Loader2, XCircle, X, PlusCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
-import { useCreateTransaction, useVoidTransaction } from "@/hooks/use-transactions";
+import { useVoidTransaction } from "@/hooks/use-transactions";
 import { useAssociacaoAccounts, useEntities } from "@/hooks/use-accounts";
 import { useAssociacaoTransactions } from "@/hooks/use-entity-transactions";
-import { getTodayString, formatDateBR } from "@/lib/date-utils";
+import { formatDateBR } from "@/lib/date-utils";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { ACCOUNT_NAMES, MODULE_LABELS } from "@/lib/constants";
+import { useAssociacaoActions } from "@/hooks/use-associacao-actions";
 
 export default function AssociacaoPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
-  const { toast } = useToast();
-  const createTransaction = useCreateTransaction();
   const voidTransaction = useVoidTransaction();
   const { data: accounts, isLoading: accountsLoading } = useAssociacaoAccounts();
   const { data: entities } = useEntities();
   const { data: transactions, isLoading: transactionsLoading } = useAssociacaoTransactions();
-
-  // Mensalidade state
-  const [mensalidadeDate, setMensalidadeDate] = useState(getTodayString());
-  const [mensalidadeTurno, setMensalidadeTurno] = useState<string>("");
-  const [mensalidadeCash, setMensalidadeCash] = useState(0);
-  const [mensalidadePix, setMensalidadePix] = useState(0);
-
-  // Gasto state
-  const [gastoDate, setGastoDate] = useState(getTodayString());
-  const [gastoMeio, setGastoMeio] = useState<string>("cash");
-  const [gastoValor, setGastoValor] = useState(0);
-  const [gastoDescricao, setGastoDescricao] = useState("");
-  const [gastoObs, setGastoObs] = useState("");
-  const [newShortcut, setNewShortcut] = useState("");
-  const [showShortcutInput, setShowShortcutInput] = useState(false);
   const { shortcuts, addShortcut, removeShortcut } = useExpenseShortcuts();
 
-  // Movimentar Saldo state
-  const [movDate, setMovDate] = useState(getTodayString());
-  const [movDe, setMovDe] = useState<string>("");
-  const [movPara, setMovPara] = useState<string>("");
-  const [movValor, setMovValor] = useState(0);
-  const [movDescricao, setMovDescricao] = useState("");
-  const [movObs, setMovObs] = useState("");
+  const associacaoEntity = entities?.find(e => e.type === "associacao");
+  const specieAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE);
+  const cofreAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.COFRE);
+  const pixAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.PIX);
 
-  // Ajuste Espécie state
-  const [ajusteEspecieDate, setAjusteEspecieDate] = useState(getTodayString());
-  const [ajusteEspecieValor, setAjusteEspecieValor] = useState(0);
-  const [ajusteEspecieMotivo, setAjusteEspecieMotivo] = useState("");
-  const [ajusteEspecieObs, setAjusteEspecieObs] = useState("");
+  const {
+    state,
+    setters,
+    handlers,
+    isLoading: actionsLoading
+  } = useAssociacaoActions(accounts || [], associacaoEntity);
 
-  // Ajuste Cofre state
-  const [ajusteCofreDate, setAjusteCofreDate] = useState(getTodayString());
-  const [ajusteCofreValor, setAjusteCofreValor] = useState(0);
-  const [ajusteCofreMotivo, setAjusteCofreMotivo] = useState("");
-  const [ajusteCofreObs, setAjusteCofreObs] = useState("");
+  const { mensalidade, gasto, mov, ajusteEspecie, ajusteCofre } = state;
+  const {
+    setMensalidadeDate, setMensalidadeTurno, setMensalidadeCash, setMensalidadePix,
+    setGastoDate, setGastoMeio, setGastoValor, setGastoDescricao, setGastoObs,
+    setMovDate, setMovDe, setMovPara, setMovValor, setMovDescricao, setMovObs,
+    setAjusteEspecieDate, setAjusteEspecieValor, setAjusteEspecieMotivo, setAjusteEspecieObs,
+    setAjusteCofreDate, setAjusteCofreValor, setAjusteCofreMotivo, setAjusteCofreObs,
+  } = setters;
+  const {
+    handleMensalidadeSubmit, handleGastoSubmit, handleMovimentarSubmit,
+    handleAjusteEspecieSubmit, handleAjusteCofreSubmit,
+    resetMensalidade, resetGasto, resetMov
+  } = handlers;
+
+  // Shortcuts UI state (kept here as it's purely UI transition)
+  const [newShortcut, setNewShortcut] = useState("");
+  const [showShortcutInput, setShowShortcutInput] = useState(false);
 
   // Void transaction state
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
-
-  const associacaoEntity = entities?.find(e => e.type === "associacao");
-  const especieAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE);
-  const cofreAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.COFRE);
-  const pixAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.PIX);
-
-  const resetMensalidade = () => {
-    setMensalidadeDate(getTodayString());
-    setMensalidadeTurno("");
-    setMensalidadeCash(0);
-    setMensalidadePix(0);
-  };
-
-  const resetGasto = () => {
-    setGastoDate(getTodayString());
-    setGastoMeio("");
-    setGastoValor(0);
-    setGastoDescricao("");
-    setGastoObs("");
-  };
-
-  const resetMov = () => {
-    setMovDate(getTodayString());
-    setMovDe("");
-    setMovPara("");
-    setMovValor(0);
-    setMovDescricao("");
-    setMovObs("");
-  };
-
-  const handleMensalidadeSubmit = async () => {
-    if (!mensalidadeTurno) {
-      toast({ title: "Erro", description: "Selecione o turno.", variant: "destructive" });
-      return;
-    }
-    if (mensalidadeCash === 0 && mensalidadePix === 0) {
-      toast({ title: "Erro", description: "Informe pelo menos um valor.", variant: "destructive" });
-      return;
-    }
-    if (!especieAccount || !pixAccount || !associacaoEntity) return;
-
-    // Verificar se já existem lançamentos para esta data e turno
-    const { data: existing } = await supabase
-      .from("transactions")
-      .select("payment_method")
-      .eq("module", "mensalidade")
-      .eq("transaction_date", mensalidadeDate)
-      .eq("shift", mensalidadeTurno as "matutino" | "vespertino")
-      .eq("status", "posted");
-
-    const hasCash = existing?.some(e => e.payment_method === 'cash');
-    const hasPix = existing?.some(e => e.payment_method === 'pix');
-
-    if (mensalidadeCash > 0 && hasCash) {
-      return toast({
-        title: "Lançamento Duplicado",
-        description: `Já existe um registro em ESPÉCIE para o turno ${mensalidadeTurno} nesta data.`,
-        variant: "destructive"
-      });
-    }
-
-    if (mensalidadePix > 0 && hasPix) {
-      return toast({
-        title: "Lançamento Duplicado",
-        description: `Já existe um registro em PIX para o turno ${mensalidadeTurno} nesta data.`,
-        variant: "destructive"
-      });
-    }
-
-    if (mensalidadeCash > 0) {
-      await createTransaction.mutateAsync({
-        transaction: {
-          transaction_date: mensalidadeDate,
-          module: "mensalidade",
-          entity_id: associacaoEntity.id,
-          destination_account_id: especieAccount.id,
-          amount: mensalidadeCash,
-          direction: "in",
-          payment_method: "cash",
-          shift: mensalidadeTurno as "matutino" | "vespertino",
-          description: `Mensalidade ${mensalidadeTurno}`,
-        },
-      });
-    }
-
-    if (mensalidadePix > 0) {
-      await createTransaction.mutateAsync({
-        transaction: {
-          transaction_date: mensalidadeDate,
-          module: "mensalidade",
-          entity_id: associacaoEntity.id,
-          destination_account_id: pixAccount.id,
-          amount: mensalidadePix,
-          direction: "in",
-          payment_method: "pix",
-          shift: mensalidadeTurno as "matutino" | "vespertino",
-          description: `Mensalidade ${mensalidadeTurno}`,
-        },
-      });
-    }
-
-    toast({ title: "Sucesso", description: "Mensalidade registrada." });
-    resetMensalidade();
-    setOpenDialog(null);
-  };
-
-  const handleGastoSubmit = async () => {
-    if (!gastoMeio) {
-      toast({ title: "Erro", description: "Selecione o meio de pagamento.", variant: "destructive" });
-      return;
-    }
-    if (gastoValor <= 0) {
-      toast({ title: "Erro", description: "Informe o valor.", variant: "destructive" });
-      return;
-    }
-    if (!gastoDescricao.trim()) {
-      toast({ title: "Erro", description: "Informe a descrição.", variant: "destructive" });
-      return;
-    }
-    if (!associacaoEntity) return;
-
-    const sourceAccount = gastoMeio === "cash" ? especieAccount : pixAccount;
-    if (!sourceAccount) return;
-
-    await createTransaction.mutateAsync({
-      transaction: {
-        transaction_date: gastoDate,
-        module: "gasto_associacao",
-        entity_id: associacaoEntity.id,
-        source_account_id: sourceAccount.id,
-        amount: gastoValor,
-        direction: "out",
-        payment_method: gastoMeio as "cash" | "pix",
-        description: gastoDescricao,
-        notes: gastoObs || null,
-      },
-    });
-
-    toast({ title: "Sucesso", description: "Gasto registrado." });
-    resetGasto();
-    setOpenDialog(null);
-  };
-
-  const handleMovimentarSubmit = async () => {
-    if (!movDe || !movPara) {
-      toast({ title: "Erro", description: "Selecione origem e destino.", variant: "destructive" });
-      return;
-    }
-    if (movDe === movPara) {
-      toast({ title: "Erro", description: "Origem e destino não podem ser iguais.", variant: "destructive" });
-      return;
-    }
-    if (movValor <= 0) {
-      toast({ title: "Erro", description: "Informe o valor.", variant: "destructive" });
-      return;
-    }
-    if (!movDescricao.trim()) {
-      toast({ title: "Erro", description: "Informe a descrição.", variant: "destructive" });
-      return;
-    }
-    if (!associacaoEntity) return;
-
-    const sourceAccount = accounts?.find(a => a.id === movDe);
-    const destAccount = accounts?.find(a => a.id === movPara);
-    if (!sourceAccount || !destAccount) return;
-
-    // Validate balance
-    if (movValor > sourceAccount.balance) {
-      toast({
-        title: "Erro",
-        description: `Saldo insuficiente. Disponível: ${formatCurrencyBRL(sourceAccount.balance)}`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    await createTransaction.mutateAsync({
-      transaction: {
-        transaction_date: movDate,
-        module: "especie_transfer",
-        entity_id: associacaoEntity.id,
-        source_account_id: sourceAccount.id,
-        destination_account_id: destAccount.id,
-        amount: movValor,
-        direction: "transfer",
-        description: movDescricao,
-        notes: movObs || null,
-      },
-    });
-
-    toast({ title: "Sucesso", description: "Movimentação registrada." });
-    resetMov();
-    setOpenDialog(null);
-  };
-
-  const handleAjusteEspecieSubmit = async () => {
-    if (!ajusteEspecieMotivo.trim()) {
-      toast({ title: "Erro", description: "Informe o motivo.", variant: "destructive" });
-      return;
-    }
-    if (ajusteEspecieValor === 0) {
-      toast({ title: "Erro", description: "Informe o valor.", variant: "destructive" });
-      return;
-    }
-    if (!especieAccount || !associacaoEntity) return;
-    const direction = ajusteEspecieValor > 0 ? "in" : "out";
-    const absAmount = Math.abs(ajusteEspecieValor);
-    await createTransaction.mutateAsync({
-      transaction: {
-        transaction_date: ajusteEspecieDate,
-        module: "especie_ajuste",
-        entity_id: associacaoEntity.id,
-        destination_account_id: especieAccount.id,
-        amount: absAmount,
-        direction,
-        description: ajusteEspecieMotivo,
-        notes: ajusteEspecieObs || null,
-      },
-    });
-    toast({ title: "Sucesso", description: "Ajuste registrado." });
-    setAjusteEspecieDate(getTodayString());
-    setAjusteEspecieValor(0);
-    setAjusteEspecieMotivo("");
-    setAjusteEspecieObs("");
-    setOpenDialog(null);
-  };
-
-  const handleAjusteCofreSubmit = async () => {
-    if (!ajusteCofreMotivo.trim()) {
-      toast({ title: "Erro", description: "Informe o motivo.", variant: "destructive" });
-      return;
-    }
-    if (ajusteCofreValor === 0) {
-      toast({ title: "Erro", description: "Informe o valor.", variant: "destructive" });
-      return;
-    }
-    if (!cofreAccount || !associacaoEntity) return;
-    const direction = ajusteCofreValor > 0 ? "in" : "out";
-    const absAmount = Math.abs(ajusteCofreValor);
-    await createTransaction.mutateAsync({
-      transaction: {
-        transaction_date: ajusteCofreDate,
-        module: "cofre_ajuste",
-        entity_id: associacaoEntity.id,
-        destination_account_id: cofreAccount.id,
-        amount: absAmount,
-        direction,
-        description: ajusteCofreMotivo,
-        notes: ajusteCofreObs || null,
-      },
-    });
-    toast({ title: "Sucesso", description: "Ajuste registrado." });
-    setAjusteCofreDate(getTodayString());
-    setAjusteCofreValor(0);
-    setAjusteCofreMotivo("");
-    setAjusteCofreObs("");
-    setOpenDialog(null);
-  };
 
   const handleVoidTx = async () => {
     if (!voidingId || !voidReason.trim()) return;
@@ -353,7 +88,6 @@ export default function AssociacaoPage() {
     setVoidReason("");
   };
 
-  // Get display name for account
   const getAccountDisplayName = (name: string) => {
     if (name === ACCOUNT_NAMES.ESPECIE) return "Espécie";
     if (name === ACCOUNT_NAMES.COFRE) return "Cofre";
@@ -361,8 +95,7 @@ export default function AssociacaoPage() {
     return name;
   };
 
-  // Selected source account for validation display
-  const selectedSourceAccount = accounts?.find(a => a.id === movDe);
+  const selectedSourceAccount = accounts?.find(a => a.id === mov.de);
 
   return (
     <DashboardLayout>
@@ -389,7 +122,7 @@ export default function AssociacaoPage() {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <p className="text-2xl font-bold text-foreground">
-                  {formatCurrencyBRL(Number(especieAccount?.balance || 0))}
+                  {formatCurrencyBRL(Number(specieAccount?.balance || 0))}
                 </p>
               )}
             </CardContent>
@@ -458,11 +191,11 @@ export default function AssociacaoPage() {
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
                   <Label>Data *</Label>
-                  <DateInput value={mensalidadeDate} onChange={setMensalidadeDate} />
+                  <DateInput value={mensalidade.date} onChange={setMensalidadeDate} />
                 </div>
                 <div className="space-y-2">
                   <Label>Turno *</Label>
-                  <Select value={mensalidadeTurno} onValueChange={setMensalidadeTurno}>
+                  <Select value={mensalidade.turno} onValueChange={setMensalidadeTurno}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o turno" />
                     </SelectTrigger>
@@ -474,14 +207,21 @@ export default function AssociacaoPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Espécie (R$)</Label>
-                  <CurrencyInput value={mensalidadeCash} onChange={setMensalidadeCash} />
+                  <CurrencyInput value={mensalidade.cash} onChange={setMensalidadeCash} />
                 </div>
                 <div className="space-y-2">
                   <Label>PIX (R$)</Label>
-                  <CurrencyInput value={mensalidadePix} onChange={setMensalidadePix} />
+                  <CurrencyInput value={mensalidade.pix} onChange={setMensalidadePix} />
                 </div>
-                <Button className="w-full" onClick={handleMensalidadeSubmit} disabled={createTransaction.isPending}>
-                  {createTransaction.isPending ? "Registrando..." : "Registrar"}
+                <Button
+                  className="w-full"
+                  onClick={async () => {
+                    const success = await handleMensalidadeSubmit();
+                    if (success) setOpenDialog(null);
+                  }}
+                  disabled={actionsLoading}
+                >
+                  {actionsLoading ? "Registrando..." : "Registrar"}
                 </Button>
               </div>
             </DialogContent>
@@ -511,11 +251,11 @@ export default function AssociacaoPage() {
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
                   <Label>Data *</Label>
-                  <DateInput value={gastoDate} onChange={setGastoDate} />
+                  <DateInput value={gasto.date} onChange={setGastoDate} />
                 </div>
                 <div className="space-y-2">
                   <Label>Meio de Pagamento *</Label>
-                  <Select value={gastoMeio} onValueChange={setGastoMeio}>
+                  <Select value={gasto.meio} onValueChange={setGastoMeio}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
@@ -527,7 +267,7 @@ export default function AssociacaoPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Valor (R$) *</Label>
-                  <CurrencyInput value={gastoValor} onChange={setGastoValor} />
+                  <CurrencyInput value={gasto.valor} onChange={setGastoValor} />
                 </div>
                 <div className="space-y-2">
                   <Label>Descrição *</Label>
@@ -602,17 +342,24 @@ export default function AssociacaoPage() {
                     </div>
                   )}
                   <Input
-                    value={gastoDescricao}
+                    value={gasto.descricao}
                     onChange={(e) => setGastoDescricao(e.target.value)}
                     placeholder="Descreva o gasto"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Observação</Label>
-                  <Input value={gastoObs} onChange={(e) => setGastoObs(e.target.value)} placeholder="Opcional" />
+                  <Input value={gasto.obs} onChange={(e) => setGastoObs(e.target.value)} placeholder="Opcional" />
                 </div>
-                <Button className="w-full" onClick={handleGastoSubmit} disabled={createTransaction.isPending}>
-                  {createTransaction.isPending ? "Registrando..." : "Registrar"}
+                <Button
+                  className="w-full"
+                  onClick={async () => {
+                    const success = await handleGastoSubmit();
+                    if (success) setOpenDialog(null);
+                  }}
+                  disabled={actionsLoading}
+                >
+                  {actionsLoading ? "Registrando..." : "Registrar"}
                 </Button>
               </div>
             </DialogContent>
@@ -642,11 +389,11 @@ export default function AssociacaoPage() {
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
                   <Label>Data *</Label>
-                  <DateInput value={movDate} onChange={setMovDate} />
+                  <DateInput value={mov.date} onChange={setMovDate} />
                 </div>
                 <div className="space-y-2">
                   <Label>De *</Label>
-                  <Select value={movDe} onValueChange={setMovDe}>
+                  <Select value={mov.de} onValueChange={setMovDe}>
                     <SelectTrigger>
                       <SelectValue placeholder="Conta de origem" />
                     </SelectTrigger>
@@ -666,12 +413,12 @@ export default function AssociacaoPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Para *</Label>
-                  <Select value={movPara} onValueChange={setMovPara}>
+                  <Select value={mov.para} onValueChange={setMovPara}>
                     <SelectTrigger>
                       <SelectValue placeholder="Conta de destino" />
                     </SelectTrigger>
                     <SelectContent>
-                      {accounts?.filter(a => a.id !== movDe).map((acc) => (
+                      {accounts?.filter(a => a.id !== mov.de).map((acc) => (
                         <SelectItem key={acc.id} value={acc.id}>{getAccountDisplayName(acc.name)}</SelectItem>
                       ))}
                     </SelectContent>
@@ -679,18 +426,25 @@ export default function AssociacaoPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Valor (R$) *</Label>
-                  <CurrencyInput value={movValor} onChange={setMovValor} />
+                  <CurrencyInput value={mov.valor} onChange={setMovValor} />
                 </div>
                 <div className="space-y-2">
                   <Label>Descrição *</Label>
-                  <Input value={movDescricao} onChange={(e) => setMovDescricao(e.target.value)} placeholder="Descreva a movimentação" />
+                  <Input value={mov.descricao} onChange={(e) => setMovDescricao(e.target.value)} placeholder="Descreva a movimentação" />
                 </div>
                 <div className="space-y-2">
                   <Label>Observação</Label>
-                  <Input value={movObs} onChange={(e) => setMovObs(e.target.value)} placeholder="Opcional" />
+                  <Input value={mov.obs} onChange={(e) => setMovObs(e.target.value)} placeholder="Opcional" />
                 </div>
-                <Button className="w-full" onClick={handleMovimentarSubmit} disabled={createTransaction.isPending}>
-                  {createTransaction.isPending ? "Registrando..." : "Registrar"}
+                <Button
+                  className="w-full"
+                  onClick={async () => {
+                    const success = await handleMovimentarSubmit();
+                    if (success) setOpenDialog(null);
+                  }}
+                  disabled={actionsLoading}
+                >
+                  {actionsLoading ? "Registrando..." : "Registrar"}
                 </Button>
               </div>
             </DialogContent>
@@ -725,14 +479,14 @@ export default function AssociacaoPage() {
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label>Data *</Label>
-                    <DateInput value={ajusteEspecieDate} onChange={setAjusteEspecieDate} />
+                    <DateInput value={ajusteEspecie.date} onChange={setAjusteEspecieDate} />
                   </div>
                   <div className="space-y-2">
                     <Label>Valor do Ajuste (R$) *</Label>
                     <Input
                       type="text"
                       placeholder="Use - para reduzir (ex: -50,00)"
-                      value={ajusteEspecieValor === 0 ? "" : ajusteEspecieValor.toString().replace(".", ",")}
+                      value={ajusteEspecie.valor === 0 ? "" : ajusteEspecie.valor.toString().replace(".", ",")}
                       onChange={(e) => {
                         const val = e.target.value.replace(",", ".");
                         const num = parseFloat(val);
@@ -743,14 +497,21 @@ export default function AssociacaoPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Motivo *</Label>
-                    <Input value={ajusteEspecieMotivo} onChange={(e) => setAjusteEspecieMotivo(e.target.value)} placeholder="Ex: Valor inicial do caixa" />
+                    <Input value={ajusteEspecie.motivo} onChange={(e) => setAjusteEspecieMotivo(e.target.value)} placeholder="Ex: Valor inicial do caixa" />
                   </div>
                   <div className="space-y-2">
                     <Label>Observação</Label>
-                    <Input value={ajusteEspecieObs} onChange={(e) => setAjusteEspecieObs(e.target.value)} placeholder="Opcional" />
+                    <Input value={ajusteEspecie.obs} onChange={(e) => setAjusteEspecieObs(e.target.value)} placeholder="Opcional" />
                   </div>
-                  <Button className="w-full" onClick={handleAjusteEspecieSubmit} disabled={createTransaction.isPending}>
-                    {createTransaction.isPending ? "Registrando..." : "Registrar Ajuste"}
+                  <Button
+                    className="w-full"
+                    onClick={async () => {
+                      const success = await handleAjusteEspecieSubmit();
+                      if (success) setOpenDialog(null);
+                    }}
+                    disabled={actionsLoading}
+                  >
+                    {actionsLoading ? "Registrando..." : "Registrar Ajuste"}
                   </Button>
                 </div>
               </DialogContent>
@@ -780,14 +541,14 @@ export default function AssociacaoPage() {
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label>Data *</Label>
-                    <DateInput value={ajusteCofreDate} onChange={setAjusteCofreDate} />
+                    <DateInput value={ajusteCofre.date} onChange={setAjusteCofreDate} />
                   </div>
                   <div className="space-y-2">
                     <Label>Valor do Ajuste (R$) *</Label>
                     <Input
                       type="text"
                       placeholder="Use - para reduzir (ex: -50,00)"
-                      value={ajusteCofreValor === 0 ? "" : ajusteCofreValor.toString().replace(".", ",")}
+                      value={ajusteCofre.valor === 0 ? "" : ajusteCofre.valor.toString().replace(".", ",")}
                       onChange={(e) => {
                         const val = e.target.value.replace(",", ".");
                         const num = parseFloat(val);
@@ -798,14 +559,21 @@ export default function AssociacaoPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Motivo *</Label>
-                    <Input value={ajusteCofreMotivo} onChange={(e) => setAjusteCofreMotivo(e.target.value)} placeholder="Ex: Valor inicial do cofre" />
+                    <Input value={ajusteCofre.motivo} onChange={(e) => setAjusteCofreMotivo(e.target.value)} placeholder="Ex: Valor inicial do cofre" />
                   </div>
                   <div className="space-y-2">
                     <Label>Observação</Label>
-                    <Input value={ajusteCofreObs} onChange={(e) => setAjusteCofreObs(e.target.value)} placeholder="Opcional" />
+                    <Input value={ajusteCofre.obs} onChange={(e) => setAjusteCofreObs(e.target.value)} placeholder="Opcional" />
                   </div>
-                  <Button className="w-full" onClick={handleAjusteCofreSubmit} disabled={createTransaction.isPending}>
-                    {createTransaction.isPending ? "Registrando..." : "Registrar Ajuste"}
+                  <Button
+                    className="w-full"
+                    onClick={async () => {
+                      const success = await handleAjusteCofreSubmit();
+                      if (success) setOpenDialog(null);
+                    }}
+                    disabled={actionsLoading}
+                  >
+                    {actionsLoading ? "Registrando..." : "Registrar Ajuste"}
                   </Button>
                 </div>
               </DialogContent>

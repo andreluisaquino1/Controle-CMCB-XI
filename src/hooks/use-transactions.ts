@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { Account, DashboardData, Merchant } from "@/types";
+import { ACCOUNT_NAMES } from "@/lib/constants";
 
 interface CreateTransactionData {
   transaction_date: string;
@@ -20,21 +22,8 @@ interface CreateTransactionData {
   notes?: string | null;
 }
 
-interface UpdateAccountBalance {
-  accountId: string;
-  amount: number;
-  operation: "add" | "subtract";
-}
-
-interface UpdateMerchantBalance {
-  merchantId: string;
-  amount: number;
-  operation: "add" | "subtract";
-}
-
 export function useCreateTransaction() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -70,7 +59,104 @@ export function useCreateTransaction() {
       if (txnError) throw txnError;
       return txn;
     },
-    onSuccess: () => {
+    onMutate: async ({ transaction }) => {
+      await queryClient.cancelQueries({ queryKey: ["dashboard-data"] });
+      await queryClient.cancelQueries({ queryKey: ["accounts"] });
+      await queryClient.cancelQueries({ queryKey: ["merchants"] });
+
+      const previousDashboard = queryClient.getQueryData<DashboardData>(["dashboard-data"]);
+      const previousAccounts = queryClient.getQueryData<Account[]>(["accounts"]);
+      const previousMerchants = queryClient.getQueryData<Merchant[]>(["merchants"]);
+
+      if (previousDashboard) {
+        const newDashboard = { ...previousDashboard };
+        const amount = Number(transaction.amount);
+
+        if (transaction.module === "mensalidade") {
+          if (transaction.payment_method === "cash") {
+            newDashboard.especieBalance += amount;
+          } else if (transaction.payment_method === "pix") {
+            newDashboard.pixBalance += amount;
+          }
+        }
+
+        if (transaction.direction === "in" || transaction.direction === "out") {
+          const isAdd = transaction.direction === "in";
+          const accId = isAdd ? transaction.destination_account_id : transaction.source_account_id;
+
+          if (accId && previousAccounts) {
+            const acc = previousAccounts.find(a => a.id === accId);
+            if (acc) {
+              if (acc.name === ACCOUNT_NAMES.ESPECIE) newDashboard.especieBalance += (isAdd ? amount : -amount);
+              if (acc.name === ACCOUNT_NAMES.PIX) newDashboard.pixBalance += (isAdd ? amount : -amount);
+              if (acc.name === ACCOUNT_NAMES.COFRE) newDashboard.cofreBalance += (isAdd ? amount : -amount);
+            }
+          }
+        }
+
+        if (transaction.direction === "transfer" && transaction.source_account_id && transaction.destination_account_id) {
+          const srcAcc = previousAccounts?.find(a => a.id === transaction.source_account_id);
+          const dstAcc = previousAccounts?.find(a => a.id === transaction.destination_account_id);
+
+          if (srcAcc) {
+            if (srcAcc.name === ACCOUNT_NAMES.ESPECIE) newDashboard.especieBalance -= amount;
+            if (srcAcc.name === ACCOUNT_NAMES.PIX) newDashboard.pixBalance -= amount;
+            if (srcAcc.name === ACCOUNT_NAMES.COFRE) newDashboard.cofreBalance -= amount;
+          }
+          if (dstAcc) {
+            if (dstAcc.name === ACCOUNT_NAMES.ESPECIE) newDashboard.especieBalance += amount;
+            if (dstAcc.name === ACCOUNT_NAMES.PIX) newDashboard.pixBalance += amount;
+            if (dstAcc.name === ACCOUNT_NAMES.COFRE) newDashboard.cofreBalance += amount;
+          }
+        }
+
+        if (transaction.merchant_id) {
+          const mIdx = newDashboard.merchantBalances.findIndex(m => m.id === transaction.merchant_id);
+          if (mIdx !== -1) {
+            const m = { ...newDashboard.merchantBalances[mIdx] };
+            if (transaction.module === "aporte_saldo") {
+              m.balance += amount;
+            } else if (transaction.module === "consumo_saldo") {
+              m.balance -= amount;
+            }
+            newDashboard.merchantBalances[mIdx] = m;
+          }
+        }
+
+        queryClient.setQueryData(["dashboard-data"], newDashboard);
+      }
+
+      if (previousAccounts) {
+        const newAccounts = previousAccounts.map(acc => {
+          const amount = Number(transaction.amount);
+          let newBalance = acc.balance;
+
+          if (transaction.direction === "transfer") {
+            if (acc.id === transaction.source_account_id) newBalance -= amount;
+            if (acc.id === transaction.destination_account_id) newBalance += amount;
+          } else if (transaction.direction === "in" && acc.id === transaction.destination_account_id) {
+            newBalance += amount;
+          } else if (transaction.direction === "out" && acc.id === transaction.source_account_id) {
+            newBalance -= amount;
+          }
+
+          return { ...acc, balance: newBalance };
+        });
+        queryClient.setQueryData(["accounts"], newAccounts);
+      }
+
+      return { previousDashboard, previousAccounts, previousMerchants };
+    },
+    onError: (error: any, __, context) => {
+      console.error("Transaction error:", error);
+      if (context) {
+        queryClient.setQueryData(["dashboard-data"], context.previousDashboard);
+        queryClient.setQueryData(["accounts"], context.previousAccounts);
+        queryClient.setQueryData(["merchants"], context.previousMerchants);
+      }
+      toast.error(error.message || "Não foi possível registrar a operação.");
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["merchants"] });
@@ -78,20 +164,11 @@ export function useCreateTransaction() {
       queryClient.invalidateQueries({ queryKey: ["all-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["saldos-transactions"] });
     },
-    onError: (error: any) => {
-      console.error("Transaction error:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível registrar a operação.",
-        variant: "destructive",
-      });
-    },
   });
 }
 
 export function useVoidTransaction() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -135,25 +212,18 @@ export function useVoidTransaction() {
 
       return originalTxn;
     },
-    onSuccess: () => {
+    onError: (error: any) => {
+      console.error("Void error:", error);
+      toast.error(error.message || "Não foi possível anular a transação.");
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["merchants"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["all-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["saldos-transactions"] });
-      toast({
-        title: "Transação anulada",
-        description: "A transação foi anulada com sucesso.",
-      });
-    },
-    onError: (error: any) => {
-      console.error("Void error:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível anular a transação.",
-        variant: "destructive",
-      });
+      toast.success("A transação foi anulada com sucesso.");
     },
   });
 }

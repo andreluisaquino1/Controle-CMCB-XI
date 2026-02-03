@@ -1,33 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-interface MerchantBalance {
-  id: string;
-  name: string;
-  balance: number;
-  mode: string;
-}
-
-export interface DashboardData {
-  especieBalance: number;
-  cofreBalance: number;
-  pixBalance: number;
-  merchantBalances: MerchantBalance[];
-  resourceBalances: {
-    UE: any[];
-    CX: any[];
-  };
-}
-
-export interface ReportData {
-  weeklyExpensesCash: number;
-  weeklyExpensesPix: number;
-  weeklyEntriesCash: number;
-  weeklyEntriesPix: number;
-  weeklyDeposits: number;
-  weeklyConsumption: number;
-  weeklyDirectPix: number;
-}
+import { MerchantBalance, DashboardData, ReportData } from "@/types";
 
 async function fetchCurrentBalances(): Promise<DashboardData> {
   const { data, error } = await supabase.rpc("get_current_balances");

@@ -6,16 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { User, KeyRound, LogOut, Loader2, Mail } from "lucide-react";
 
 export default function PerfilPage() {
   const { profile, signOut, user } = useAuth();
-  const { toast } = useToast();
-  
+
   const [name, setName] = useState(profile?.name || "");
   const [isUpdatingName, setIsUpdatingName] = useState(false);
-  
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -25,23 +24,23 @@ export default function PerfilPage() {
 
   const handleUpdateName = async () => {
     if (!name.trim()) {
-      toast({ title: "Erro", description: "Informe o nome.", variant: "destructive" });
+      toast.error("Informe o nome.");
       return;
     }
-    
+
     setIsUpdatingName(true);
-    
+
     try {
       const { error } = await supabase
         .from("profiles")
         .update({ name: name.trim() })
         .eq("user_id", user?.id);
-      
+
       if (error) throw error;
-      
-      toast({ title: "Sucesso", description: "Nome atualizado." });
+
+      toast.success("Nome atualizado.");
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message || "Não foi possível atualizar o nome.", variant: "destructive" });
+      toast.error(error.message || "Não foi possível atualizar o nome.");
     } finally {
       setIsUpdatingName(false);
     }
@@ -49,31 +48,31 @@ export default function PerfilPage() {
 
   const handleUpdatePassword = async () => {
     if (!currentPassword) {
-      toast({ title: "Erro", description: "Informe a senha atual.", variant: "destructive" });
+      toast.error("Informe a senha atual.");
       return;
     }
     if (!newPassword) {
-      toast({ title: "Erro", description: "Informe a nova senha.", variant: "destructive" });
+      toast.error("Informe a nova senha.");
       return;
     }
     if (newPassword.length < 6) {
-      toast({ title: "Erro", description: "A senha deve ter pelo menos 6 caracteres.", variant: "destructive" });
+      toast.error("A senha deve ter pelo menos 6 caracteres.");
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast({ title: "Erro", description: "As senhas não coincidem.", variant: "destructive" });
+      toast.error("As senhas não coincidem.");
       return;
     }
-    
+
     setIsUpdatingPassword(true);
-    
+
     try {
       // First, reauthenticate with current password
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: user?.email || "",
         password: currentPassword,
       });
-      
+
       if (signInError) {
         throw new Error("Senha atual incorreta.");
       }
@@ -82,15 +81,15 @@ export default function PerfilPage() {
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
-      
+
       if (error) throw error;
-      
-      toast({ title: "Sucesso", description: "Senha atualizada." });
+
+      toast.success("Senha atualizada.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message || "Não foi possível atualizar a senha.", variant: "destructive" });
+      toast.error(error.message || "Não foi possível atualizar a senha.");
     } finally {
       setIsUpdatingPassword(false);
     }
@@ -98,26 +97,19 @@ export default function PerfilPage() {
 
   const handleResetPasswordEmail = async () => {
     if (!user?.email) return;
-    
+
     setIsResettingPassword(true);
-    
+
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
         redirectTo: `${window.location.origin}/auth`,
       });
-      
+
       if (error) throw error;
-      
-      toast({ 
-        title: "Email enviado", 
-        description: "Verifique sua caixa de entrada para redefinir a senha.",
-      });
+
+      toast.success("Email enviado. Verifique sua caixa de entrada.");
     } catch (error: any) {
-      toast({ 
-        title: "Erro", 
-        description: error.message || "Não foi possível enviar o email.",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Não foi possível enviar o email.");
     } finally {
       setIsResettingPassword(false);
     }
@@ -154,8 +146,8 @@ export default function PerfilPage() {
             </div>
             <div className="space-y-2">
               <Label>Nome</Label>
-              <Input 
-                value={name} 
+              <Input
+                value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Seu nome"
               />
@@ -184,27 +176,27 @@ export default function PerfilPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Senha Atual *</Label>
-              <Input 
-                type="password" 
-                value={currentPassword} 
+              <Input
+                type="password"
+                value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="Digite sua senha atual"
               />
             </div>
             <div className="space-y-2">
               <Label>Nova Senha *</Label>
-              <Input 
-                type="password" 
-                value={newPassword} 
+              <Input
+                type="password"
+                value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
               />
             </div>
             <div className="space-y-2">
               <Label>Confirmar Nova Senha *</Label>
-              <Input 
-                type="password" 
-                value={confirmPassword} 
+              <Input
+                type="password"
+                value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repita a nova senha"
               />
@@ -213,10 +205,10 @@ export default function PerfilPage() {
               {isUpdatingPassword ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Alterar Senha
             </Button>
-            
+
             <div className="pt-2 border-t">
-              <Button 
-                variant="link" 
+              <Button
+                variant="link"
                 className="px-0 text-muted-foreground"
                 onClick={handleResetPasswordEmail}
                 disabled={isResettingPassword}

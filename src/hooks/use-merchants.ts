@@ -1,13 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-
-interface Merchant {
-  id: string;
-  name: string;
-  balance: number;
-  active: boolean;
-}
+import { toast } from "sonner";
+import { Merchant } from "@/types";
 
 export function useMerchants() {
   return useQuery({
@@ -26,7 +20,6 @@ export function useMerchants() {
 }
 
 export function useCreateMerchant() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -47,17 +40,56 @@ export function useCreateMerchant() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["merchants"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
-      toast({
-        title: "Estabelecimento adicionado",
-        description: `${variables.name} foi adicionado com sucesso.`,
-      });
+      toast.success(`${variables.name} foi adicionado com sucesso.`);
     },
     onError: (error: any) => {
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível adicionar o estabelecimento.",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Não foi possível adicionar o estabelecimento.");
+    },
+  });
+}
+
+export function useUpdateMerchant() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase
+        .from("merchants")
+        .update({ name })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["merchants"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
+      toast.success("Estabelecimento atualizado.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Não foi possível atualizar.");
+    },
+  });
+}
+
+export function useDeactivateMerchant() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("merchants")
+        .update({ active: false })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["merchants"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
+      toast.success("Estabelecimento desativado.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Não foi possível desativar.");
     },
   });
 }

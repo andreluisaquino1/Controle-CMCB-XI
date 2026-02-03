@@ -1,5 +1,4 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { supabase } from "@/integrations/supabase/client";
 import { useExpenseShortcuts } from "@/hooks/use-expense-shortcuts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,6 @@ import {
   Banknote,
   Plus,
   Minus,
-  Settings,
   ArrowRightLeft,
   X,
   PlusCircle,
@@ -36,234 +34,54 @@ import {
 import { useState } from "react";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
-import { useCreateTransaction } from "@/hooks/use-transactions";
 import { useAssociacaoAccounts, useEntitiesWithAccounts } from "@/hooks/use-accounts";
-import { useToast } from "@/hooks/use-toast";
-import { getTodayString } from "@/lib/date-utils";
-import { ACCOUNT_NAMES } from "@/lib/constants";
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { cleanAccountDisplayName } from "@/lib/account-display";
+import { useAssociacaoActions } from "@/hooks/use-associacao-actions";
+import { useSaldosActions } from "@/hooks/use-saldos-actions";
 
 export default function DashboardPage() {
   const { data, isLoading, error, refetch } = useDashboardData();
-  const { toast } = useToast();
-  // Force deploy refresh
-  const createTransaction = useCreateTransaction();
   const { data: assocAccounts } = useAssociacaoAccounts();
   const { data: entitiesData } = useEntitiesWithAccounts();
   const [openDialog, setOpenDialog] = useState<string | null>(null);
-
-  // --- Shortcut States ---
-  // Mensalidade
-  const [mensalidadeDate, setMensalidadeDate] = useState(getTodayString());
-  const [mensalidadeTurno, setMensalidadeTurno] = useState<string>("");
-  const [mensalidadeCash, setMensalidadeCash] = useState(0);
-  const [mensalidadePix, setMensalidadePix] = useState(0);
-  // Gasto Associação
-  const [gastoAssocDate, setGastoAssocDate] = useState(getTodayString());
-  const [gastoAssocMeio, setGastoAssocMeio] = useState<string>("cash");
-  const [gastoAssocValor, setGastoAssocValor] = useState(0);
-  const [gastoAssocDesc, setGastoAssocDesc] = useState("");
-  const [newShortcut, setNewShortcut] = useState("");
-  const [showShortcutInput, setShowShortcutInput] = useState(false);
-  const { shortcuts, addShortcut, removeShortcut } = useExpenseShortcuts();
-  // Aporte Estabelecimento
-  const [aporteDate, setAporteDate] = useState(getTodayString());
-  const [aporteOrigem, setAporteOrigem] = useState<string>("");
-  const [aporteConta, setAporteConta] = useState<string>("");
-  const [aporteMerchant, setAporteMerchant] = useState<string>("");
-  const [aporteValor, setAporteValor] = useState(0);
-  const [aporteDesc, setAporteDesc] = useState("");
-  // Consumo Estabelecimento
-  const [consumoDate, setConsumoDate] = useState(getTodayString());
-  const [consumoMerchant, setConsumoMerchant] = useState<string>("");
-  const [consumoValor, setConsumoValor] = useState(0);
-  const [consumoDesc, setConsumoDesc] = useState("");
 
   const associacaoEntity = entitiesData?.entities?.find(e => e.type === "associacao");
   const ueEntity = entitiesData?.entities?.find(e => e.type === "ue");
   const cxEntity = entitiesData?.entities?.find(e => e.type === "cx");
 
-  const especieAccount = assocAccounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE);
-  const pixAccount = assocAccounts?.find(a => a.name === ACCOUNT_NAMES.PIX);
+  // --- Reusing Hooks ---
+  const assocActions = useAssociacaoActions(
+    assocAccounts,
+    associacaoEntity,
+    () => { refetch(); setOpenDialog(null); }
+  );
 
-  const resetMensalidade = () => {
-    setMensalidadeDate(getTodayString());
-    setMensalidadeTurno("");
-    setMensalidadeCash(0);
-    setMensalidadePix(0);
-  };
+  const saldosActions = useSaldosActions(
+    data?.merchantBalances,
+    entitiesData?.entities,
+    () => { refetch(); setOpenDialog(null); }
+  );
 
-  const handleMensalidadeSubmit = async () => {
-    if (!mensalidadeTurno) return toast({ title: "Erro", description: "Selecione o turno.", variant: "destructive" });
-    if (mensalidadeCash === 0 && mensalidadePix === 0) return toast({ title: "Erro", description: "Informe um valor.", variant: "destructive" });
-    if (!especieAccount || !pixAccount || !associacaoEntity) return;
+  const {
+    state: assocState,
+    setters: assocSetters,
+    handlers: assocHandlers,
+    isLoading: assocLoading
+  } = assocActions;
 
-    // Verificar se já existem lançamentos para esta data e turno
-    const { data: existing } = await supabase
-      .from("transactions")
-      .select("payment_method")
-      .eq("module", "mensalidade")
-      .eq("transaction_date", mensalidadeDate)
-      .eq("shift", mensalidadeTurno as "matutino" | "vespertino")
-      .eq("status", "posted");
+  const {
+    state: saldosState,
+    setters: saldosSetters,
+    handlers: saldosHandlers,
+    isLoading: saldosLoading
+  } = saldosActions;
 
-    const hasCash = existing?.some(e => e.payment_method === 'cash');
-    const hasPix = existing?.some(e => e.payment_method === 'pix');
-
-    if (mensalidadeCash > 0 && hasCash) {
-      return toast({
-        title: "Lançamento Duplicado",
-        description: `Já existe um registro em ESPÉCIE para o turno ${mensalidadeTurno} nesta data.`,
-        variant: "destructive"
-      });
-    }
-
-    if (mensalidadePix > 0 && hasPix) {
-      return toast({
-        title: "Lançamento Duplicado",
-        description: `Já existe um registro em PIX para o turno ${mensalidadeTurno} nesta data.`,
-        variant: "destructive"
-      });
-    }
-
-    if (mensalidadeCash > 0) {
-      await createTransaction.mutateAsync({
-        transaction: {
-          transaction_date: mensalidadeDate,
-          module: "mensalidade",
-          entity_id: associacaoEntity.id,
-          destination_account_id: especieAccount.id,
-          amount: mensalidadeCash,
-          direction: "in",
-          payment_method: "cash",
-          shift: mensalidadeTurno as "matutino" | "vespertino",
-          description: `Mensalidade ${mensalidadeTurno}`,
-        },
-      });
-    }
-
-    if (mensalidadePix > 0) {
-      await createTransaction.mutateAsync({
-        transaction: {
-          transaction_date: mensalidadeDate,
-          module: "mensalidade",
-          entity_id: associacaoEntity.id,
-          destination_account_id: pixAccount.id,
-          amount: mensalidadePix,
-          direction: "in",
-          payment_method: "pix",
-          shift: mensalidadeTurno as "matutino" | "vespertino",
-          description: `Mensalidade ${mensalidadeTurno}`,
-        },
-      });
-    }
-
-    toast({ title: "Sucesso", description: "Mensalidade registrada." });
-    resetMensalidade();
-    setOpenDialog(null);
-    refetch();
-  };
-
-  const handleGastoAssocSubmit = async () => {
-    if (!gastoAssocMeio) return toast({ title: "Erro", description: "Selecione o meio.", variant: "destructive" });
-    if (gastoAssocValor <= 0) return toast({ title: "Erro", description: "Informe o valor.", variant: "destructive" });
-    if (!gastoAssocDesc.trim()) return toast({ title: "Erro", description: "Informe a descrição.", variant: "destructive" });
-    if (!associacaoEntity) return;
-
-    const sourceAccount = gastoAssocMeio === "cash" ? especieAccount : pixAccount;
-    if (!sourceAccount) return;
-
-    // Strict balance check for Associação
-    if (gastoAssocValor > (sourceAccount.balance || 0)) {
-      return toast({
-        title: "Saldo Insuficiente",
-        description: `O saldo em ${sourceAccount.name === ACCOUNT_NAMES.ESPECIE ? "Espécie" : "PIX"} (${formatCurrencyBRL(sourceAccount.balance || 0)}) é menor que o valor do gasto.`,
-        variant: "destructive"
-      });
-    }
-
-    await createTransaction.mutateAsync({
-      transaction: {
-        transaction_date: gastoAssocDate,
-        module: "gasto_associacao",
-        entity_id: associacaoEntity.id,
-        source_account_id: sourceAccount.id,
-        amount: gastoAssocValor,
-        direction: "out",
-        payment_method: gastoAssocMeio as "cash" | "pix",
-        description: gastoAssocDesc,
-      },
-    });
-
-    toast({ title: "Sucesso", description: "Gasto registrado." });
-    setGastoAssocValor(0); setGastoAssocDesc("");
-    setOpenDialog(null);
-    refetch();
-  };
-
-  const handleAporteSubmit = async () => {
-    if (!aporteOrigem || !aporteConta || !aporteMerchant || aporteValor <= 0 || !aporteDesc.trim()) {
-      return toast({ title: "Erro", description: "Preencha todos os campos obrigatórios.", variant: "destructive" });
-    }
-
-    let entityId: string | undefined;
-    if (aporteOrigem === "ASSOC") entityId = associacaoEntity?.id;
-    else if (aporteOrigem === "UE") entityId = ueEntity?.id;
-    else if (aporteOrigem === "CX") entityId = cxEntity?.id;
-
-    const sourceAccData = aporteAccounts.find(a => a.id === aporteConta);
-    if (sourceAccData && aporteValor > (sourceAccData.balance || 0) && aporteOrigem === "ASSOC") {
-      return toast({
-        title: "Saldo Insuficiente",
-        description: `O saldo na conta de origem (${formatCurrencyBRL(sourceAccData.balance || 0)}) é insuficiente para este aporte da Associação.`,
-        variant: "destructive"
-      });
-    }
-
-    await createTransaction.mutateAsync({
-      transaction: {
-        transaction_date: aporteDate,
-        module: "aporte_saldo",
-        entity_id: entityId || null,
-        source_account_id: aporteConta,
-        merchant_id: aporteMerchant,
-        amount: aporteValor,
-        direction: "out",
-        payment_method: "pix",
-        origin_fund: (aporteOrigem === "UE" || aporteOrigem === "CX") ? (aporteOrigem as "UE" | "CX") : null,
-        description: aporteDesc,
-      },
-    });
-
-    toast({ title: "Sucesso", description: "Aporte registrado." });
-    setAporteValor(0); setAporteDesc("");
-    setOpenDialog(null);
-    refetch();
-  };
-
-  const handleConsumoSubmit = async () => {
-    if (!consumoMerchant || consumoValor <= 0 || !consumoDesc.trim()) {
-      return toast({ title: "Erro", description: "Preencha todos os campos obrigatórios.", variant: "destructive" });
-    }
-
-    await createTransaction.mutateAsync({
-      transaction: {
-        transaction_date: consumoDate,
-        module: "consumo_saldo",
-        merchant_id: consumoMerchant,
-        amount: consumoValor,
-        direction: "out",
-        description: consumoDesc,
-      },
-    });
-
-    toast({ title: "Sucesso", description: "Consumo registrado." });
-    setConsumoValor(0); setConsumoDesc("");
-    setOpenDialog(null);
-    refetch();
-  };
+  // Shortcut States (Specific to Dashboard)
+  const [newShortcut, setNewShortcut] = useState("");
+  const [showShortcutInput, setShowShortcutInput] = useState(false);
+  const { shortcuts, addShortcut, removeShortcut } = useExpenseShortcuts();
 
   if (isLoading) {
     return (
@@ -285,10 +103,10 @@ export default function DashboardPage() {
     );
   }
 
-  const aporteAccounts = entitiesData?.accounts?.filter(acc => {
-    if (aporteOrigem === "ASSOC") return acc.entity_id === associacaoEntity?.id;
-    if (aporteOrigem === "UE") return acc.entity_id === ueEntity?.id;
-    if (aporteOrigem === "CX") return acc.entity_id === cxEntity?.id;
+  const filteredAporteAccounts = entitiesData?.accounts?.filter(acc => {
+    if (saldosState.aporte.origem === "ASSOC") return acc.entity_id === associacaoEntity?.id;
+    if (saldosState.aporte.origem === "UE") return acc.entity_id === ueEntity?.id;
+    if (saldosState.aporte.origem === "CX") return acc.entity_id === cxEntity?.id;
     return false;
   }) || [];
 
@@ -310,7 +128,10 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-foreground">Ações Rápidas</h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Dialog open={openDialog === "mensalidade"} onOpenChange={(o) => setOpenDialog(o ? "mensalidade" : null)}>
+            <Dialog open={openDialog === "mensalidade"} onOpenChange={(o) => {
+              setOpenDialog(o ? "mensalidade" : null);
+              if (!o) assocHandlers.resetMensalidade();
+            }}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="h-16 justify-start gap-4 px-4 bg-success/5 border-success/20 hover:bg-success/10 group">
                   <Banknote className="h-6 w-6 text-success transition-transform group-hover:scale-110" />
@@ -323,22 +144,25 @@ export default function DashboardPage() {
               <DialogContent>
                 <DialogHeader><DialogTitle>Registrar Mensalidade</DialogTitle></DialogHeader>
                 <div className="space-y-4 pt-4">
-                  <div className="space-y-2"><Label>Data *</Label><DateInput value={mensalidadeDate} onChange={setMensalidadeDate} /></div>
+                  <div className="space-y-2"><Label>Data *</Label><DateInput value={assocState.mensalidade.date} onChange={assocSetters.setMensalidadeDate} /></div>
                   <div className="space-y-2">
                     <Label>Turno *</Label>
-                    <Select value={mensalidadeTurno} onValueChange={setMensalidadeTurno}>
+                    <Select value={assocState.mensalidade.turno} onValueChange={assocSetters.setMensalidadeTurno}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent><SelectItem value="matutino">Matutino</SelectItem><SelectItem value="vespertino">Vespertino</SelectItem></SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2"><Label>Espécie (R$)</Label><CurrencyInput value={mensalidadeCash} onChange={setMensalidadeCash} /></div>
-                  <div className="space-y-2"><Label>PIX (R$)</Label><CurrencyInput value={mensalidadePix} onChange={setMensalidadePix} /></div>
-                  <Button className="w-full" onClick={handleMensalidadeSubmit} disabled={createTransaction.isPending}>Registrar</Button>
+                  <div className="space-y-2"><Label>Espécie (R$)</Label><CurrencyInput value={assocState.mensalidade.cash} onChange={assocSetters.setMensalidadeCash} /></div>
+                  <div className="space-y-2"><Label>PIX (R$)</Label><CurrencyInput value={assocState.mensalidade.pix} onChange={assocSetters.setMensalidadePix} /></div>
+                  <Button className="w-full" onClick={() => assocHandlers.handleMensalidadeSubmit()} disabled={assocLoading}>Registrar</Button>
                 </div>
               </DialogContent>
             </Dialog>
 
-            <Dialog open={openDialog === "gasto-assoc"} onOpenChange={(o) => setOpenDialog(o ? "gasto-assoc" : null)}>
+            <Dialog open={openDialog === "gasto-assoc"} onOpenChange={(o) => {
+              setOpenDialog(o ? "gasto-assoc" : null);
+              if (!o) assocHandlers.resetGasto();
+            }}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="h-16 justify-start gap-4 px-4 bg-destructive/5 border-destructive/20 hover:bg-destructive/10 group">
                   <Minus className="h-6 w-6 text-destructive transition-transform group-hover:scale-110" />
@@ -351,15 +175,15 @@ export default function DashboardPage() {
               <DialogContent>
                 <DialogHeader><DialogTitle>Gasto da Associação</DialogTitle></DialogHeader>
                 <div className="space-y-4 pt-4">
-                  <div className="space-y-2"><Label>Data *</Label><DateInput value={gastoAssocDate} onChange={setGastoAssocDate} /></div>
+                  <div className="space-y-2"><Label>Data *</Label><DateInput value={assocState.gasto.date} onChange={assocSetters.setGastoDate} /></div>
                   <div className="space-y-2">
                     <Label>Meio *</Label>
-                    <Select value={gastoAssocMeio} onValueChange={setGastoAssocMeio}>
+                    <Select value={assocState.gasto.meio} onValueChange={assocSetters.setGastoMeio}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent><SelectItem value="cash">Espécie</SelectItem><SelectItem value="pix">PIX</SelectItem></SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2"><Label>Valor *</Label><CurrencyInput value={gastoAssocValor} onChange={setGastoAssocValor} /></div>
+                  <div className="space-y-2"><Label>Valor *</Label><CurrencyInput value={assocState.gasto.valor} onChange={assocSetters.setGastoValor} /></div>
                   <div className="space-y-2">
                     <Label>Descrição *</Label>
                     <div className="flex flex-wrap gap-2 mb-2">
@@ -370,7 +194,7 @@ export default function DashboardPage() {
                             variant="outline"
                             size="sm"
                             className="h-7 text-[10px] px-2 bg-muted/30 border-muted-foreground/20 hover:bg-muted pr-6"
-                            onClick={() => setGastoAssocDesc(s)}
+                            onClick={() => assocSetters.setGastoDescricao(s)}
                           >
                             {s}
                           </Button>
@@ -433,19 +257,20 @@ export default function DashboardPage() {
                       </div>
                     )}
                     <Input
-                      value={gastoAssocDesc}
-                      onChange={(e) => setGastoAssocDesc(e.target.value)}
+                      value={assocState.gasto.descricao}
+                      onChange={(e) => assocSetters.setGastoDescricao(e.target.value)}
                       placeholder="O que foi pago?"
                     />
                   </div>
-                  <Button className="w-full" onClick={handleGastoAssocSubmit} disabled={createTransaction.isPending}>Registrar</Button>
+                  <Button className="w-full" onClick={() => assocHandlers.handleGastoSubmit(true)} disabled={assocLoading}>Registrar</Button>
                 </div>
               </DialogContent>
             </Dialog>
 
-
-
-            <Dialog open={openDialog === "consumo-mer"} onOpenChange={(o) => setOpenDialog(o ? "consumo-mer" : null)}>
+            <Dialog open={openDialog === "consumo-mer"} onOpenChange={(o) => {
+              setOpenDialog(o ? "consumo-mer" : null);
+              if (!o) saldosHandlers.resetGasto();
+            }}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="h-16 justify-start gap-4 px-4 bg-orange-500/5 border-orange-500/20 hover:bg-orange-500/10 group">
                   <ArrowRightLeft className="h-6 w-6 text-orange-500 transition-transform group-hover:scale-110" />
@@ -458,17 +283,17 @@ export default function DashboardPage() {
               <DialogContent>
                 <DialogHeader><DialogTitle>Registrar Consumo Estabelecimento</DialogTitle></DialogHeader>
                 <div className="space-y-4 pt-4">
-                  <div className="space-y-2"><Label>Data *</Label><DateInput value={consumoDate} onChange={setConsumoDate} /></div>
+                  <div className="space-y-2"><Label>Data *</Label><DateInput value={saldosState.gasto.date} onChange={saldosSetters.setGastoDate} /></div>
                   <div className="space-y-2">
                     <Label>Estabelecimento *</Label>
-                    <Select value={consumoMerchant} onValueChange={setConsumoMerchant}>
+                    <Select value={saldosState.gasto.merchant} onValueChange={saldosSetters.setGastoMerchant}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>{data.merchantBalances.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2"><Label>Valor *</Label><CurrencyInput value={consumoValor} onChange={setConsumoValor} /></div>
-                  <div className="space-y-2"><Label>Descrição *</Label><Input value={consumoDesc} onChange={(e) => setConsumoDesc(e.target.value)} placeholder="Ex: Lanche alunos" /></div>
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={handleConsumoSubmit} disabled={createTransaction.isPending}>Registrar Consumo</Button>
+                  <div className="space-y-2"><Label>Valor *</Label><CurrencyInput value={saldosState.gasto.valor} onChange={saldosSetters.setGastoValor} /></div>
+                  <div className="space-y-2"><Label>Descrição *</Label><Input value={saldosState.gasto.descricao} onChange={(e) => saldosSetters.setGastoDescricao(e.target.value)} placeholder="Ex: Lanche alunos" /></div>
+                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={() => saldosHandlers.handleGastoSubmit()} disabled={saldosLoading}>Registrar Consumo</Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -557,4 +382,3 @@ export default function DashboardPage() {
     </DashboardLayout>
   );
 }
-

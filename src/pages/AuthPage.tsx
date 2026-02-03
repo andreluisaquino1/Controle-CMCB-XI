@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Loader2, Mail, Lock, User, ArrowLeft } from "lucide-react";
 import logo from "@/assets/logo-cmcb.jpg";
 
@@ -19,7 +19,6 @@ export default function AuthPage() {
   const { signIn, signUp, resetPassword, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
 
   // Redirect if already logged in
   if (user) {
@@ -37,23 +36,11 @@ export default function AuthPage() {
         const { error } = await signIn(email, password);
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
-            toast({
-              title: "Credenciais inválidas",
-              description: "E-mail ou senha incorretos. Tente novamente.",
-              variant: "destructive",
-            });
+            toast.error("E-mail ou senha incorretos. Tente novamente.");
           } else if (error.message.includes("Email not confirmed")) {
-            toast({
-              title: "E-mail não confirmado",
-              description: "Verifique sua caixa de entrada e confirme seu e-mail.",
-              variant: "destructive",
-            });
+            toast.error("Verifique sua caixa de entrada e confirme seu e-mail.");
           } else {
-            toast({
-              title: "Erro ao entrar",
-              description: error.message,
-              variant: "destructive",
-            });
+            toast.error(`Erro ao entrar: ${error.message}`);
           }
         } else {
           navigate("/");
@@ -62,38 +49,20 @@ export default function AuthPage() {
         const { error } = await signUp(email, password, name);
         if (error) {
           if (error.message.includes("already registered")) {
-            toast({
-              title: "E-mail já cadastrado",
-              description: "Este e-mail já está em uso. Tente fazer login.",
-              variant: "destructive",
-            });
+            toast.error("Este e-mail já está em uso. Tente fazer login.");
           } else {
-            toast({
-              title: "Erro ao cadastrar",
-              description: error.message,
-              variant: "destructive",
-            });
+            toast.error(`Erro ao cadastrar: ${error.message}`);
           }
         } else {
-          toast({
-            title: "Cadastro realizado!",
-            description: "Verifique seu e-mail para confirmar a conta. Após a confirmação, aguarde a ativação pelo Tenente Aquino.",
-          });
+          toast.success("Cadastro realizado! Verifique seu e-mail para confirmar a conta.");
           setMode("login");
         }
       } else if (mode === "forgot-password") {
         const { error } = await resetPassword(email);
         if (error) {
-          toast({
-            title: "Erro ao recuperar senha",
-            description: error.message,
-            variant: "destructive",
-          });
+          toast.error(`Erro ao recuperar senha: ${error.message}`);
         } else {
-          toast({
-            title: "E-mail enviado",
-            description: "Verifique sua caixa de entrada para redefinir sua senha.",
-          });
+          toast.success("E-mail enviado! Verifique sua caixa de entrada.");
           setMode("login");
         }
       }

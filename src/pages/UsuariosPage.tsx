@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Loader2, UserCheck, UserX, Shield } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -29,15 +29,9 @@ interface Profile {
 
 export default function UsuariosPage() {
     const { profile, isAdmin } = useAuth();
-    const { toast } = useToast();
     const queryClient = useQueryClient();
 
-    // Security check: Only admin role allowed
-    if (!isAdmin && profile) {
-        return <Navigate to="/" replace />;
-    }
-
-    // Fetch all profiles
+    // Fetch all profiles - all hooks must be called before any early returns
     const { data: profiles, isLoading } = useQuery({
         queryKey: ["profiles-admin"],
         queryFn: async () => {
@@ -49,6 +43,7 @@ export default function UsuariosPage() {
             if (error) throw error;
             return data as Profile[];
         },
+        enabled: !!isAdmin, // Only fetch if admin
     });
 
     // Toggle activation mutation
@@ -63,19 +58,18 @@ export default function UsuariosPage() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["profiles-admin"] });
-            toast({
-                title: "Sucesso",
-                description: "Status do usuário atualizado.",
-            });
+            toast.success("Status do usuário atualizado.");
         },
         onError: (error) => {
-            toast({
-                title: "Erro ao atualizar",
-                description: error.message,
-                variant: "destructive",
-            });
+            toast.error(`Erro ao atualizar: ${error.message}`);
         },
     });
+
+    // Security check: Only admin role allowed
+    // Early return after hooks
+    if (!isAdmin && profile) {
+        return <Navigate to="/" replace />;
+    }
 
     if (isLoading) {
         return (
@@ -109,23 +103,23 @@ export default function UsuariosPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {profiles?.map((profile) => (
-                                <TableRow key={profile.id}>
-                                    <TableCell className="font-medium">{profile.name}</TableCell>
-                                    <TableCell>{profile.email}</TableCell>
+                            {profiles?.map((p) => (
+                                <TableRow key={p.id}>
+                                    <TableCell className="font-medium">{p.name}</TableCell>
+                                    <TableCell>{p.email}</TableCell>
                                     <TableCell>
-                                        {format(new Date(profile.created_at), "dd/MM/yyyy HH:mm", {
+                                        {p.created_at ? format(new Date(p.created_at), "dd/MM/yyyy HH:mm", {
                                             locale: ptBR,
-                                        })}
+                                        }) : "-"}
                                     </TableCell>
                                     <TableCell>
                                         <div
-                                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${profile.active
+                                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${p.active
                                                 ? "bg-success/10 text-success"
                                                 : "bg-warning/10 text-warning"
                                                 }`}
                                         >
-                                            {profile.active ? (
+                                            {p.active ? (
                                                 <>
                                                     <UserCheck className="w-3 h-3 mr-1" /> Ativo
                                                 </>
@@ -139,12 +133,12 @@ export default function UsuariosPage() {
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-2">
                                             <span className="text-xs text-muted-foreground mr-2">
-                                                {profile.active ? "Ativado" : "Ativar"}
+                                                {p.active ? "Ativado" : "Ativar"}
                                             </span>
                                             <Switch
-                                                checked={profile.active}
+                                                checked={p.active}
                                                 onCheckedChange={(checked) =>
-                                                    toggleActivation.mutate({ id: profile.id, active: checked })
+                                                    toggleActivation.mutate({ id: p.id, active: checked })
                                                 }
                                                 disabled={toggleActivation.isPending}
                                             />
