@@ -27,10 +27,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useState } from "react";
-import { Wallet, Plus, Minus, Store, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Wallet, Plus, Minus, Store, Pencil, Trash2, Loader2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMerchants, useCreateMerchant } from "@/hooks/use-merchants";
-import { useCreateTransaction } from "@/hooks/use-transactions";
+import { useCreateTransaction, useVoidTransaction } from "@/hooks/use-transactions";
 import { useEntitiesWithAccounts, useUpdateMerchant, useDeactivateMerchant } from "@/hooks/use-accounts";
 import { useSaldosTransactions } from "@/hooks/use-entity-transactions";
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
@@ -52,6 +52,7 @@ export default function SaldosPage() {
   const { data: transactions, isLoading: transactionsLoading } = useSaldosTransactions();
   const createMerchant = useCreateMerchant();
   const createTransaction = useCreateTransaction();
+  const voidTransaction = useVoidTransaction();
   const updateMerchant = useUpdateMerchant();
   const deactivateMerchant = useDeactivateMerchant();
 
@@ -71,6 +72,9 @@ export default function SaldosPage() {
   const [gastoValor, setGastoValor] = useState(0);
   const [gastoDescricao, setGastoDescricao] = useState("");
   const [gastoObs, setGastoObs] = useState("");
+
+  const [voidingId, setVoidingId] = useState<string | null>(null);
+  const [voidReason, setVoidReason] = useState("");
 
   // Get entities
   const associacaoEntity = entitiesData?.entities?.find(e => e.type === "associacao");
@@ -220,6 +224,13 @@ export default function SaldosPage() {
     toast({ title: "Sucesso", description: "Gasto registrado." });
     resetGasto();
     setOpenDialog(null);
+  };
+
+  const handleVoidTx = async () => {
+    if (!voidingId || !voidReason.trim()) return;
+    await voidTransaction.mutateAsync({ transactionId: voidingId, reason: voidReason });
+    setVoidingId(null);
+    setVoidReason("");
   };
 
   return (
@@ -547,11 +558,12 @@ export default function SaldosPage() {
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead>Registrado por</TableHead>
+                      <TableHead className="w-[80px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {transactions.map((t) => (
-                      <TableRow key={t.id}>
+                      <TableRow key={t.id} className={t.status === 'voided' ? 'opacity-50 grayscale' : ''}>
                         <TableCell className="whitespace-nowrap">
                           {formatDateBR(t.transaction_date)}
                         </TableCell>
@@ -573,6 +585,18 @@ export default function SaldosPage() {
                         <TableCell className="text-muted-foreground">
                           {t.creator_name || "-"}
                         </TableCell>
+                        <TableCell>
+                          {t.status === 'posted' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setVoidingId(t.id)}
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -581,6 +605,36 @@ export default function SaldosPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Void Transaction Dialog */}
+        <Dialog open={!!voidingId} onOpenChange={(open) => !open && setVoidingId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Anular Lançamento</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label>Motivo da Anulação *</Label>
+                <Input
+                  value={voidReason}
+                  onChange={(e) => setVoidReason(e.target.value)}
+                  placeholder="Ex: Lançado em estabelecimento errado"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground bg-destructive/5 p-2 rounded border border-destructive/20">
+                <strong>Atenção:</strong> Esta ação reverterá o impacto financeiro no saldo do estabelecimento e da conta de origem.
+              </p>
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={handleVoidTx}
+                disabled={voidTransaction.isPending || !voidReason.trim()}
+              >
+                {voidTransaction.isPending ? "Anulando..." : "Confirmar Anulação"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

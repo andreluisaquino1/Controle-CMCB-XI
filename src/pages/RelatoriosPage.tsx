@@ -21,6 +21,12 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Download,
   Copy,
   MessageCircle,
@@ -28,11 +34,13 @@ import {
   FileSpreadsheet,
   Loader2,
   Search,
-  Filter
+  Filter,
+  XCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { useAllTransactionsWithCreator } from "@/hooks/use-entity-transactions";
+import { useVoidTransaction } from "@/hooks/use-transactions";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { formatDateBR, getWeekStartDate, formatDateString, getTodayString } from "@/lib/date-utils";
 import { MODULE_LABELS } from "@/lib/constants";
@@ -48,6 +56,10 @@ export default function RelatoriosPage() {
   // Transactions filter state
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+
+  const voidTransaction = useVoidTransaction();
+  const [voidingId, setVoidingId] = useState<string | null>(null);
+  const [voidReason, setVoidReason] = useState("");
 
   // Fetch data with date range
   const { data: dashboardData, isLoading: dashboardLoading } = useDashboardData(startDate, endDate);
@@ -107,6 +119,13 @@ export default function RelatoriosPage() {
     const report = generateWhatsAppReport();
     const encoded = encodeURIComponent(report);
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
+  };
+
+  const handleVoidTx = async () => {
+    if (!voidingId || !voidReason.trim()) return;
+    await voidTransaction.mutateAsync({ transactionId: voidingId, reason: voidReason });
+    setVoidingId(null);
+    setVoidReason("");
   };
 
   const exportExcel = async () => {
@@ -369,11 +388,12 @@ export default function RelatoriosPage() {
                           <TableHead className="text-right">Valor</TableHead>
                           <TableHead>Registrado por</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead className="w-[80px]">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredTransactions.map((t) => (
-                          <TableRow key={t.id}>
+                          <TableRow key={t.id} className={t.status === 'voided' ? 'opacity-50 grayscale' : ''}>
                             <TableCell className="whitespace-nowrap">
                               {formatDateBR(t.transaction_date)}
                             </TableCell>
@@ -401,6 +421,18 @@ export default function RelatoriosPage() {
                                 }`}>
                                 {t.status === "posted" ? "Ativo" : "Anulado"}
                               </span>
+                            </TableCell>
+                            <TableCell>
+                              {t.status === 'posted' && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setVoidingId(t.id)}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -474,6 +506,36 @@ export default function RelatoriosPage() {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Void Transaction Dialog */}
+        <Dialog open={!!voidingId} onOpenChange={(open) => !open && setVoidingId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Anular Lançamento</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label>Motivo da Anulação *</Label>
+                <Input
+                  value={voidReason}
+                  onChange={(e) => setVoidReason(e.target.value)}
+                  placeholder="Ex: Erro de digitação"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground bg-destructive/5 p-2 rounded border border-destructive/20">
+                <strong>Atenção:</strong> Esta ação é irreversível e afetará permanentemente os saldos atuais para refletir a correção.
+              </p>
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={handleVoidTx}
+                disabled={voidTransaction.isPending || !voidReason.trim()}
+              >
+                {voidTransaction.isPending ? "Anulando..." : "Confirmar Anulação"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

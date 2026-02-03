@@ -5,17 +5,17 @@
  */
 export function parseCurrencyBRL(input: string | number | null | undefined): number {
   if (input === null || input === undefined || input === "") return 0;
-  
+
   if (typeof input === "number") {
     return isNaN(input) ? 0 : Math.round(input * 100) / 100;
   }
-  
+
   // Remove currency symbol, spaces, and other non-numeric chars except comma/period
   const cleanedInput = input
     .replace(/R\$\s?/g, "")
     .replace(/\s/g, "")
     .trim();
-  
+
   // If contains both comma and period, determine which is decimal
   if (cleanedInput.includes(",") && cleanedInput.includes(".")) {
     // Brazilian format: period for thousands, comma for decimals
@@ -24,14 +24,14 @@ export function parseCurrencyBRL(input: string | number | null | undefined): num
     const numericValue = parseFloat(normalized);
     return isNaN(numericValue) ? 0 : Math.round(numericValue * 100) / 100;
   }
-  
+
   // Only comma - assume it's the decimal separator
   if (cleanedInput.includes(",")) {
     const normalized = cleanedInput.replace(",", ".");
     const numericValue = parseFloat(normalized);
     return isNaN(numericValue) ? 0 : Math.round(numericValue * 100) / 100;
   }
-  
+
   // Only period or no separator - parse as is
   const numericValue = parseFloat(cleanedInput);
   return isNaN(numericValue) ? 0 : Math.round(numericValue * 100) / 100;
@@ -41,12 +41,17 @@ export function parseCurrencyBRL(input: string | number | null | undefined): num
  * Format a number as Brazilian Real currency
  * Returns formatted string like "R$ 1.234,56"
  */
-export function formatCurrencyBRL(value: number | null | undefined): string {
-  if (value === null || value === undefined || isNaN(value)) {
-    value = 0;
+export function formatCurrencyBRL(value: number | string | null | undefined): string {
+  const numericValue = typeof value === "string" ? parseFloat(value) : value;
+
+  if (numericValue === null || numericValue === undefined || isNaN(numericValue)) {
+    return (0).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
   }
-  
-  return value.toLocaleString("pt-BR", {
+
+  return numericValue.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });

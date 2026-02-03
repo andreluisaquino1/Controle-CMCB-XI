@@ -1,4 +1,5 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,6 +93,24 @@ export default function DashboardPage() {
     if (!mensalidadeTurno) return toast({ title: "Erro", description: "Selecione o turno.", variant: "destructive" });
     if (mensalidadeCash === 0 && mensalidadePix === 0) return toast({ title: "Erro", description: "Informe um valor.", variant: "destructive" });
     if (!especieAccount || !pixAccount || !associacaoEntity) return;
+
+    // Verificar se já existe mensalidade para esta data e turno
+    const { data: existing } = await supabase
+      .from("transactions")
+      .select("id")
+      .eq("module", "mensalidade")
+      .eq("transaction_date", mensalidadeDate)
+      .eq("shift", mensalidadeTurno as "matutino" | "vespertino")
+      .eq("status", "posted")
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return toast({
+        title: "Lançamento Duplicado",
+        description: `Já existe um registro de mensalidade para o turno ${mensalidadeTurno} nesta data.`,
+        variant: "destructive"
+      });
+    }
 
     if (mensalidadeCash > 0) {
       await createTransaction.mutateAsync({
