@@ -102,6 +102,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
+            // Restriction: Only admin can see Users and Logs
+            const isAdmin = profile?.email === "andreluis_57@hotmail.com";
+            if ((item.label === "Usuários" || item.label === "Logs") && !isAdmin) {
+              return null;
+            }
+
             const isActive = location.pathname === item.href;
             return (
               <Link

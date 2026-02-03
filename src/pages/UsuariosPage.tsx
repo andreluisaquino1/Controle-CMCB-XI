@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
 import {
     Table,
     TableBody,
@@ -26,8 +28,16 @@ interface Profile {
 }
 
 export default function UsuariosPage() {
+    const { profile } = useAuth();
     const { toast } = useToast();
     const queryClient = useQueryClient();
+
+    // Security check: Only admin email allowed
+    const isAdmin = profile?.email === "andreluis_57@hotmail.com";
+
+    if (!isAdmin && profile) {
+        return <Navigate to="/" replace />;
+    }
 
     // Fetch all profiles
     const { data: profiles, isLoading } = useQuery({
@@ -113,8 +123,8 @@ export default function UsuariosPage() {
                                     <TableCell>
                                         <div
                                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${profile.active
-                                                    ? "bg-success/10 text-success"
-                                                    : "bg-warning/10 text-warning"
+                                                ? "bg-success/10 text-success"
+                                                : "bg-warning/10 text-warning"
                                                 }`}
                                         >
                                             {profile.active ? (
