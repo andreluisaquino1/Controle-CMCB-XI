@@ -557,6 +557,7 @@ export default function SaldosPage() {
                       <TableHead>Estabelecimento</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Descrição</TableHead>
+                      <TableHead>Meio</TableHead>
                       <TableHead>Registrado por</TableHead>
                       <TableHead className="w-[80px]">Ações</TableHead>
                     </TableRow>
@@ -581,6 +582,9 @@ export default function SaldosPage() {
                         </TableCell>
                         <TableCell className="max-w-xs truncate">
                           {t.description || "-"}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {t.payment_method === 'cash' ? 'Espécie' : t.payment_method === 'pix' ? 'PIX' : '-'}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {t.creator_name || "-"}

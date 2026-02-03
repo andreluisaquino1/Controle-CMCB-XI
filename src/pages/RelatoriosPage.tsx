@@ -385,6 +385,9 @@ export default function RelatoriosPage() {
                           <TableHead>Data</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Descrição</TableHead>
+                          <TableHead>Conta</TableHead>
+                          <TableHead>Meio</TableHead>
+                          <TableHead>Turno</TableHead>
                           <TableHead className="text-right">Valor</TableHead>
                           <TableHead>Registrado por</TableHead>
                           <TableHead>Status</TableHead>
@@ -404,6 +407,15 @@ export default function RelatoriosPage() {
                             </TableCell>
                             <TableCell className="max-w-xs truncate">
                               {t.description || "-"}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {t.source_account_name || t.destination_account_name || '-'}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {t.payment_method === 'cash' ? 'Espécie' : t.payment_method === 'pix' ? 'PIX' : '-'}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {t.shift === 'matutino' ? 'Matutino' : t.shift === 'vespertino' ? 'Vespertino' : '-'}
                             </TableCell>
                             <TableCell className={`text-right font-medium ${t.direction === "in" ? "text-success" :
                               t.direction === "out" ? "text-destructive" : ""

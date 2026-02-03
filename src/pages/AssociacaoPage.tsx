@@ -839,6 +839,8 @@ export default function AssociacaoPage() {
                       <TableHead>Tipo</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Descrição</TableHead>
+                      <TableHead>Meio</TableHead>
+                      <TableHead>Turno</TableHead>
                       <TableHead>Observação</TableHead>
                       <TableHead>Registrado por</TableHead>
                       <TableHead className="w-[80px]">Ações</TableHead>
@@ -863,6 +865,12 @@ export default function AssociacaoPage() {
                         </TableCell>
                         <TableCell className="max-w-xs truncate">
                           {t.description || "-"}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {t.payment_method === 'cash' ? 'Espécie' : t.payment_method === 'pix' ? 'PIX' : '-'}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {t.shift === 'matutino' ? 'Matutino' : t.shift === 'vespertino' ? 'Vespertino' : '-'}
                         </TableCell>
                         <TableCell className="max-w-xs truncate text-muted-foreground">
                           {t.notes || "-"}

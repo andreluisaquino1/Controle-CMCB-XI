@@ -8,6 +8,7 @@ interface Transaction {
   amount: number;
   direction: string;
   payment_method: string | null;
+  shift: string | null;
   description: string | null;
   notes: string | null;
   status: string;
@@ -106,7 +107,7 @@ export function useRecursosTransactions() {
       return (transactions || []).map((t): TransactionWithCreator & { entity_type: string | null, entity_cnpj: string | null } => {
         const accountInfo = t.source_account_id ? accountMap.get(t.source_account_id) : null;
         const entityInfo = accountInfo?.entity_id ? entityMap.get(accountInfo.entity_id) : null;
-        
+
         return {
           ...t,
           creator_name: profileMap.get(t.created_by) || null,
