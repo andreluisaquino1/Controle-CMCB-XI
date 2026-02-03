@@ -71,7 +71,7 @@ export function useCreateTransaction() {
       return txn;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["merchants"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -136,7 +136,7 @@ export function useVoidTransaction() {
       return originalTxn;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["merchants"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });

@@ -4,7 +4,7 @@
 export const ACCOUNT_NAMES = {
   ESPECIE: "Espécie",
   COFRE: "Cofre",
-  BB_ASSOCIACAO_PIX: "BB Associação (PIX)",
+  PIX: "PIX",
 } as const;
 
 /**
@@ -26,7 +26,6 @@ export const MODULE_LABELS: Record<string, string> = {
   especie_deposito_pix: "Depósito PIX",
   especie_ajuste: "Ajuste Espécie",
   cofre_ajuste: "Ajuste Cofre",
-  aporte_saldo: "Aporte Saldo",
   consumo_saldo: "Consumo Saldo",
   pix_direto_uecx: "Recurso (PIX Direto)",
 } as const;

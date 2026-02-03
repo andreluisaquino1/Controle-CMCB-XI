@@ -42,7 +42,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { profile, signOut } = useAuth();
+  const { profile, isAdmin, signOut } = useAuth();
   const location = useLocation();
 
   const handleSignOut = async () => {
@@ -103,8 +103,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             // Restriction: Only admin can see Users and Logs
-            const isAdmin = profile?.email === "andreluis_57@hotmail.com";
-            if ((item.label === "Usuários" || item.label === "Logs") && !isAdmin) {
+            const isRestricted = item.label === "Usuários" || item.label === "Logs";
+            if (isRestricted && !isAdmin) {
               return null;
             }
 
@@ -159,9 +159,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex-1 p-4 lg:p-6 max-w-7xl mx-auto w-full">
           {children}
         </div>
-        <footer className="p-4 border-t border-sidebar-border text-center text-xs text-muted-foreground bg-sidebar/5">
-          <p>CMCB-XI • Sistema de Prestação de Contas • Build: 8a4809d</p>
-        </footer>
       </main>
     </div>
   );

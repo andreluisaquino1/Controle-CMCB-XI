@@ -81,7 +81,7 @@ export default function AssociacaoPage() {
   const associacaoEntity = entities?.find(e => e.type === "associacao");
   const especieAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE);
   const cofreAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.COFRE);
-  const pixAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.BB_ASSOCIACAO_PIX);
+  const pixAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.PIX);
 
   const resetMensalidade = () => {
     setMensalidadeDate(getTodayString());
@@ -312,7 +312,7 @@ export default function AssociacaoPage() {
   const getAccountDisplayName = (name: string) => {
     if (name === ACCOUNT_NAMES.ESPECIE) return "Espécie";
     if (name === ACCOUNT_NAMES.COFRE) return "Cofre";
-    if (name === ACCOUNT_NAMES.BB_ASSOCIACAO_PIX) return "PIX";
+    if (name === ACCOUNT_NAMES.PIX) return "PIX";
     return name;
   };
 

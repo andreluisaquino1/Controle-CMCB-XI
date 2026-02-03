@@ -100,7 +100,7 @@ export function useInvalidateDashboard() {
 
   return () => {
     queryClient.invalidateQueries({
-      queryKey: ["dashboard-summary"],
+      queryKey: ["dashboard-data"],
       refetchType: "active",
     });
   };

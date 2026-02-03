@@ -46,7 +46,7 @@ export function useCreateMerchant() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["merchants"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
       toast({
         title: "Estabelecimento adicionado",
         description: `${variables.name} foi adicionado com sucesso.`,

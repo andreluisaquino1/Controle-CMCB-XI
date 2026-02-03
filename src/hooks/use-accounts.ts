@@ -28,7 +28,7 @@ export function useAccounts() {
         .from("accounts")
         .select("*")
         .order("name");
-      
+
       if (error) throw error;
       return data as Account[];
     },
@@ -40,24 +40,24 @@ export function useAccountsByEntityType(entityType: "associacao" | "ue" | "cx" |
     queryKey: ["accounts", "by-entity-type", entityType],
     queryFn: async () => {
       if (!entityType) return [];
-      
+
       // First get entity id by type
       const { data: entities, error: entityError } = await supabase
         .from("entities")
         .select("id")
         .eq("type", entityType);
-      
+
       if (entityError) throw entityError;
       if (!entities || entities.length === 0) return [];
-      
+
       const entityIds = entities.map(e => e.id);
-      
+
       const { data, error } = await supabase
         .from("accounts")
         .select("*")
         .in("entity_id", entityIds)
         .order("name");
-      
+
       if (error) throw error;
       return data as Account[];
     },
@@ -73,7 +73,7 @@ export function useEntities() {
         .from("entities")
         .select("*")
         .order("name");
-      
+
       if (error) throw error;
       return data as Entity[];
     },
@@ -116,15 +116,15 @@ export function useAssociacaoAccounts() {
         .select("id")
         .eq("type", "associacao")
         .single();
-      
+
       if (entityError) throw entityError;
-      
+
       const { data, error } = await supabase
         .from("accounts")
         .select("*")
         .eq("entity_id", entity.id)
         .order("name");
-      
+
       if (error) throw error;
       return data as Account[];
     },
@@ -146,7 +146,7 @@ export function useUpdateMerchant() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["merchants"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
       toast({
         title: "Sucesso",
         description: "Estabelecimento atualizado.",
@@ -177,7 +177,7 @@ export function useDeactivateMerchant() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["merchants"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
       toast({
         title: "Sucesso",
         description: "Estabelecimento desativado.",

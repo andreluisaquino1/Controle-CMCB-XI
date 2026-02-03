@@ -73,9 +73,10 @@ export default function RelatoriosPage() {
     report += `🏛️ *ASSOCIAÇÃO*\n`;
     report += `├ Saldo Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}\n`;
     report += `├ Saldo PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}\n`;
-    report += `├ Gastos espécie: ${formatCurrencyBRL(dashboardData.weeklyExpensesCash)}\n`;
+    report += `├ Saldo Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}\n`;
+    report += `├ Gastos Espécie: ${formatCurrencyBRL(dashboardData.weeklyExpensesCash)}\n`;
     report += `├ Gastos PIX: ${formatCurrencyBRL(dashboardData.weeklyExpensesPix)}\n`;
-    report += `├ Entradas espécie: ${formatCurrencyBRL(dashboardData.weeklyEntriesCash)}\n`;
+    report += `├ Entradas Espécie: ${formatCurrencyBRL(dashboardData.weeklyEntriesCash)}\n`;
     report += `└ Entradas PIX: ${formatCurrencyBRL(dashboardData.weeklyEntriesPix)}\n\n`;
 
     report += `💳 *Saldos dos Estabelecimentos*\n`;
@@ -111,112 +112,126 @@ export default function RelatoriosPage() {
   const exportExcel = async () => {
     if (!dashboardData || !transactions) return;
 
-    // Dynamically import XLSX
-    const XLSX = await import("xlsx");
+    toast({ title: "Processando...", description: "Preparando planilha Excel..." });
 
-    // Create workbook
-    const wb = XLSX.utils.book_new();
+    try {
+      // Dynamically import XLSX
+      const XLSX = await import("xlsx");
 
-    // Summary sheet
-    const summaryData = [
-      ["Prestação de Contas CMCB-XI"],
-      [`Período: ${formatDateBR(startDate)} a ${formatDateBR(endDate)}`],
-      [],
-      ["ASSOCIAÇÃO"],
-      ["Saldo Espécie", formatCurrencyBRL(dashboardData.especieBalance)],
-      ["Saldo PIX", formatCurrencyBRL(dashboardData.pixBalance)],
-      ["Saldo Cofre", formatCurrencyBRL(dashboardData.cofreBalance)],
-      ["Gastos Espécie", formatCurrencyBRL(dashboardData.weeklyExpensesCash)],
-      ["Gastos PIX", formatCurrencyBRL(dashboardData.weeklyExpensesPix)],
-      ["Entradas Espécie", formatCurrencyBRL(dashboardData.weeklyEntriesCash)],
-      ["Entradas PIX", formatCurrencyBRL(dashboardData.weeklyEntriesPix)],
-      [],
-      ["SALDOS EM ESTABELECIMENTOS"],
-      ...(dashboardData.merchantBalances || []).map(m => [m.name, formatCurrencyBRL(Number(m.balance))]),
-    ];
-    const wsSum = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, wsSum, "Resumo");
+      // Create workbook
+      const wb = XLSX.utils.book_new();
 
-    // Transactions sheet
-    const txHeaders = ["Data", "Origem", "Conta", "Estabelecimento", "Valor", "Descrição", "Observação", "Registrado por"];
-    const txData = transactions.map(t => [
-      formatDateBR(t.transaction_date),
-      t.entity_name || "-",
-      t.source_account_name || t.destination_account_name || "-",
-      t.merchant_name || "-",
-      formatCurrencyBRL(Number(t.amount)),
-      t.description || "-",
-      t.notes || "-",
-      t.creator_name || "-",
-    ]);
-    const wsTx = XLSX.utils.aoa_to_sheet([txHeaders, ...txData]);
-    XLSX.utils.book_append_sheet(wb, wsTx, "Transações");
+      // Summary sheet
+      const summaryData = [
+        ["Prestação de Contas CMCB-XI"],
+        [`Período: ${formatDateBR(startDate)} a ${formatDateBR(endDate)}`],
+        [],
+        ["ASSOCIAÇÃO"],
+        ["Saldo Espécie", formatCurrencyBRL(dashboardData.especieBalance)],
+        ["Saldo PIX", formatCurrencyBRL(dashboardData.pixBalance)],
+        ["Saldo Cofre", formatCurrencyBRL(dashboardData.cofreBalance)],
+        ["Gastos Espécie", formatCurrencyBRL(dashboardData.weeklyExpensesCash)],
+        ["Gastos PIX", formatCurrencyBRL(dashboardData.weeklyExpensesPix)],
+        ["Entradas Espécie", formatCurrencyBRL(dashboardData.weeklyEntriesCash)],
+        ["Entradas PIX", formatCurrencyBRL(dashboardData.weeklyEntriesPix)],
+        [],
+        ["SALDOS EM ESTABELECIMENTOS"],
+        ...(dashboardData.merchantBalances || []).map(m => [m.name, formatCurrencyBRL(Number(m.balance))]),
+      ];
+      const wsSum = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, wsSum, "Resumo");
 
-    // Save
-    XLSX.writeFile(wb, `prestacao-contas-${startDate}-${endDate}.xlsx`);
-    toast({ title: "Sucesso", description: "Arquivo Excel exportado." });
+      // Transactions sheet
+      const txHeaders = ["Data", "Origem", "Conta", "Estabelecimento", "Valor", "Descrição", "Observação", "Registrado por"];
+      const txData = transactions.map(t => [
+        formatDateBR(t.transaction_date),
+        t.entity_name || "-",
+        t.source_account_name || t.destination_account_name || "-",
+        t.merchant_name || "-",
+        formatCurrencyBRL(Number(t.amount)),
+        t.description || "-",
+        t.notes || "-",
+        t.creator_name || "-",
+      ]);
+      const wsTx = XLSX.utils.aoa_to_sheet([txHeaders, ...txData]);
+      XLSX.utils.book_append_sheet(wb, wsTx, "Transações");
+
+      // Save
+      XLSX.writeFile(wb, `prestacao-contas-${startDate}-${endDate}.xlsx`);
+      toast({ title: "Sucesso", description: "Arquivo Excel exportado." });
+    } catch (error) {
+      console.error("Erro ao exportar Excel:", error);
+      toast({ title: "Erro", description: "Não foi possível gerar o Excel.", variant: "destructive" });
+    }
   };
 
   const exportPDF = async () => {
     if (!dashboardData || !transactions) return;
 
-    // Dynamically import jsPDF and autoTable
-    const { default: jsPDF } = await import("jspdf");
-    const { default: autoTable } = await import("jspdf-autotable");
+    toast({ title: "Processando...", description: "Preparando relatório PDF..." });
 
-    const doc = new jsPDF();
+    try {
+      // Dynamically import jsPDF and autoTable
+      const { default: jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
 
-    // Header
-    doc.setFontSize(18);
-    doc.text("Prestação de Contas CMCB-XI", 14, 20);
-    doc.setFontSize(12);
-    doc.text(`Período: ${formatDateBR(startDate)} a ${formatDateBR(endDate)}`, 14, 30);
+      const doc = new jsPDF();
 
-    // Associação
-    doc.setFontSize(14);
-    doc.text("Associação", 14, 45);
-    doc.setFontSize(10);
-    doc.text(`Saldo Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}`, 14, 55);
-    doc.text(`Saldo PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}`, 14, 62);
-    doc.text(`Saldo Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}`, 14, 69);
-    doc.text(`Gastos Espécie: ${formatCurrencyBRL(dashboardData.weeklyExpensesCash)}`, 14, 76);
-    doc.text(`Gastos PIX: ${formatCurrencyBRL(dashboardData.weeklyExpensesPix)}`, 14, 83);
-    doc.text(`Entradas Espécie: ${formatCurrencyBRL(dashboardData.weeklyEntriesCash)}`, 14, 90);
-    doc.text(`Entradas PIX: ${formatCurrencyBRL(dashboardData.weeklyEntriesPix)}`, 14, 97);
+      // Header
+      doc.setFontSize(18);
+      doc.text("Prestação de Contas CMCB-XI", 14, 20);
+      doc.setFontSize(12);
+      doc.text(`Período: ${formatDateBR(startDate)} a ${formatDateBR(endDate)}`, 14, 30);
 
-    // Saldos
-    doc.setFontSize(14);
-    doc.text("Saldos dos Estabelecimentos", 14, 112);
-
-    let yPos = 122;
-    doc.setFontSize(10);
-    (dashboardData.merchantBalances || []).forEach(m => {
-      doc.text(`${m.name}: ${formatCurrencyBRL(Number(m.balance))}`, 14, yPos);
-      yPos += 7;
-    });
-
-    // Transactions table
-    if (transactions.length > 0) {
-      doc.addPage();
+      // Associação
       doc.setFontSize(14);
-      doc.text("Transações", 14, 20);
+      doc.text("Associação", 14, 45);
+      doc.setFontSize(10);
+      doc.text(`Saldo Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}`, 14, 55);
+      doc.text(`Saldo PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}`, 14, 62);
+      doc.text(`Saldo Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}`, 14, 69);
+      doc.text(`Gastos Espécie: ${formatCurrencyBRL(dashboardData.weeklyExpensesCash)}`, 14, 76);
+      doc.text(`Gastos PIX: ${formatCurrencyBRL(dashboardData.weeklyExpensesPix)}`, 14, 83);
+      doc.text(`Entradas Espécie: ${formatCurrencyBRL(dashboardData.weeklyEntriesCash)}`, 14, 90);
+      doc.text(`Entradas PIX: ${formatCurrencyBRL(dashboardData.weeklyEntriesPix)}`, 14, 97);
 
-      autoTable(doc, {
-        startY: 30,
-        head: [["Data", "Tipo", "Valor", "Descrição"]],
-        body: transactions.slice(0, 50).map(t => [
-          formatDateBR(t.transaction_date),
-          MODULE_LABELS[t.module] || t.module,
-          formatCurrencyBRL(Number(t.amount)),
-          t.description || "-",
-        ]),
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [196, 30, 58] },
+      // Saldos
+      doc.setFontSize(14);
+      doc.text("Saldos dos Estabelecimentos", 14, 112);
+
+      let yPos = 122;
+      doc.setFontSize(10);
+      (dashboardData.merchantBalances || []).forEach(m => {
+        doc.text(`${m.name}: ${formatCurrencyBRL(Number(m.balance))}`, 14, yPos);
+        yPos += 7;
       });
-    }
 
-    doc.save(`prestacao-contas-${startDate}-${endDate}.pdf`);
-    toast({ title: "Sucesso", description: "Arquivo PDF exportado." });
+      // Transactions table
+      if (transactions.length > 0) {
+        doc.addPage();
+        doc.setFontSize(14);
+        doc.text("Transações", 14, 20);
+
+        autoTable(doc, {
+          startY: 30,
+          head: [["Data", "Tipo", "Valor", "Descrição"]],
+          body: transactions.slice(0, 50).map(t => [
+            formatDateBR(t.transaction_date),
+            MODULE_LABELS[t.module] || t.module,
+            formatCurrencyBRL(Number(t.amount)),
+            t.description || "-",
+          ]),
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [196, 30, 58] },
+        });
+      }
+
+      doc.save(`prestacao-contas-${startDate}-${endDate}.pdf`);
+      toast({ title: "Sucesso", description: "Arquivo PDF exportado." });
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+      toast({ title: "Erro", description: "Não foi possível gerar o PDF.", variant: "destructive" });
+    }
   };
 
   return (

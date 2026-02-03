@@ -79,7 +79,7 @@ export default function DashboardPage() {
   const cxEntity = entitiesData?.entities?.find(e => e.type === "cx");
 
   const especieAccount = assocAccounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE);
-  const pixAccount = assocAccounts?.find(a => a.name === ACCOUNT_NAMES.BB_ASSOCIACAO_PIX);
+  const pixAccount = assocAccounts?.find(a => a.name === ACCOUNT_NAMES.PIX);
 
   const resetMensalidade = () => {
     setMensalidadeDate(getTodayString());
@@ -140,6 +140,15 @@ export default function DashboardPage() {
     const sourceAccount = gastoAssocMeio === "cash" ? especieAccount : pixAccount;
     if (!sourceAccount) return;
 
+    // Strict balance check for Associação
+    if (gastoAssocValor > (sourceAccount.balance || 0)) {
+      return toast({
+        title: "Saldo Insuficiente",
+        description: `O saldo em ${sourceAccount.name === ACCOUNT_NAMES.ESPECIE ? "Espécie" : "PIX"} (${formatCurrencyBRL(sourceAccount.balance || 0)}) é menor que o valor do gasto.`,
+        variant: "destructive"
+      });
+    }
+
     await createTransaction.mutateAsync({
       transaction: {
         transaction_date: gastoAssocDate,
@@ -168,6 +177,15 @@ export default function DashboardPage() {
     if (aporteOrigem === "ASSOC") entityId = associacaoEntity?.id;
     else if (aporteOrigem === "UE") entityId = ueEntity?.id;
     else if (aporteOrigem === "CX") entityId = cxEntity?.id;
+
+    const sourceAccData = aporteAccounts.find(a => a.id === aporteConta);
+    if (sourceAccData && aporteValor > (sourceAccData.balance || 0) && aporteOrigem === "ASSOC") {
+      return toast({
+        title: "Saldo Insuficiente",
+        description: `O saldo na conta de origem (${formatCurrencyBRL(sourceAccData.balance || 0)}) é insuficiente para este aporte da Associação.`,
+        variant: "destructive"
+      });
+    }
 
     await createTransaction.mutateAsync({
       transaction: {

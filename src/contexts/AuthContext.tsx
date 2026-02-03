@@ -8,12 +8,14 @@ interface Profile {
   name: string;
   email: string;
   active: boolean;
+  role?: "admin" | "user";
 }
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
+  isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
@@ -30,17 +32,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
+    // Fetch profile
+    const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("*")
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (error) {
-      console.error("Error fetching profile:", error);
+    if (profileError) {
+      console.error("Error fetching profile:", profileError);
       return null;
     }
-    return data as Profile | null;
+
+    if (!profileData) return null;
+
+    // Fetch role
+    const { data: roleData, error: roleError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    return {
+      ...profileData,
+      role: roleData?.role || "user"
+    } as Profile;
   };
 
   useEffect(() => {
@@ -65,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
-      
+
       if (existingSession?.user) {
         fetchProfile(existingSession.user.id).then((p) => {
           setProfile(p);
@@ -89,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, name: string) => {
     const redirectUrl = `${window.location.origin}/`;
-    
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -121,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         session,
         profile,
+        isAdmin: profile?.role === "admin",
         loading,
         signIn,
         signUp,
