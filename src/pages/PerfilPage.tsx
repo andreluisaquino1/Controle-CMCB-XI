@@ -39,8 +39,9 @@ export default function PerfilPage() {
       if (error) throw error;
 
       toast.success("Nome atualizado.");
-    } catch (error: any) {
-      toast.error(error.message || "Não foi possível atualizar o nome.");
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || "Não foi possível atualizar o nome.");
     } finally {
       setIsUpdatingName(false);
     }
@@ -88,8 +89,9 @@ export default function PerfilPage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (error: any) {
-      toast.error(error.message || "Não foi possível atualizar a senha.");
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || "Não foi possível atualizar a senha.");
     } finally {
       setIsUpdatingPassword(false);
     }
@@ -108,8 +110,9 @@ export default function PerfilPage() {
       if (error) throw error;
 
       toast.success("Email enviado. Verifique sua caixa de entrada.");
-    } catch (error: any) {
-      toast.error(error.message || "Não foi possível enviar o email.");
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || "Não foi possível enviar o email.");
     } finally {
       setIsResettingPassword(false);
     }
@@ -225,8 +228,7 @@ export default function PerfilPage() {
           <CardContent className="pt-6">
             <Button variant="destructive" onClick={handleSignOut} className="w-full">
               <LogOut className="h-4 w-4 mr-2" />
-              Sair da Conta
-            </Button>
+              Sair da Conta\n            </Button>
           </CardContent>
         </Card>
       </div>

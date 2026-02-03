@@ -42,7 +42,7 @@ export function useCreateMerchant() {
       queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
       toast.success(`${variables.name} foi adicionado com sucesso.`);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || "Não foi possível adicionar o estabelecimento.");
     },
   });
@@ -65,7 +65,7 @@ export function useUpdateMerchant() {
       queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
       toast.success("Estabelecimento atualizado.");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || "Não foi possível atualizar.");
     },
   });
@@ -88,7 +88,7 @@ export function useDeactivateMerchant() {
       queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
       toast.success("Estabelecimento desativado.");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || "Não foi possível desativar.");
     },
   });

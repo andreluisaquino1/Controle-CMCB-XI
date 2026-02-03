@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { toast } from "sonner";
-import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -63,18 +62,16 @@ _________________________
             Valor: t.amount,
             Tipo: t.direction === 'in' ? 'Entrada' : t.direction === 'out' ? 'Saída' : 'Transferência',
             Método: t.payment_method || '-',
-            Entidade: t.entities?.name || '-',
-            Conta: t.accounts?.name || '-',
-            Criado_Por: t.profiles?.full_name || 'Sistema'
+            Entidade: t.entity_name || '-',
+            Conta: t.source_account_name || t.destination_account_name || '-',
+            Criado_Por: t.creator_name || 'Sistema'
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(data);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Transações");
 
-        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-        const finalData = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        saveAs(finalData, `transacoes_${new Date().toISOString().split('T')[0]}.xlsx`);
+        XLSX.writeFile(workbook, `transacoes_${new Date().toISOString().split('T')[0]}.xlsx`);
         toast.success("Arquivo Excel gerado com sucesso!");
     }, [transactions]);
 
@@ -92,7 +89,7 @@ _________________________
             t.description || '',
             formatCurrencyBRL(t.amount),
             t.direction === 'in' ? 'Entrada' : t.direction === 'out' ? 'Saída' : 'Transferência',
-            t.entities?.name || '-'
+            t.entity_name || '-'
         ]);
 
         autoTable(doc, {

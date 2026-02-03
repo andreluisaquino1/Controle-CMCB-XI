@@ -4,10 +4,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Account, DashboardData, Merchant } from "@/types";
 import { ACCOUNT_NAMES } from "@/lib/constants";
+import { Database } from "@/integrations/supabase/types";
+
+type TransactionModule = Database["public"]["Enums"]["transaction_module"];
 
 interface CreateTransactionData {
   transaction_date: string;
-  module: string;
+  module: TransactionModule;
   entity_id?: string | null;
   source_account_id?: string | null;
   destination_account_id?: string | null;
@@ -38,7 +41,7 @@ export function useCreateTransaction() {
         .from("transactions")
         .insert([{
           transaction_date: transaction.transaction_date,
-          module: transaction.module as any,
+          module: transaction.module,
           entity_id: transaction.entity_id || null,
           source_account_id: transaction.source_account_id || null,
           destination_account_id: transaction.destination_account_id || null,
@@ -147,7 +150,7 @@ export function useCreateTransaction() {
 
       return { previousDashboard, previousAccounts, previousMerchants };
     },
-    onError: (error: any, __, context) => {
+    onError: (error: Error, __, context) => {
       console.error("Transaction error:", error);
       if (context) {
         queryClient.setQueryData(["dashboard-data"], context.previousDashboard);
@@ -212,7 +215,7 @@ export function useVoidTransaction() {
 
       return originalTxn;
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error("Void error:", error);
       toast.error(error.message || "Não foi possível anular a transação.");
     },

@@ -2,7 +2,7 @@
  * Exports an array of objects to a CSV file.
  * Handles basic escaping and adds BOM for Excel compatibility in UTF-8.
  */
-export function exportToCSV(data: any[], filename: string) {
+export function exportToCSV(data: Record<string, unknown>[], filename: string) {
     if (!data || data.length === 0) return;
 
     // Extract keys from first object as headers
@@ -36,7 +36,7 @@ export function exportToCSV(data: any[], filename: string) {
  * Lazy-loaded Excel export - only loads xlsx library when called
  * This reduces the main bundle size significantly
  */
-export async function exportToExcel(data: any[], filename: string) {
+export async function exportToExcel(data: Record<string, unknown>[], filename: string) {
     if (!data || data.length === 0) return;
 
     // Dynamically import xlsx only when needed
@@ -55,7 +55,7 @@ export async function exportToExcel(data: any[], filename: string) {
  */
 export async function exportToPDF(
     title: string,
-    content: { headers: string[]; rows: any[][] }[],
+    content: { headers: string[]; rows: unknown[][] }[],
     filename: string
 ) {
     // Dynamically import jspdf and autotable only when needed
@@ -80,14 +80,15 @@ export async function exportToPDF(
 
         autoTable(doc, {
             head: [table.headers],
-            body: table.rows,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            body: table.rows as any[][], // Still need any here because autoTable types are strict but rows can be anything
             startY: yPosition,
             theme: 'grid',
             styles: { fontSize: 8 },
             headStyles: { fillColor: [66, 66, 66] },
         });
 
-        // @ts-ignore - autoTable adds finalY to doc
+        // @ts-expect-error - autoTable adds lastAutoTable to doc
         yPosition = doc.lastAutoTable.finalY + 10;
     });
 

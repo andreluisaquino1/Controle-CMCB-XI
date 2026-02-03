@@ -10,9 +10,17 @@ import {
 } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, History, AlertCircle, RotateCcw, Download } from "lucide-react";
+import { Loader2, History, AlertCircle, RotateCcw } from "lucide-react";
 import { formatCurrencyBRL } from "@/lib/currency";
-import { exportToCSV } from "@/lib/export-utils";
+
+interface AuditLog {
+    id: string;
+    created_at: string;
+    action: string;
+    reason: string | null;
+    profiles: { name: string | null } | null;
+    transactions: { description: string | null; amount: number } | null;
+}
 
 export default function LogPage() {
     const { data: logs, isLoading } = useQuery({
@@ -34,7 +42,7 @@ export default function LogPage() {
                 console.error("Erro ao buscar logs:", error);
                 throw error;
             }
-            return data;
+            return data as unknown as AuditLog[];
         },
     });
 
@@ -75,7 +83,7 @@ export default function LogPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {logs.map((log: any) => (
+                                        {logs.map((log) => (
                                             <TableRow key={log.id}>
                                                 <TableCell className="whitespace-nowrap">
                                                     {new Date(log.created_at).toLocaleString('pt-BR')}

@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-import { MerchantBalance, DashboardData, ReportData } from "@/types";
+import { MerchantBalance, DashboardData, ReportData, Account } from "@/types";
 
 async function fetchCurrentBalances(): Promise<DashboardData> {
   const { data, error } = await supabase.rpc("get_current_balances");
@@ -11,7 +11,14 @@ async function fetchCurrentBalances(): Promise<DashboardData> {
     throw error;
   }
 
-  const result = data as any;
+  const result = data as {
+    especieBalance?: number;
+    cofreBalance?: number;
+    pixBalance?: number;
+    merchantBalances?: MerchantBalance[];
+    resourceBalances?: { UE: Account[]; CX: Account[] };
+  };
+
   return {
     especieBalance: Number(result?.especieBalance || 0),
     cofreBalance: Number(result?.cofreBalance || 0),
@@ -32,7 +39,16 @@ async function fetchReportSummary(startDate: string, endDate: string): Promise<R
     throw error;
   }
 
-  const result = data as any;
+  const result = data as {
+    weeklyExpensesCash?: number;
+    weeklyExpensesPix?: number;
+    weeklyEntriesCash?: number;
+    weeklyEntriesPix?: number;
+    weeklyDeposits?: number;
+    weeklyConsumption?: number;
+    weeklyDirectPix?: number;
+  };
+
   return {
     weeklyExpensesCash: Number(result?.weeklyExpensesCash || 0),
     weeklyExpensesPix: Number(result?.weeklyExpensesPix || 0),

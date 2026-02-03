@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 // The sorting logic extracted from SaldosPage.tsx
-const sortAccounts = (accounts: any[]) => {
+const sortAccounts = (accounts: { name: string }[]) => {
     const order = ["Espécie", "BB Associação (PIX)", "Cofre"];
     return [...accounts].sort((a, b) => {
         const idxA = order.indexOf(a.name);
