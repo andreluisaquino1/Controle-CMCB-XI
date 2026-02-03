@@ -128,7 +128,7 @@ export default function RelatoriosPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="bg-muted rounded-lg p-4 font-mono text-sm whitespace-pre-wrap">
-                  {(dashboardLoading || reportLoading) ? <Loader2 className="h-5 w-5 animate-spin" /> : reports.generateWhatsAppReport()}
+                  {(dashboardLoading || reportLoading) ? <Loader2 className="h-5 w-5 animate-spin" /> : reports.getWhatsAppReportText()}
                 </div>
                 <div className="flex gap-3">
                   <Button onClick={reports.copyReport} variant="outline" className="flex-1" disabled={dashboardLoading}>

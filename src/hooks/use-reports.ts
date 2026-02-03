@@ -8,19 +8,20 @@ import { formatDateBR } from '@/lib/date-utils';
 import { DashboardData, ReportData, TransactionWithCreator } from '@/types';
 
 export function useReports(
+    startDate: string,
+    endDate: string,
     dashboardData: DashboardData | undefined,
     reportData: ReportData | undefined,
     transactions: TransactionWithCreator[] | undefined
 ) {
-    const generateWhatsAppReport = useCallback(() => {
+    const getWhatsAppReportText = useCallback(() => {
         if (!dashboardData || !reportData) {
-            toast.error("Dados insuficientes para gerar o relatório.");
-            return;
+            return "Carregando dados...";
         }
 
-        const report = `
+        return `
 📊 *RELATÓRIO FINANCEIRO CMCB-XI* 📊
-📅 Período: ${new Date().toLocaleDateString('pt-BR')}
+📅 Período: ${formatDateBR(startDate)} a ${formatDateBR(endDate)}
 
 💰 *SALDOS ATUAIS*
 💵 Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}
@@ -45,12 +46,29 @@ _________________________
 
 ✅ Gerado automaticamente pelo Sistema de Gestão CMCB-XI
         `.trim();
+    }, [dashboardData, reportData, startDate, endDate]);
 
-        navigator.clipboard.writeText(report);
+    const copyReport = useCallback(() => {
+        const text = getWhatsAppReportText();
+        if (text === "Carregando dados...") {
+            toast.error("Aguarde o carregamento dos dados.");
+            return;
+        }
+        navigator.clipboard.writeText(text);
         toast.success("Relatório copiado para a área de transferência!");
-    }, [dashboardData, reportData]);
+    }, [getWhatsAppReportText]);
 
-    const exportToExcel = useCallback(() => {
+    const openWhatsApp = useCallback(() => {
+        const text = getWhatsAppReportText();
+        if (text === "Carregando dados...") {
+            toast.error("Aguarde o carregamento dos dados.");
+            return;
+        }
+        const encodedText = encodeURIComponent(text);
+        window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+    }, [getWhatsAppReportText]);
+
+    const exportExcel = useCallback(() => {
         if (!transactions || transactions.length === 0) {
             toast.error("Nenhuma transação para exportar.");
             return;
@@ -75,7 +93,7 @@ _________________________
         toast.success("Arquivo Excel gerado com sucesso!");
     }, [transactions]);
 
-    const exportToPDF = useCallback(() => {
+    const exportPDF = useCallback(() => {
         if (!transactions || transactions.length === 0) {
             toast.error("Nenhuma transação para exportar.");
             return;
@@ -103,8 +121,11 @@ _________________________
     }, [transactions]);
 
     return {
-        generateWhatsAppReport,
-        exportToExcel,
-        exportToPDF
+        getWhatsAppReportText,
+        copyReport,
+        openWhatsApp,
+        exportExcel,
+        exportPDF
     };
 }
+
