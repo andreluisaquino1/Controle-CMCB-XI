@@ -124,20 +124,30 @@ export default function AssociacaoPage() {
     }
     if (!especieAccount || !pixAccount || !associacaoEntity) return;
 
-    // Verificar se já existe mensalidade para esta data e turno
+    // Verificar se já existem lançamentos para esta data e turno
     const { data: existing } = await supabase
       .from("transactions")
-      .select("id")
+      .select("payment_method")
       .eq("module", "mensalidade")
       .eq("transaction_date", mensalidadeDate)
       .eq("shift", mensalidadeTurno as "matutino" | "vespertino")
-      .eq("status", "posted")
-      .limit(1);
+      .eq("status", "posted");
 
-    if (existing && existing.length > 0) {
+    const hasCash = existing?.some(e => e.payment_method === 'cash');
+    const hasPix = existing?.some(e => e.payment_method === 'pix');
+
+    if (mensalidadeCash > 0 && hasCash) {
       return toast({
         title: "Lançamento Duplicado",
-        description: `Já existe um registro de mensalidade para o turno ${mensalidadeTurno} nesta data.`,
+        description: `Já existe um registro em ESPÉCIE para o turno ${mensalidadeTurno} nesta data.`,
+        variant: "destructive"
+      });
+    }
+
+    if (mensalidadePix > 0 && hasPix) {
+      return toast({
+        title: "Lançamento Duplicado",
+        description: `Já existe um registro em PIX para o turno ${mensalidadeTurno} nesta data.`,
         variant: "destructive"
       });
     }
