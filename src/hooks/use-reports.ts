@@ -120,24 +120,27 @@ ${cxBlock}
         const pageWidth = doc.internal.pageSize.getWidth();
         let yPos = 20;
 
-        // Add logo
+        // Add logo using fetch and convert to base64
         try {
-            const logoPath = '/logo-cmcb.jpg';
-            const img = new Image();
-            img.src = logoPath;
-            await new Promise((resolve) => {
-                img.onload = resolve;
-                img.onerror = resolve; // Continue even if logo fails
-            });
-            if (img.complete && img.naturalWidth > 0) {
-                doc.addImage(img, 'JPEG', 14, yPos, 25, 25);
+            const response = await fetch('/logo-cmcb.jpg');
+            if (response.ok) {
+                const blob = await response.blob();
+                const reader = new FileReader();
+                await new Promise((resolve) => {
+                    reader.onloadend = () => {
+                        const base64data = reader.result as string;
+                        doc.addImage(base64data, 'JPEG', 14, yPos, 30, 30);
+                        resolve(null);
+                    };
+                    reader.readAsDataURL(blob);
+                });
             }
         } catch (error) {
             console.warn('Logo não carregado:', error);
         }
 
-        // Header with colored background
-        doc.setFillColor(41, 128, 185); // Blue header
+        // Header with red background
+        doc.setFillColor(204, 0, 0); // Red header
         doc.rect(0, 15, pageWidth, 35, 'F');
 
         doc.setTextColor(255, 255, 255);
@@ -156,11 +159,11 @@ ${cxBlock}
         doc.setTextColor(0, 0, 0);
 
         // Associação Section
-        doc.setFillColor(240, 240, 240);
+        doc.setFillColor(250, 230, 230);
         doc.rect(14, yPos - 5, pageWidth - 28, 8, 'F');
         doc.setFontSize(13);
         doc.setFont(undefined, 'bold');
-        doc.setTextColor(41, 128, 185);
+        doc.setTextColor(204, 0, 0);
         doc.text("1. ASSOCIAÇÃO", 16, yPos);
         yPos += 10;
 
@@ -196,11 +199,11 @@ ${cxBlock}
         yPos += 15;
 
         // Estabelecimentos Section
-        doc.setFillColor(240, 240, 240);
+        doc.setFillColor(250, 230, 230);
         doc.rect(14, yPos - 5, pageWidth - 28, 8, 'F');
         doc.setFontSize(13);
         doc.setFont(undefined, 'bold');
-        doc.setTextColor(41, 128, 185);
+        doc.setTextColor(204, 0, 0);
         doc.text("2. SALDOS DOS ESTABELECIMENTOS", 16, yPos);
         yPos += 10;
 
@@ -221,11 +224,11 @@ ${cxBlock}
         yPos += 10;
 
         // Recursos Section
-        doc.setFillColor(240, 240, 240);
+        doc.setFillColor(250, 230, 230);
         doc.rect(14, yPos - 5, pageWidth - 28, 8, 'F');
         doc.setFontSize(13);
         doc.setFont(undefined, 'bold');
-        doc.setTextColor(41, 128, 185);
+        doc.setTextColor(204, 0, 0);
         doc.text("3. RECURSOS (UE/CX)", 16, yPos);
         yPos += 10;
 
@@ -257,11 +260,11 @@ ${cxBlock}
         yPos += 10;
 
         // Transactions Section
-        doc.setFillColor(240, 240, 240);
+        doc.setFillColor(250, 230, 230);
         doc.rect(14, yPos - 5, pageWidth - 28, 8, 'F');
         doc.setFontSize(13);
         doc.setFont(undefined, 'bold');
-        doc.setTextColor(41, 128, 185);
+        doc.setTextColor(204, 0, 0);
         doc.text("4. TRANSAÇÕES DO PERÍODO", 16, yPos);
         yPos += 8;
 
@@ -273,9 +276,9 @@ ${cxBlock}
             t.source_account_name || t.destination_account_name || '-',
             t.entity_name || '-',
             formatCurrencyBRL(t.amount),
-            t.description || '',
-            t.notes || '',
-            t.creator_name || '-'
+            (t.description || '-').substring(0, 30),
+            (t.notes || '-').substring(0, 20),
+            (t.creator_name || '-').substring(0, 15)
         ]);
 
         autoTable(doc, {
@@ -284,30 +287,35 @@ ${cxBlock}
             body: tableData,
             styles: {
                 fontSize: 7,
-                cellPadding: 2,
+                cellPadding: 1.5,
+                overflow: 'linebreak',
+                cellWidth: 'wrap'
             },
             headStyles: {
-                fillColor: [41, 128, 185],
+                fillColor: [204, 0, 0],
                 textColor: [255, 255, 255],
                 fontStyle: 'bold',
-                halign: 'center'
+                halign: 'center',
+                fontSize: 7
             },
             alternateRowStyles: {
-                fillColor: [245, 245, 245]
+                fillColor: [250, 245, 245]
             },
             columnStyles: {
-                0: { cellWidth: 18 }, // Data
-                1: { cellWidth: 18 }, // Módulo
-                2: { cellWidth: 15 }, // Meio
-                3: { cellWidth: 15 }, // Turno
-                4: { cellWidth: 25 }, // Conta
-                5: { cellWidth: 25 }, // Estab.
-                6: { cellWidth: 20, halign: 'right' }, // Valor
-                7: { cellWidth: 30 }, // Descrição
+                0: { cellWidth: 17 }, // Data
+                1: { cellWidth: 16 }, // Módulo
+                2: { cellWidth: 14 }, // Meio
+                3: { cellWidth: 14 }, // Turno
+                4: { cellWidth: 24 }, // Conta
+                5: { cellWidth: 24 }, // Estab.
+                6: { cellWidth: 18, halign: 'right' }, // Valor
+                7: { cellWidth: 28 }, // Descrição
                 8: { cellWidth: 20 }, // Obs
-                9: { cellWidth: 20 }  // Reg. Por
+                9: { cellWidth: 16 }  // Reg. Por
             },
-            margin: { left: 14, right: 14 },
+            margin: { left: 10, right: 10 },
+            tableWidth: 'auto',
+            theme: 'grid'
         });
 
         // Footer with page number
