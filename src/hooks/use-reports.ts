@@ -133,24 +133,27 @@ ${cxBlock}
         doc.rect(0, headerY, pageWidth, headerHeight, 'F');
 
         // Add logos on both sides OVER the red banner
+        // Logo is an emblem with bottom banner - preserve original proportions
         try {
-            const response = await fetch('/logo-cmcb.jpg');
+            const response = await fetch('/logo-cmcb.png');
             if (response.ok) {
                 const blob = await response.blob();
                 const reader = new FileReader();
                 await new Promise((resolve) => {
                     reader.onloadend = () => {
                         const base64data = reader.result as string;
-                        // Logo size and positioning
-                        const logoSize = 30;
-                        const logoY = headerY + 2.5; // Slightly inside the red banner
+                        // Logo dimensions - preserving emblem proportions (not perfectly circular)
+                        // The logo has a bottom banner that extends beyond the circle
+                        const logoWidth = 30;
+                        const logoHeight = 32; // Slightly taller to accommodate bottom banner
+                        const logoY = headerY + 1.5; // Adjusted to fit within red banner
                         const leftLogoX = 15;
-                        const rightLogoX = pageWidth - logoSize - 15;
+                        const rightLogoX = pageWidth - logoWidth - 15;
 
-                        // Add logo on the left
-                        doc.addImage(base64data, 'JPEG', leftLogoX, logoY, logoSize, logoSize);
-                        // Add logo on the right
-                        doc.addImage(base64data, 'JPEG', rightLogoX, logoY, logoSize, logoSize);
+                        // Add logo on the left (preserving original emblem proportions)
+                        doc.addImage(base64data, 'PNG', leftLogoX, logoY, logoWidth, logoHeight);
+                        // Add logo on the right (preserving original emblem proportions)
+                        doc.addImage(base64data, 'PNG', rightLogoX, logoY, logoWidth, logoHeight);
                         resolve(null);
                     };
                     reader.readAsDataURL(blob);
