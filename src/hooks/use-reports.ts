@@ -4,8 +4,23 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrencyBRL } from '@/lib/currency';
 import { formatDateBR } from '@/lib/date-utils';
-import { MODULE_LABELS } from '@/lib/constants';
 import { DashboardData, ReportData, TransactionWithCreator } from '@/types';
+
+// Mapeamento humanizado de módulos para relatórios
+const REPORT_TYPE_LABELS: Record<string, string> = {
+    mensalidade: "Mensalidade",
+    gasto_associacao: "Gasto Associação",
+    aporte_saldo: "Aporte de Saldo",
+    consumo_saldo: "Gasto em Estabelecimento",
+    pix_direto_uecx: "Gasto de Recurso",
+    entrada_recurso: "Entrada de Recurso",
+    movimentacao_saldo: "Movimentação",
+    ajuste_saldo: "Ajuste",
+    especie_transfer: "Movimentação",
+    especie_deposito_pix: "Depósito PIX",
+    especie_ajuste: "Ajuste de Saldo",
+    cofre_ajuste: "Ajuste de Cofre",
+};
 
 export function useReports(
     startDate: string,
@@ -123,6 +138,22 @@ ${cxBlock}
         let yPos = 20;
 
         // ========================================
+        // CARREGAR LOGO CMCB
+        // ========================================
+        let logoDataUrl: string | null = null;
+        try {
+            const response = await fetch('/logo-cmcb.png');
+            const blob = await response.blob();
+            logoDataUrl = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            console.warn('Não foi possível carregar o logo:', e);
+        }
+
+        // ========================================
         // PÁGINA 1: RESUMO EXECUTIVO
         // ========================================
 
@@ -131,6 +162,14 @@ ${cxBlock}
         const headerY = 15;
         doc.setFillColor(204, 0, 0);
         doc.rect(0, headerY, pageWidth, headerHeight, 'F');
+
+        // Logo on the left and right sides of the header
+        const logoSize = 25;
+        const logoY = headerY + 5;
+        if (logoDataUrl) {
+            doc.addImage(logoDataUrl, 'PNG', 10, logoY, logoSize, logoSize);
+            doc.addImage(logoDataUrl, 'PNG', pageWidth - 10 - logoSize, logoY, logoSize, logoSize);
+        }
 
         // Text on the red banner (centered)
         doc.setTextColor(255, 255, 255);
@@ -328,23 +367,27 @@ ${cxBlock}
 
         doc.setTextColor(0, 0, 0);
 
-        // Prepare transaction data with humanized labels
-        const tableData = transactions.map(t => {
-            // Humanize module names
-            const moduleLabel = MODULE_LABELS[t.module] || t.module;
+        // Ordenar transações por data (decrescente)
+        const sortedTransactions = [...transactions].sort((a, b) =>
+            new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime()
+        );
 
-            // Determine type based on module
-            let tipo = moduleLabel;
-            if (t.module === 'mensalidade') tipo = 'Mensalidade';
-            else if (t.module === 'gasto_associacao') tipo = 'Gasto Associação';
-            else if (t.module === 'aporte_saldo' || t.module === 'consumo_saldo') tipo = 'Gasto Estabelecimento';
-            else if (t.module === 'pix_direto_uecx') tipo = 'Gasto de Recurso';
+        // Prepare transaction data with humanized labels
+        const tableData = sortedTransactions.map(t => {
+            // Usar mapeamento correto de tipo
+            const tipo = REPORT_TYPE_LABELS[t.module] || t.module;
+
+            // Determinar Origem/Conta corretamente
+            const origemConta = t.source_account_name || t.destination_account_name || "-";
+
+            // Determinar Estabelecimento corretamente (usar merchant_name)
+            const estabelecimento = t.merchant_name || "-";
 
             return [
                 formatDateBR(t.transaction_date),
                 tipo,
-                t.source_account_name || t.destination_account_name || '-',
-                t.entity_name || '-',
+                origemConta,
+                estabelecimento,
                 formatCurrencyBRL(t.amount),
                 (t.description || '-').substring(0, 40),
                 (t.notes || '-').substring(0, 30),
@@ -354,10 +397,10 @@ ${cxBlock}
 
         autoTable(doc, {
             startY: yPos,
-            head: [['Data', 'Tipo', 'Origem / Conta', 'Estabelecimento', 'Valor', 'Descrição', 'Observação', 'Registrado por']],
+            head: [['Data', 'Tipo', 'Origem / Conta', 'Estabelecimento', 'Valor', 'Descrição', 'Obs.', 'Registrado por']],
             body: tableData,
             styles: {
-                fontSize: 8,
+                fontSize: 7,
                 cellPadding: 2,
                 overflow: 'linebreak',
                 cellWidth: 'wrap'
@@ -367,27 +410,25 @@ ${cxBlock}
                 textColor: [255, 255, 255],
                 fontStyle: 'bold',
                 halign: 'center',
-                fontSize: 8
+                fontSize: 7
             },
             alternateRowStyles: {
                 fillColor: [250, 245, 245]
             },
             columnStyles: {
                 0: { cellWidth: 18 },  // Data
-                1: { cellWidth: 26 },  // Tipo
-                2: { cellWidth: 28 },  // Origem/Conta
-                3: { cellWidth: 26 },  // Estabelecimento
-                4: { cellWidth: 20, halign: 'right' }, // Valor
+                1: { cellWidth: 28 },  // Tipo
+                2: { cellWidth: 26 },  // Origem/Conta
+                3: { cellWidth: 24 },  // Estabelecimento
+                4: { cellWidth: 22, halign: 'right', overflow: 'visible' }, // Valor - maior e sem quebra
                 5: { cellWidth: 32 },  // Descrição
-                6: { cellWidth: 24 },  // Observação
-                7: { cellWidth: 24 }   // Registrado por
+                6: { cellWidth: 22 },  // Observação
+                7: { cellWidth: 22 }   // Registrado por
             },
-            margin: { left: 10, right: 10 },
+            margin: { left: 8, right: 8 },
             tableWidth: 'auto',
             theme: 'grid',
-            didDrawPage: (data) => {
-                // Footer is now handled at the end to prevent overlap
-            }
+            showHead: 'everyPage', // Repetir cabeçalho em cada página
         });
 
         // Update page count in footer for all pages uniformly
@@ -398,7 +439,7 @@ ${cxBlock}
             doc.setTextColor(128, 128, 128);
 
             const subtitle = i === 1 ? "Resumo Executivo" : "Transações do período";
-            const footerText = `Página ${i} de ${pageCount} – ${subtitle} | Gerado em ${new Date().toLocaleDateString('pt-BR')}`;
+            const footerText = `Página ${i} de ${pageCount} – ${subtitle}`;
 
             // Clear any potential existing footer area (clean overwrite)
             doc.setFillColor(255, 255, 255);
