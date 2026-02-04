@@ -27,11 +27,12 @@ interface AuditLog {
         module: string;
         transaction_date: string;
         direction: string;
+        origin_fund: string | null;
+        notes: string | null;
         source: { name: string | null } | null;
         destination: { name: string | null } | null;
         merchant: { name: string | null } | null;
-        entity: { name: string | null } | null;
-        notes: string | null;
+        entity: { name: string | null; type: string } | null;
     } | null;
 }
 
@@ -53,11 +54,12 @@ export default function LogPage() {
             module, 
             transaction_date,
             direction,
+            origin_fund,
             notes,
             source:accounts!transactions_source_account_id_fkey(name),
             destination:accounts!transactions_destination_account_id_fkey(name),
             merchant:merchants(name),
-            entity:entities(name)
+            entity:entities(name, type)
           )
         `)
                 .order("created_at", { ascending: false });
@@ -74,15 +76,15 @@ export default function LogPage() {
         <DashboardLayout>
             <div className="space-y-6 animate-fade-in">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Auditoria e Logs</h1>
-                    <p className="text-muted-foreground">Rastreabilidade de anulações seguindo o padrão do sistema</p>
+                    <h1 className="text-2xl font-bold text-foreground">Prestação de Contas</h1>
+                    <p className="text-muted-foreground">Auditoria detalhada de anulações seguindo o padrão visual do sistema</p>
                 </div>
 
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
                             <History className="h-5 w-5 text-primary" />
-                            Histórico de Operações
+                            Histórico de Auditoria
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -92,7 +94,7 @@ export default function LogPage() {
                             </div>
                         ) : !logs || logs.length === 0 ? (
                             <div className="py-8 text-center text-muted-foreground">
-                                Nenhuma transação encontrada
+                                Nenhuma transação de auditoria encontrada
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
@@ -101,12 +103,15 @@ export default function LogPage() {
                                         <TableRow>
                                             <TableHead>Data</TableHead>
                                             <TableHead>Tipo</TableHead>
-                                            <TableHead>Conta / Estab.</TableHead>
+                                            <TableHead>Origem</TableHead>
+                                            <TableHead>Conta Origem</TableHead>
+                                            <TableHead>Conta Destino</TableHead>
+                                            <TableHead>Estabelecimento</TableHead>
                                             <TableHead className="text-right">Valor</TableHead>
                                             <TableHead>Descrição</TableHead>
                                             <TableHead>Registrado por</TableHead>
                                             <TableHead>Observação</TableHead>
-                                            <TableHead className="min-w-[150px]">Motivo da Anulação</TableHead>
+                                            <TableHead className="min-w-[150px] bg-muted/5 border-l font-bold">Motivo da Anulação</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -125,12 +130,19 @@ export default function LogPage() {
                                                             {t?.module ? (MODULE_LABELS[t.module] || t.module) : "-"}
                                                         </span>
                                                     </TableCell>
+                                                    <TableCell>
+                                                        <span className="font-semibold text-[11px]">
+                                                            {t?.origin_fund || t?.entity?.type?.toUpperCase() || "-"}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell className="text-xs">
+                                                        {t?.source?.name || "-"}
+                                                    </TableCell>
+                                                    <TableCell className="text-xs">
+                                                        {t?.destination?.name || "-"}
+                                                    </TableCell>
                                                     <TableCell className="text-sm">
-                                                        <div className="flex flex-col">
-                                                            <span className="truncate max-w-[150px]">
-                                                                {t?.merchant?.name || t?.source?.name || t?.destination?.name || t?.entity?.name || "-"}
-                                                            </span>
-                                                        </div>
+                                                        {t?.merchant?.name || "-"}
                                                     </TableCell>
                                                     <TableCell className={`text-right font-bold tabular-nums ${t?.direction === "in" || t?.module === "aporte_saldo" ? "text-success" : "text-destructive"
                                                         }`}>
@@ -146,7 +158,7 @@ export default function LogPage() {
                                                     <TableCell className="max-w-xs truncate text-muted-foreground text-xs italic">
                                                         {t?.notes || "-"}
                                                     </TableCell>
-                                                    <TableCell className="text-sm border-l bg-muted/5 font-medium px-4">
+                                                    <TableCell className="text-sm border-l bg-muted/10 font-medium px-4">
                                                         {log.reason || "-"}
                                                     </TableCell>
                                                 </TableRow>
