@@ -21,13 +21,13 @@ export const ENTITY_NAMES = {
  */
 export const MODULE_LABELS: Record<string, string> = {
   mensalidade: "Mensalidade",
-  gasto_associacao: "Gasto Associação",
-  especie_transfer: "Movimentação Saldo",
+  gasto_associacao: "Despesa Associação",
+  especie_transfer: "Movimentação entre Contas",
   especie_deposito_pix: "Depósito PIX",
-  especie_ajuste: "Ajuste Espécie",
-  cofre_ajuste: "Ajuste Cofre",
-  consumo_saldo: "Consumo Saldo",
-  pix_direto_uecx: "Recurso (PIX Direto)",
+  especie_ajuste: "Ajuste de Saldo (Espécie)",
+  cofre_ajuste: "Ajuste de Saldo (Cofre)",
+  consumo_saldo: "Gasto Estabelecimento",
+  pix_direto_uecx: "Entrada/Saída (PIX Direto)",
 } as const;
 
 /**

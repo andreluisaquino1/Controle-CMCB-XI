@@ -40,6 +40,7 @@ import { DateInput } from "@/components/forms/DateInput";
 import { cleanAccountDisplayName } from "@/lib/account-display";
 import { useAssociacaoActions } from "@/hooks/use-associacao-actions";
 import { useSaldosActions } from "@/hooks/use-saldos-actions";
+import { ActionCard } from "@/components/ActionCard";
 import { MensalidadeDialog } from "@/components/forms/MensalidadeDialog";
 import { GastoAssociacaoDialog } from "@/components/forms/GastoAssociacaoDialog";
 import { ConsumoSaldoDialog } from "@/components/forms/ConsumoSaldoDialog";
@@ -130,14 +131,14 @@ export default function DashboardPage() {
             </div>
             <h2 className="text-lg font-semibold text-foreground">Ações Rápidas</h2>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Button variant="outline" className="h-16 justify-start gap-4 px-4 bg-success/5 border-success/20 hover:bg-success/10 group" onClick={() => setOpenDialog("mensalidade")}>
-              <Banknote className="h-6 w-6 text-success transition-transform group-hover:scale-110" />
-              <div className="text-left">
-                <p className="font-semibold text-success">Mensalidade</p>
-                <p className="text-xs text-muted-foreground">Nova entrada</p>
-              </div>
-            </Button>
+          <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-3">
+            <ActionCard
+              title="Mensalidade"
+              description="Nova entrada de alunos"
+              icon={Banknote}
+              variant="success"
+              onClick={() => setOpenDialog("mensalidade")}
+            />
 
             <MensalidadeDialog
               open={openDialog === "mensalidade"}
@@ -157,13 +158,13 @@ export default function DashboardPage() {
               isLoading={assocLoading}
             />
 
-            <Button variant="outline" className="h-16 justify-start gap-4 px-4 bg-destructive/5 border-destructive/20 hover:bg-destructive/10 group" onClick={() => setOpenDialog("gasto-assoc")}>
-              <Minus className="h-6 w-6 text-destructive transition-transform group-hover:scale-110" />
-              <div className="text-left">
-                <p className="font-semibold text-destructive">Gasto Associação</p>
-                <p className="text-xs text-muted-foreground">Nova despesa</p>
-              </div>
-            </Button>
+            <ActionCard
+              title="Despesa Associação"
+              description="Novo pagamento direto"
+              icon={Minus}
+              variant="destructive"
+              onClick={() => setOpenDialog("gasto-assoc")}
+            />
 
             <GastoAssociacaoDialog
               open={openDialog === "gasto-assoc"}
@@ -187,13 +188,13 @@ export default function DashboardPage() {
               strictBalance={true}
             />
 
-            <Button variant="outline" className="h-16 justify-start gap-4 px-4 bg-orange-500/5 border-orange-500/20 hover:bg-orange-500/10 group" onClick={() => setOpenDialog("consumo-mer")}>
-              <ArrowRightLeft className="h-6 w-6 text-orange-500 transition-transform group-hover:scale-110" />
-              <div className="text-left">
-                <p className="font-semibold text-orange-500">Gasto Estabelecimento</p>
-                <p className="text-xs text-muted-foreground">Baixa de saldo</p>
-              </div>
-            </Button>
+            <ActionCard
+              title="Gasto Estabelecimento"
+              description="Baixa de saldo devedor"
+              icon={ArrowRightLeft}
+              variant="secondary"
+              onClick={() => setOpenDialog("consumo-mer")}
+            />
 
             <ConsumoSaldoDialog
               open={openDialog === "consumo-mer"}

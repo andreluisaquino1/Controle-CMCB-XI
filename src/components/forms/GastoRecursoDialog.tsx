@@ -17,64 +17,57 @@ import {
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { cleanAccountDisplayName } from "@/lib/account-display";
-import { Account, Merchant, Entity } from "@/types";
+import { Entity, Account } from "@/types";
+import { formatCurrencyBRL } from "@/lib/currency";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-interface AporteSaldoDialogProps {
+interface GastoRecursoDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     state: {
         date: string;
-        origem: string;
-        conta: string;
-        merchant: string;
-        valor: number;
-        descricao: string;
-        obs: string;
+        entityId: string;
+        accountId: string;
+        amount: number;
+        description: string;
+        notes: string;
         capitalCusteio: string;
     };
     setters: {
         setDate: (v: string) => void;
-        setOrigem: (v: string) => void;
-        setAccount: (v: string) => void;
-        setMerchant: (v: string) => void;
-        setValor: (v: number) => void;
-        setDescricao: (v: string) => void;
-        setObs: (v: string) => void;
+        setEntityId: (v: string) => void;
+        setAccountId: (v: string) => void;
+        setAmount: (v: number) => void;
+        setDescription: (v: string) => void;
+        setNotes: (v: string) => void;
         setCapitalCusteio: (v: string) => void;
     };
     entities: Entity[];
     accounts: Account[];
-    merchants: Merchant[];
     onSubmit: () => Promise<boolean>;
     isLoading: boolean;
 }
 
-export function AporteSaldoDialog({
+export function GastoRecursoDialog({
     open,
     onOpenChange,
     state,
     setters,
     entities,
     accounts,
-    merchants,
     onSubmit,
     isLoading,
-}: AporteSaldoDialogProps) {
-    const filteredAccounts = accounts.filter(acc => {
-        if (!state.origem) return false;
-        const entity = entities.find(e => e.id === acc.entity_id);
-        if (state.origem === "ASSOC") return entity?.type === "associacao";
-        if (state.origem === "UE") return entity?.type === "ue";
-        if (state.origem === "CX") return entity?.type === "cx";
-        return false;
-    }).sort((a, b) => a.name.localeCompare(b.name));
+}: GastoRecursoDialogProps) {
+    const filteredAccounts = accounts.filter(acc => acc.entity_id === state.entityId);
+    const selectedAccount = accounts.find(a => a.id === state.accountId);
+    const willBeNegative = selectedAccount && (Number(selectedAccount.balance) - state.amount < 0);
 
-    const sortedMerchants = [...(merchants || [])].sort((a, b) => a.name.localeCompare(b.name));
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Aportar Saldo</DialogTitle>
+                    <DialogTitle>Novo Gasto de Recurso</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                     <div className="space-y-2">
@@ -82,57 +75,51 @@ export function AporteSaldoDialog({
                         <DateInput value={state.date} onChange={setters.setDate} />
                     </div>
                     <div className="space-y-2">
-                        <Label>Origem do Recurso *</Label>
-                        <Select value={state.origem} onValueChange={setters.setOrigem}>
+                        <Label>Entidade *</Label>
+                        <Select value={state.entityId} onValueChange={setters.setEntityId}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Selecione" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="ASSOC">Associação</SelectItem>
-                                <SelectItem value="UE">Unidade Executora</SelectItem>
-                                <SelectItem value="CX">Caixa Escolar</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Conta *</Label>
-                        <Select value={state.conta} onValueChange={setters.setAccount} disabled={!state.origem}>
-                            <SelectTrigger>
-                                <SelectValue placeholder={state.origem ? "Selecione a conta" : "Selecione origem primeiro"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {filteredAccounts.map((acc) => (
-                                    <SelectItem key={acc.id} value={acc.id}>
-                                        {cleanAccountDisplayName(acc.name)}
+                                {entities.filter(e => e.type !== "associacao").map(e => (
+                                    <SelectItem key={e.id} value={e.id}>
+                                        {e.type === "ue" ? "Unidade Executora" : "Caixa Escolar"}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>Estabelecimento *</Label>
-                        <Select value={state.merchant} onValueChange={setters.setMerchant}>
+                        <Label>Conta *</Label>
+                        <Select value={state.accountId} onValueChange={setters.setAccountId} disabled={!state.entityId}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Selecione" />
+                                <SelectValue placeholder={state.entityId ? "Selecione a conta" : "Selecione entidade primeiro"} />
                             </SelectTrigger>
                             <SelectContent>
-                                {sortedMerchants?.map((m) => (
-                                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                                {filteredAccounts.map(acc => (
+                                    <SelectItem key={acc.id} value={acc.id}>
+                                        {cleanAccountDisplayName(acc.name)}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
+                        {selectedAccount && (
+                            <p className="text-xs text-muted-foreground">
+                                Saldo atual: {formatCurrencyBRL(Number(selectedAccount.balance))}
+                            </p>
+                        )}
                     </div>
                     <div className="space-y-2">
                         <Label>Valor (R$) *</Label>
-                        <CurrencyInput value={state.valor} onChange={setters.setValor} />
+                        <CurrencyInput value={state.amount} onChange={setters.setAmount} />
                     </div>
                     <div className="space-y-2">
                         <Label>Descrição *</Label>
-                        <Input value={state.descricao} onChange={(e) => setters.setDescricao(e.target.value)} placeholder="Descreva o aporte" />
+                        <Input value={state.description} onChange={(e) => setters.setDescription(e.target.value)} placeholder="Ex: Pagamento de materiais" />
                     </div>
                     <div className="space-y-2">
                         <Label>Observação</Label>
-                        <Input value={state.obs} onChange={(e) => setters.setObs(e.target.value)} placeholder="Opcional" />
+                        <Input value={state.notes} onChange={(e) => setters.setNotes(e.target.value)} placeholder="Opcional" />
                     </div>
                     <div className="space-y-2">
                         <Label>Capital/Custeio (opcional)</Label>
@@ -146,15 +133,24 @@ export function AporteSaldoDialog({
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {willBeNegative && (
+                        <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Atenção</AlertTitle>
+                            <AlertDescription>Esta operação deixará o saldo da conta negativo.</AlertDescription>
+                        </Alert>
+                    )}
+
                     <Button
-                        className="w-full"
+                        className="w-full bg-destructive hover:bg-destructive/90"
                         onClick={async () => {
                             const success = await onSubmit();
                             if (success) onOpenChange(false);
                         }}
                         disabled={isLoading}
                     >
-                        {isLoading ? "Registrando..." : "Registrar Aporte"}
+                        {isLoading ? "Registrando..." : "Registrar Gasto"}
                     </Button>
                 </div>
             </DialogContent>

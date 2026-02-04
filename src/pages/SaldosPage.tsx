@@ -27,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useState } from "react";
-import { Wallet, Plus, Minus, Store, Pencil, Trash2, Loader2, XCircle } from "lucide-react";
+import { Wallet, Plus, Minus, Store, Pencil, Trash2, Loader2, XCircle, PlusCircle, MinusCircle, ScrollText } from "lucide-react";
 import { useMerchants } from "@/hooks/use-merchants";
 import { useVoidTransaction } from "@/hooks/use-transactions";
 import { useEntitiesWithAccounts } from "@/hooks/use-accounts";
@@ -39,6 +39,7 @@ import { formatDateBR } from "@/lib/date-utils";
 import { cleanAccountDisplayName } from "@/lib/account-display";
 import { MODULE_LABELS } from "@/lib/constants";
 import { useSaldosActions } from "@/hooks/use-saldos-actions";
+import { ActionCard } from "@/components/ActionCard";
 import { AporteSaldoDialog } from "@/components/forms/AporteSaldoDialog";
 import { ConsumoSaldoDialog } from "@/components/forms/ConsumoSaldoDialog";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
@@ -260,86 +261,74 @@ export default function SaldosPage() {
         </Dialog>
 
         {/* Actions */}
+        {/* Action Triggers */}
         <div className="grid gap-4 sm:grid-cols-2">
-          {/* Aportar Saldo */}
-          <Card className="cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => setOpenDialog("aporte")}>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center">
-                  <Plus className="h-6 w-6 text-success" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Aportar Saldo</h3>
-                  <p className="text-sm text-muted-foreground">Depósito em estabelecimento</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <AporteSaldoDialog
-            open={openDialog === "aporte"}
-            onOpenChange={(o) => {
-              setOpenDialog(o ? "aporte" : null);
-              if (!o) resetAporte();
-            }}
-            state={aporte}
-            setters={{
-              setDate: setAporteDate,
-              setOrigem: setAporteOrigem,
-              setAccount: setAporteAccount,
-              setMerchant: setAporteMerchant,
-              setValor: setAporteValor,
-              setDescricao: setAporteDescricao,
-              setObs: setAporteObs,
-              setCapitalCusteio: setAporteCapitalCusteio,
-            }}
-            accounts={filteredAccounts}
-            merchants={merchants || []}
-            onSubmit={handleAporteSubmit}
-            isLoading={actionsLoading}
+          <ActionCard
+            title="Aportar Saldo"
+            description="Lançar depósito em estabelecimento"
+            icon={PlusCircle}
+            variant="info"
+            onClick={() => setOpenDialog("aporte")}
           />
-
-          {/* Gastos */}
-          <Card className="cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => setOpenDialog("gasto")}>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-destructive/10 flex items-center justify-center">
-                  <Minus className="h-6 w-6 text-destructive" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Gastos</h3>
-                  <p className="text-sm text-muted-foreground">Registrar compra</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <ConsumoSaldoDialog
-            open={openDialog === "gasto"}
-            onOpenChange={(o) => {
-              setOpenDialog(o ? "gasto" : null);
-              if (!o) resetGasto();
-            }}
-            state={gasto}
-            setters={{
-              setDate: setGastoDate,
-              setMerchant: setGastoMerchant,
-              setValor: setGastoValor,
-              setDescricao: setGastoDescricao,
-              setObs: setGastoObs,
-            }}
-            merchants={merchants || []}
-            onSubmit={handleGastoSubmit}
-            isLoading={actionsLoading}
+          <ActionCard
+            title="Registrar Gasto"
+            description="Baixa de saldo por compra"
+            icon={MinusCircle}
+            variant="secondary"
+            onClick={() => setOpenDialog("gasto")}
           />
         </div>
 
-        {/* Transactions Table */}
+        {/* Dialogs */}
+        <AporteSaldoDialog
+          open={openDialog === "aporte"}
+          onOpenChange={(o) => {
+            setOpenDialog(o ? "aporte" : null);
+            if (!o) resetAporte();
+          }}
+          state={aporte}
+          setters={{
+            setDate: setAporteDate,
+            setOrigem: setAporteOrigem,
+            setAccount: setAporteAccount,
+            setMerchant: setAporteMerchant,
+            setValor: setAporteValor,
+            setDescricao: setAporteDescricao,
+            setObs: setAporteObs,
+            setCapitalCusteio: setAporteCapitalCusteio,
+          }}
+          entities={entitiesData?.entities || []}
+          accounts={entitiesData?.accounts || []}
+          merchants={merchants || []}
+          onSubmit={handleAporteSubmit}
+          isLoading={actionsLoading}
+        />
+
+        <ConsumoSaldoDialog
+          open={openDialog === "gasto"}
+          onOpenChange={(o) => {
+            setOpenDialog(o ? "gasto" : null);
+            if (!o) resetGasto();
+          }}
+          state={gasto}
+          setters={{
+            setDate: setGastoDate,
+            setMerchant: setGastoMerchant,
+            setValor: setGastoValor,
+            setDescricao: setGastoDescricao,
+            setObs: setGastoObs,
+          }}
+          merchants={merchants || []}
+          onSubmit={handleGastoSubmit}
+          isLoading={actionsLoading}
+        />
+
+        {/* Transactions Table Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Wallet className="h-5 w-5 text-secondary" />
-              Transações
+              <ScrollText className="h-5 w-5 text-primary" />
+              Histórico de Saldos nos Estabelecimentos
             </CardTitle>
           </CardHeader>
           <CardContent>

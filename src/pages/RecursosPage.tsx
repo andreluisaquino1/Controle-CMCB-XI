@@ -1,42 +1,17 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useState } from "react";
-import { Building2, Loader2, ArrowUpCircle, ArrowDownCircle, AlertCircle } from "lucide-react";
+import { Building2, Loader2, ArrowUpCircle, ArrowDownCircle, ScrollText } from "lucide-react";
 import { toast } from "sonner";
-import { CurrencyInput } from "@/components/forms/CurrencyInput";
-import { DateInput } from "@/components/forms/DateInput";
 import { useCreateTransaction } from "@/hooks/use-transactions";
 import { useEntitiesWithAccounts } from "@/hooks/use-accounts";
 import { useRecursosTransactions } from "@/hooks/use-entity-transactions";
-import { getTodayString, formatDateBR } from "@/lib/date-utils";
+import { getTodayString } from "@/lib/date-utils";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { cleanAccountDisplayName } from "@/lib/account-display";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ActionCard } from "@/components/ActionCard";
+import { EntradaRecursoDialog } from "@/components/forms/EntradaRecursoDialog";
+import { GastoRecursoDialog } from "@/components/forms/GastoRecursoDialog";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
 
 export default function RecursosPage() {
@@ -45,65 +20,129 @@ export default function RecursosPage() {
   const { data: entitiesData, isLoading: entitiesLoading } = useEntitiesWithAccounts();
   const { data: transactions, isLoading: transactionsLoading } = useRecursosTransactions();
 
-  // Form state
-  const [date, setDate] = useState(getTodayString());
-  const [origem, setOrigem] = useState<string>("");
-  const [conta, setConta] = useState<string>("");
-  const [valor, setValor] = useState(0);
-  const [descricao, setDescricao] = useState("");
-  const [obs, setObs] = useState("");
+  // Form state for EntradaRecursoDialog
+  const [entrada, setEntrada] = useState({
+    date: getTodayString(),
+    entityId: "",
+    accountId: "",
+    amount: 0,
+    description: "",
+    notes: "",
+  });
+
+  const setEntradaDate = (date: string) => setEntrada(prev => ({ ...prev, date }));
+  const setEntradaEntityId = (entityId: string) => setEntrada(prev => ({ ...prev, entityId, accountId: "" }));
+  const setEntradaAccountId = (accountId: string) => setEntrada(prev => ({ ...prev, accountId }));
+  const setEntradaAmount = (amount: number) => setEntrada(prev => ({ ...prev, amount }));
+  const setEntradaDescription = (description: string) => setEntrada(prev => ({ ...prev, description }));
+  const setEntradaNotes = (notes: string) => setEntrada(prev => ({ ...prev, notes }));
+
+  const resetEntrada = () => {
+    setEntrada({
+      date: getTodayString(),
+      entityId: "",
+      accountId: "",
+      amount: 0,
+      description: "",
+      notes: "",
+    });
+  };
+
+  // Form state for GastoRecursoDialog
+  const [gasto, setGasto] = useState({
+    date: getTodayString(),
+    entityId: "",
+    accountId: "",
+    amount: 0,
+    description: "",
+    notes: "",
+    capitalCusteio: "",
+  });
+
+  const setGastoDate = (date: string) => setGasto(prev => ({ ...prev, date }));
+  const setGastoEntityId = (entityId: string) => setGasto(prev => ({ ...prev, entityId, accountId: "" }));
+  const setGastoAccountId = (accountId: string) => setGasto(prev => ({ ...prev, accountId }));
+  const setGastoAmount = (amount: number) => setGasto(prev => ({ ...prev, amount }));
+  const setGastoDescription = (description: string) => setGasto(prev => ({ ...prev, description }));
+  const setGastoNotes = (notes: string) => setGasto(prev => ({ ...prev, notes }));
+  const setGastoCapitalCusteio = (capitalCusteio: string) => setGasto(prev => ({ ...prev, capitalCusteio }));
+
+  const resetGasto = () => {
+    setGasto({
+      date: getTodayString(),
+      entityId: "",
+      accountId: "",
+      amount: 0,
+      description: "",
+      notes: "",
+      capitalCusteio: "",
+    });
+  };
+
+  const [actionsLoading, setActionsLoading] = useState(false);
 
   const ueEntity = entitiesData?.entities?.find(e => e.type === "ue");
   const cxEntity = entitiesData?.entities?.find(e => e.type === "cx");
 
-  const filteredAccounts = entitiesData?.accounts?.filter(acc => {
-    if (origem === "UE") return acc.entity_id === ueEntity?.id;
-    if (origem === "CX") return acc.entity_id === cxEntity?.id;
-    return false;
-  }) || [];
+  const entities = entitiesData?.entities || [];
+  const accounts = entitiesData?.accounts || [];
 
-  const selectedAccount = entitiesData?.accounts?.find(a => a.id === conta);
-  const willBeNegative = openDialog === "gasto" && selectedAccount && (Number(selectedAccount.balance) - valor < 0);
-
-  const resetForm = () => {
-    setDate(getTodayString());
-    setOrigem("");
-    setConta("");
-    setValor(0);
-    setDescricao("");
-    setObs("");
-  };
-
-  const handleSubmit = async (direction: "in" | "out") => {
-    if (!date || !origem || !conta || valor <= 0 || !descricao.trim()) {
-      toast.error("Preencha todos os campos obrigatórios (*).");
-      return;
-    }
-
-    const entityId = origem === "UE" ? ueEntity?.id : cxEntity?.id;
-
+  const handleEntradaSubmit = async () => {
+    setActionsLoading(true);
     try {
       await createTransaction.mutateAsync({
         transaction: {
-          transaction_date: date,
+          transaction_date: entrada.date,
           module: "pix_direto_uecx",
-          entity_id: entityId || null,
-          source_account_id: direction === "out" ? conta : null,
-          destination_account_id: direction === "in" ? conta : null,
-          amount: valor,
-          direction: direction,
+          entity_id: entrada.entityId,
+          source_account_id: null,
+          destination_account_id: entrada.accountId,
+          amount: entrada.amount,
+          direction: "in",
           payment_method: "pix",
-          origin_fund: origem as "UE" | "CX",
-          description: descricao,
-          notes: obs || null,
+          origin_fund: entities.find(e => e.id === entrada.entityId)?.type === "ue" ? "UE" : "CX",
+          description: entrada.description,
+          notes: entrada.notes || null,
         },
       });
-
-      toast.success(direction === "in" ? "Entrada registrada." : "Gasto registrado.");
-      resetForm();
+      toast.success("Entrada registrada.");
+      resetEntrada();
       setOpenDialog(null);
+      return true;
     } catch (error) {
-      // Error toast is handled in useCreateTransaction but we can catch here if needed
+      return false;
+    } finally {
+      setActionsLoading(false);
+    }
+  };
+
+  const handleGastoSubmit = async () => {
+    setActionsLoading(true);
+    try {
+      await createTransaction.mutateAsync({
+        transaction: {
+          transaction_date: gasto.date,
+          module: "pix_direto_uecx",
+          entity_id: gasto.entityId,
+          source_account_id: gasto.accountId,
+          destination_account_id: null,
+          amount: gasto.amount,
+          direction: "out",
+          payment_method: "pix",
+          origin_fund: entities.find(e => e.id === gasto.entityId)?.type === "ue" ? "UE" : "CX",
+          description: gasto.description,
+          notes: gasto.notes || null,
+          capital_custeio: (gasto.capitalCusteio as any) || null,
+        },
+      });
+      toast.success("Gasto registrado.");
+      resetGasto();
+      setOpenDialog(null);
+      return true;
+    } catch (error) {
+      return false;
+    } finally {
+      setActionsLoading(false);
     }
   };
 
@@ -128,7 +167,7 @@ export default function RecursosPage() {
               <div className="grid gap-2">
                 {entitiesLoading ? (
                   <div className="h-20 flex items-center justify-center bg-muted/20 rounded-lg"><Loader2 className="h-5 w-5 animate-spin" /></div>
-                ) : entitiesData?.accounts?.filter(a => a.entity_id === ueEntity?.id).map(acc => (
+                ) : accounts.filter(a => a.entity_id === ueEntity?.id).map(acc => (
                   <Card key={acc.id} className="bg-card border-none shadow-sm">
                     <CardContent className="p-4 flex justify-between items-center">
                       <div className="space-y-0.5">
@@ -150,7 +189,7 @@ export default function RecursosPage() {
               <div className="grid gap-2">
                 {entitiesLoading ? (
                   <div className="h-20 flex items-center justify-center bg-muted/20 rounded-lg"><Loader2 className="h-5 w-5 animate-spin" /></div>
-                ) : entitiesData?.accounts?.filter(a => a.entity_id === cxEntity?.id).map(acc => (
+                ) : accounts.filter(a => a.entity_id === cxEntity?.id).map(acc => (
                   <Card key={acc.id} className="bg-card border-none shadow-sm">
                     <CardContent className="p-4 flex justify-between items-center">
                       <div className="space-y-0.5">
@@ -166,109 +205,78 @@ export default function RecursosPage() {
           </div>
         </div>
 
-        {/* Action Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
-          <Dialog open={openDialog === "entrada"} onOpenChange={(open) => { setOpenDialog(open ? "entrada" : null); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Card className="cursor-pointer hover:shadow-elevated transition-shadow border-l-4 border-l-success">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center">
-                      <ArrowUpCircle className="h-6 w-6 text-success" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">Entrada de Recurso</h3>
-                      <p className="text-sm text-muted-foreground">Registrar aporte na conta</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>Nova Entrada de Recurso</DialogTitle></DialogHeader>
-              <div className="space-y-4 pt-4">
-                <div className="space-y-2"><Label>Data *</Label><DateInput value={date} onChange={setDate} /></div>
-                <div className="space-y-2">
-                  <Label>Origem *</Label>
-                  <Select value={origem} onValueChange={(v) => { setOrigem(v); setConta(""); }}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent><SelectItem value="UE">Unidade Executora</SelectItem><SelectItem value="CX">Caixa Escolar</SelectItem></SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Conta *</Label>
-                  <Select value={conta} onValueChange={setConta} disabled={!origem}>
-                    <SelectTrigger><SelectValue placeholder="Selecione conta" /></SelectTrigger>
-                    <SelectContent>{filteredAccounts.map(acc => <SelectItem key={acc.id} value={acc.id}>{cleanAccountDisplayName(acc.name)}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2"><Label>Valor (R$) *</Label><CurrencyInput value={valor} onChange={setValor} /></div>
-                <div className="space-y-2"><Label>Descrição *</Label><Input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Repasse PDDE" /></div>
-                <div className="space-y-2"><Label>Observação</Label><Input value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Opcional" /></div>
-                <Button className="w-full bg-success hover:bg-success/90" onClick={() => handleSubmit("in")} disabled={createTransaction.isPending}>Registrar Entrada</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={openDialog === "gasto"} onOpenChange={(open) => { setOpenDialog(open ? "gasto" : null); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Card className="cursor-pointer hover:shadow-elevated transition-shadow border-l-4 border-l-destructive">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-destructive/10 flex items-center justify-center">
-                      <ArrowDownCircle className="h-6 w-6 text-destructive" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">Gasto de Recurso</h3>
-                      <p className="text-sm text-muted-foreground">Registrar pagamento direto</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>Novo Gasto de Recurso</DialogTitle></DialogHeader>
-              <div className="space-y-4 pt-4">
-                <div className="space-y-2"><Label>Data *</Label><DateInput value={date} onChange={setDate} /></div>
-                <div className="space-y-2">
-                  <Label>Origem *</Label>
-                  <Select value={origem} onValueChange={(v) => { setOrigem(v); setConta(""); }}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent><SelectItem value="UE">Unidade Executora</SelectItem><SelectItem value="CX">Caixa Escolar</SelectItem></SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Conta *</Label>
-                  <Select value={conta} onValueChange={setConta} disabled={!origem}>
-                    <SelectTrigger><SelectValue placeholder="Selecione conta" /></SelectTrigger>
-                    <SelectContent>{filteredAccounts.map(acc => <SelectItem key={acc.id} value={acc.id}>{cleanAccountDisplayName(acc.name)}</SelectItem>)}</SelectContent>
-                  </Select>
-                  {selectedAccount && <p className="text-xs text-muted-foreground">Saldo atual: {formatCurrencyBRL(Number(selectedAccount.balance))}</p>}
-                </div>
-                <div className="space-y-2"><Label>Valor (R$) *</Label><CurrencyInput value={valor} onChange={setValor} /></div>
-                <div className="space-y-2"><Label>Descrição *</Label><Input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="O que foi pago?" /></div>
-                <div className="space-y-2"><Label>Observação</Label><Input value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Opcional" /></div>
-
-                {willBeNegative && (
-                  <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Atenção</AlertTitle>
-                    <AlertDescription>Esta operação deixará o saldo da conta negativo.</AlertDescription>
-                  </Alert>
-                )}
-
-                <Button className="w-full bg-destructive hover:bg-destructive/90" onClick={() => handleSubmit("out")} disabled={createTransaction.isPending}>Registrar Gasto</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+        {/* Action Triggers */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ActionCard
+            title="Entrada de Recurso"
+            description="Registrar aporte na conta"
+            icon={ArrowDownCircle}
+            variant="success"
+            onClick={() => setOpenDialog("entrada")}
+          />
+          <ActionCard
+            title="Gasto de Recurso"
+            description="Registrar pagamento direto"
+            icon={ArrowUpCircle}
+            variant="destructive"
+            onClick={() => setOpenDialog("gasto")}
+          />
         </div>
 
-        {/* History Table */}
+        <EntradaRecursoDialog
+          open={openDialog === "entrada"}
+          onOpenChange={(o) => {
+            setOpenDialog(o ? "entrada" : null);
+            if (!o) resetEntrada();
+          }}
+          state={entrada}
+          setters={{
+            setDate: setEntradaDate,
+            setEntityId: setEntradaEntityId,
+            setAccountId: setEntradaAccountId,
+            setAmount: setEntradaAmount,
+            setDescription: setEntradaDescription,
+            setNotes: setEntradaNotes,
+          }}
+          entities={entities}
+          accounts={accounts}
+          onSubmit={handleEntradaSubmit}
+          isLoading={actionsLoading}
+        />
+
+        <GastoRecursoDialog
+          open={openDialog === "gasto"}
+          onOpenChange={(o) => {
+            setOpenDialog(o ? "gasto" : null);
+            if (!o) resetGasto();
+          }}
+          state={gasto}
+          setters={{
+            setDate: setGastoDate,
+            setEntityId: setGastoEntityId,
+            setAccountId: setGastoAccountId,
+            setAmount: setGastoAmount,
+            setDescription: setGastoDescription,
+            setNotes: setGastoNotes,
+            setCapitalCusteio: setGastoCapitalCusteio,
+          }}
+          entities={entities}
+          accounts={accounts}
+          onSubmit={handleGastoSubmit}
+          isLoading={actionsLoading}
+        />
+
+        {/* Transactions Table Section */}
         <Card>
-          <CardHeader><CardTitle className="text-lg">Histórico Recente (UE/CX)</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ScrollText className="h-5 w-5 text-primary" />
+              Histórico Recente (UE/CX)
+            </CardTitle>
+          </CardHeader>
           <CardContent>
             <TransactionTable
-              transactions={transactions}
+              transactions={transactions || []}
               isLoading={transactionsLoading}
               showOrigin={true}
               showAccount={true}
@@ -288,43 +296,24 @@ export default function RecursosPage() {
             <div className="grid gap-6 sm:grid-cols-2">
               <div>
                 <h4 className="font-bold text-foreground mb-2">Unidade Executora:</h4>
-                {entitiesLoading ? (
-                  <p className="text-sm text-muted-foreground">Carregando...</p>
-                ) : (
-                  <ul className="space-y-1 text-sm text-muted-foreground" >
-                    {entitiesData?.accounts
-                      ?.filter(a => a.entity_id === ueEntity?.id)
-                      .map(a => (
-                        <li key={a.id}>• {cleanAccountDisplayName(a.name)} ({a.account_number || "Sem número"})</li>
-                      ))}
-                    {!entitiesData?.accounts?.some(a => a.entity_id === ueEntity?.id) && (
-                      <li>Nenhuma conta encontrada</li>
-                    )}
-                  </ul>
-                )}
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  {accounts
+                    .filter(a => a.entity_id === ueEntity?.id)
+                    .map(a => (
+                      <li key={a.id}>• {cleanAccountDisplayName(a.name)} ({a.account_number || "Sem número"})</li>
+                    ))}
+                </ul>
               </div>
               <div>
                 <h4 className="font-bold text-foreground mb-2">Caixa Escolar:</h4>
-                {entitiesLoading ? (
-                  <p className="text-sm text-muted-foreground">Carregando...</p>
-                ) : (
-                  <ul className="space-y-1 text-sm text-muted-foreground">
-                    {entitiesData?.accounts
-                      ?.filter(a => a.entity_id === cxEntity?.id)
-                      .map(a => (
-                        <li key={a.id}>• {cleanAccountDisplayName(a.name)} ({a.account_number || "Sem número"})</li>
-                      ))}
-                    {!entitiesData?.accounts?.some(a => a.entity_id === cxEntity?.id) && (
-                      <li>Nenhuma conta encontrada</li>
-                    )}
-                  </ul>
-                )}
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  {accounts
+                    .filter(a => a.entity_id === cxEntity?.id)
+                    .map(a => (
+                      <li key={a.id}>• {cleanAccountDisplayName(a.name)} ({a.account_number || "Sem número"})</li>
+                    ))}
+                </ul>
               </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-border">
-              <p className="text-xs text-muted-foreground">
-                * Dados atualizados automaticamente a partir do cadastro de contas.
-              </p>
             </div>
           </CardContent>
         </Card>
