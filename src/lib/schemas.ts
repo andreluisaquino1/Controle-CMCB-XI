@@ -19,7 +19,7 @@ export const gastoAssociacaoSchema = z.object({
         errorMap: () => ({ message: "Selecione o meio de pagamento" }),
     }),
     valor: z.number().gt(0, "O valor deve ser maior que zero"),
-    descricao: z.string().min(3, "Descrição deve ter pelo menos 3 caracteres"),
+    descricao: z.string().min(3, "Mínimo de 3 caracteres"),
     obs: z.string().optional(),
 });
 
@@ -28,7 +28,7 @@ export const movimentarSaldoSchema = z.object({
     de: z.string().min(1, "Selecione a conta de origem"),
     para: z.string().min(1, "Selecione a conta de destino"),
     valor: z.number().gt(0, "O valor deve ser maior que zero"),
-    descricao: z.string().min(3, "Descrição deve ter pelo menos 3 caracteres"),
+    descricao: z.string().min(3, "Mínimo de 3 caracteres"),
     obs: z.string().optional(),
 }).refine((data) => data.de !== data.para, {
     message: "Origem e destino não podem ser iguais",
@@ -38,7 +38,7 @@ export const movimentarSaldoSchema = z.object({
 export const ajusteSchema = z.object({
     date: z.string().min(1, "Data é obrigatória"),
     valor: z.number().refine((v) => v !== 0, "O valor não pode ser zero"),
-    motivo: z.string().min(3, "Motivo deve ter pelo menos 3 caracteres"),
+    motivo: z.string().min(3, "Mínimo de 3 caracteres"),
     obs: z.string().optional(),
 });
 
@@ -50,7 +50,7 @@ export const aporteSaldoSchema = z.object({
     conta: z.string().min(1, "Selecione a conta"),
     merchant: z.string().min(1, "Selecione o estabelecimento"),
     valor: z.number().gt(0, "O valor deve ser maior que zero"),
-    descricao: z.string().min(3, "Descrição é obrigatória"),
+    descricao: z.string().min(3, "Mínimo de 3 caracteres"),
     obs: z.string().optional(),
     capitalCusteio: z.enum(["capital", "custeio", ""]).optional(),
 });
@@ -59,7 +59,7 @@ export const consumoSaldoSchema = z.object({
     date: z.string().min(1, "Data é obrigatória"),
     merchant: z.string().min(1, "Selecione o estabelecimento"),
     valor: z.number().gt(0, "O valor deve ser maior que zero"),
-    descricao: z.string().min(3, "Descrição é obrigatória"),
+    descricao: z.string().min(3, "Mínimo de 3 caracteres"),
     obs: z.string().optional(),
 });
 
