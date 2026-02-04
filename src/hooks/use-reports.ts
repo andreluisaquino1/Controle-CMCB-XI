@@ -19,52 +19,69 @@ export function useReports(
             return "Carregando dados...";
         }
 
+        const formatTreeList = (items: string[]) => {
+            if (items.length === 0) return "";
+            const lastIndex = items.length - 1;
+            return items.map((item, index) => {
+                const prefix = index === lastIndex ? "└ " : "├ ";
+                return `${prefix}${item}`;
+            }).join("\n");
+        };
+
         // 2.1 Associação
+        const saldosAtuaisLines = [
+            `Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}`,
+            `PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}`,
+            `Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}`
+        ];
+
+        const resumoLines = [
+            `Entradas (Espécie): ${formatCurrencyBRL(reportData.weeklyEntriesCash)}`,
+            `Entradas (PIX): ${formatCurrencyBRL(reportData.weeklyEntriesPix)}`,
+            `Saídas (Espécie): ${formatCurrencyBRL(reportData.weeklyExpensesCash)}`,
+            `Saídas (PIX): ${formatCurrencyBRL(reportData.weeklyExpensesPix)}`
+        ];
+
         const associacaoSection = `
-*2.1 Associação*
+- Associação
+Saldos Atuais
+${formatTreeList(saldosAtuaisLines)}
 
-💰 *Saldos Atuais*
-💵 Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}
-💠 PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}
-🏦 Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}
-
-📈 *Resumo do Período*
-📥 Entradas (Espécie): ${formatCurrencyBRL(reportData.weeklyEntriesCash)}
-📥 Entradas (PIX): ${formatCurrencyBRL(reportData.weeklyEntriesPix)}
-📤 Saídas (Espécie): ${formatCurrencyBRL(reportData.weeklyExpensesCash)}
-📤 Saídas (PIX): ${formatCurrencyBRL(reportData.weeklyExpensesPix)}
+ Resumo do Período
+${formatTreeList(resumoLines)}
 `.trim();
 
         // 2.2 Saldos dos Estabelecimentos
         const activeMerchants = dashboardData.merchantBalances.filter(m => m.balance !== 0);
-        let estabelecimentosSection = "*2.2 Saldos dos Estabelecimentos*\n";
+        let estabelecimentosSection = "- Saldos dos Estabelecimentos\n";
 
         if (activeMerchants.length > 0) {
-            estabelecimentosSection += activeMerchants.map(m => `🏪 ${m.name}: ${formatCurrencyBRL(m.balance)}`).join('\n');
+            const merchantLines = activeMerchants.map(m => `${m.name}: ${formatCurrencyBRL(m.balance)}`);
+            estabelecimentosSection += formatTreeList(merchantLines);
         } else {
-            estabelecimentosSection += "✅ Todos os saldos zerados";
+            estabelecimentosSection += "└ Todos os saldos zerados";
         }
 
         // 2.3 Recursos (Opcional)
         let recursosSection = "";
         if (showResources) {
-            const listUe = dashboardData.resourceBalances.UE.map(a => `• ${a.name}: ${formatCurrencyBRL(a.balance)}`).join('\n');
-            const listCx = dashboardData.resourceBalances.CX.map(a => `• ${a.name}: ${formatCurrencyBRL(a.balance)}`).join('\n');
+            const listUe = dashboardData.resourceBalances.UE.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`);
+            const listCx = dashboardData.resourceBalances.CX.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`);
+
+            const ueBlock = listUe.length > 0 ? `UE\n${formatTreeList(listUe)}` : "UE\n└ Sem contas";
+            const cxBlock = listCx.length > 0 ? `CX\n${formatTreeList(listCx)}` : "CX\n└ Sem contas";
 
             recursosSection = `
-*2.3 Recursos (UE/CX)*
+- Recursos (UE/CX)
+${ueBlock}
 
-🏛️ *UE (Unidade Executora)*
-${listUe}
-
-🏫 *CX (Caixa Escolar)*
-${listCx}
+${cxBlock}
 `.trim();
         }
 
         const parts = [
-            `📊 *PRESTAÇÃO DE CONTAS CMCB-XI*`,
-            `📅 *Período:* ${formatDateBR(startDate)} a ${formatDateBR(endDate)}`,
+            `📊 PRESTAÇÃO DE CONTAS CMCB-XI`,
+            `📅 Período: ${formatDateBR(startDate)} a ${formatDateBR(endDate)}`,
             associacaoSection,
             estabelecimentosSection,
             recursosSection
@@ -205,4 +222,3 @@ ${listCx}
         exportPDF
     };
 }
-

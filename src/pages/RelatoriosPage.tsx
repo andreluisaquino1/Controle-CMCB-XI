@@ -195,6 +195,8 @@ export default function RelatoriosPage() {
                       <TableRow>
                         <TableHead>Data</TableHead>
                         <TableHead>Módulo</TableHead>
+                        <TableHead>Meio</TableHead>
+                        <TableHead>Turno</TableHead>
                         <TableHead>Origem / Conta</TableHead>
                         <TableHead>Estabelecimento</TableHead>
                         <TableHead className="text-right">Valor</TableHead>
@@ -213,6 +215,12 @@ export default function RelatoriosPage() {
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary-foreground">
                               {MODULE_LABELS[t.module] || t.module}
                             </span>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {t.payment_method || '-'}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {t.shift || '-'}
                           </TableCell>
                           <TableCell className="text-sm">
                             {t.source_account_name || t.destination_account_name || '-'}
