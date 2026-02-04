@@ -133,7 +133,7 @@ ${cxBlock}
         doc.rect(0, headerY, pageWidth, headerHeight, 'F');
 
         // Add logos on both sides OVER the red banner
-        // Logo is an emblem with bottom banner - preserve original proportions
+        // Logo is an emblem with bottom banner - preserve original proportions with transparency
         try {
             const response = await fetch('/logo-cmcb.png');
             if (response.ok) {
@@ -144,16 +144,16 @@ ${cxBlock}
                         const base64data = reader.result as string;
                         // Logo dimensions - preserving emblem proportions (not perfectly circular)
                         // The logo has a bottom banner that extends beyond the circle
-                        const logoWidth = 30;
-                        const logoHeight = 32; // Slightly taller to accommodate bottom banner
-                        const logoY = headerY + 1.5; // Adjusted to fit within red banner
-                        const leftLogoX = 15;
-                        const rightLogoX = pageWidth - logoWidth - 15;
+                        const logoWidth = 28;
+                        const logoHeight = 30; // Slightly taller to accommodate bottom banner
+                        const logoY = headerY + 2.5; // Adjusted to fit within red banner
+                        const leftLogoX = 12;
+                        const rightLogoX = pageWidth - logoWidth - 12;
 
-                        // Add logo on the left (preserving original emblem proportions)
-                        doc.addImage(base64data, 'PNG', leftLogoX, logoY, logoWidth, logoHeight);
-                        // Add logo on the right (preserving original emblem proportions)
-                        doc.addImage(base64data, 'PNG', rightLogoX, logoY, logoWidth, logoHeight);
+                        // Add logo on the left with PNG transparency support
+                        doc.addImage(base64data, 'PNG', leftLogoX, logoY, logoWidth, logoHeight, undefined, 'FAST');
+                        // Add logo on the right with PNG transparency support
+                        doc.addImage(base64data, 'PNG', rightLogoX, logoY, logoWidth, logoHeight, undefined, 'FAST');
                         resolve(null);
                     };
                     reader.readAsDataURL(blob);
@@ -251,13 +251,14 @@ ${cxBlock}
         const activeMerchants = dashboardData.merchantBalances.filter(m => m.balance !== 0);
         if (activeMerchants.length > 0) {
             activeMerchants.forEach(m => {
+                const merchantText = `${m.name}: ${formatCurrencyBRL(m.balance)}`;
                 // Highlight negative balances in red
                 if (m.balance < 0) {
                     doc.setTextColor(204, 0, 0);
-                    doc.text(`⚠ ${m.name}: ${formatCurrencyBRL(m.balance)}`, 22, yPos);
+                    doc.text(merchantText, 22, yPos);
                     doc.setTextColor(0, 0, 0);
                 } else {
-                    doc.text(`${m.name}: ${formatCurrencyBRL(m.balance)}`, 22, yPos);
+                    doc.text(merchantText, 22, yPos);
                 }
                 yPos += 5;
             });
@@ -290,12 +291,16 @@ ${cxBlock}
 
         if (dashboardData.resourceBalances.UE.length > 0) {
             dashboardData.resourceBalances.UE.forEach(account => {
+                const accountText = account.account_number
+                    ? `${account.name} (Conta: ${account.account_number}): ${formatCurrencyBRL(account.balance)}`
+                    : `${account.name}: ${formatCurrencyBRL(account.balance)}`;
+
                 if (account.balance < 0) {
                     doc.setTextColor(204, 0, 0);
                 } else {
                     doc.setTextColor(0, 0, 0);
                 }
-                doc.text(`${account.name} (Conta: ${account.account_number || 'N/A'}): ${formatCurrencyBRL(account.balance)}`, 28, yPos);
+                doc.text(accountText, 28, yPos);
                 doc.setTextColor(0, 0, 0);
                 yPos += 5;
             });
@@ -313,12 +318,16 @@ ${cxBlock}
 
         if (dashboardData.resourceBalances.CX.length > 0) {
             dashboardData.resourceBalances.CX.forEach(account => {
+                const accountText = account.account_number
+                    ? `${account.name} (Conta: ${account.account_number}): ${formatCurrencyBRL(account.balance)}`
+                    : `${account.name}: ${formatCurrencyBRL(account.balance)}`;
+
                 if (account.balance < 0) {
                     doc.setTextColor(204, 0, 0);
                 } else {
                     doc.setTextColor(0, 0, 0);
                 }
-                doc.text(`${account.name} (Conta: ${account.account_number || 'N/A'}): ${formatCurrencyBRL(account.balance)}`, 28, yPos);
+                doc.text(accountText, 28, yPos);
                 doc.setTextColor(0, 0, 0);
                 yPos += 5;
             });
@@ -403,14 +412,14 @@ ${cxBlock}
                 fillColor: [250, 245, 245]
             },
             columnStyles: {
-                0: { cellWidth: 20 },  // Data
-                1: { cellWidth: 28 },  // Tipo
-                2: { cellWidth: 30 },  // Origem/Conta
-                3: { cellWidth: 28 },  // Estabelecimento
-                4: { cellWidth: 22, halign: 'right' }, // Valor
-                5: { cellWidth: 35 },  // Descrição
-                6: { cellWidth: 25 },  // Observação
-                7: { cellWidth: 22 }   // Registrado por
+                0: { cellWidth: 18 },  // Data
+                1: { cellWidth: 26 },  // Tipo
+                2: { cellWidth: 28 },  // Origem/Conta
+                3: { cellWidth: 26 },  // Estabelecimento
+                4: { cellWidth: 20, halign: 'right' }, // Valor
+                5: { cellWidth: 32 },  // Descrição
+                6: { cellWidth: 24 },  // Observação
+                7: { cellWidth: 24 }   // Registrado por
             },
             margin: { left: 10, right: 10 },
             tableWidth: 'auto',
