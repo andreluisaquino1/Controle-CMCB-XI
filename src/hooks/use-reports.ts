@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrencyBRL } from '@/lib/currency';
 import { formatDateBR } from '@/lib/date-utils';
+import { MODULE_LABELS } from '@/lib/constants';
 import { DashboardData, ReportData, TransactionWithCreator } from '@/types';
 
 export function useReports(
@@ -118,9 +119,14 @@ ${cxBlock}
 
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
-        let yPos = 20;
+        const pageHeight = doc.internal.pageSize.getHeight();
+        let yPos = 15;
 
-        // Add logo using fetch and convert to base64
+        // ========================================
+        // PÁGINA 1: RESUMO EXECUTIVO
+        // ========================================
+
+        // Add logo centered at the top, above the red banner
         try {
             const response = await fetch('/logo-cmcb.jpg');
             if (response.ok) {
@@ -129,59 +135,76 @@ ${cxBlock}
                 await new Promise((resolve) => {
                     reader.onloadend = () => {
                         const base64data = reader.result as string;
-                        doc.addImage(base64data, 'JPEG', 14, yPos, 30, 30);
+                        // Center the logo at the top (40x40 size for better visibility)
+                        const logoSize = 40;
+                        const logoX = (pageWidth - logoSize) / 2;
+                        doc.addImage(base64data, 'JPEG', logoX, yPos, logoSize, logoSize);
                         resolve(null);
                     };
                     reader.readAsDataURL(blob);
                 });
+                yPos += 45; // Space after logo
+            } else {
+                yPos += 5; // Minimal space if no logo
             }
         } catch (error) {
             console.warn('Logo não carregado:', error);
+            yPos += 5; // Minimal space if logo fails
         }
 
-        // Header with red background
-        doc.setFillColor(204, 0, 0); // Red header
-        doc.rect(0, 15, pageWidth, 35, 'F');
+        // Header with red background (positioned after logo)
+        const headerHeight = 30;
+        doc.setFillColor(204, 0, 0);
+        doc.rect(0, yPos, pageWidth, headerHeight, 'F');
 
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(18);
         doc.setFont(undefined, 'bold');
-        doc.text("PRESTAÇÃO DE CONTAS", pageWidth / 2, 28, { align: 'center' });
+        doc.text("PRESTAÇÃO DE CONTAS – CMCB-XI", pageWidth / 2, yPos + 12, { align: 'center' });
 
-        doc.setFontSize(14);
+        doc.setFontSize(10);
         doc.setFont(undefined, 'normal');
-        doc.text("CMCB-XI", pageWidth / 2, 36, { align: 'center' });
+        doc.text(`Período: ${formatDateBR(startDate)} a ${formatDateBR(endDate)}`, pageWidth / 2, yPos + 22, { align: 'center' });
 
-        doc.setFontSize(11);
-        doc.text(`Período: ${formatDateBR(startDate)} a ${formatDateBR(endDate)}`, pageWidth / 2, 43, { align: 'center' });
+        yPos += headerHeight + 5;
 
-        yPos = 60;
+        // Divider line
+        doc.setDrawColor(204, 0, 0);
+        doc.setLineWidth(0.5);
+        doc.line(14, yPos, pageWidth - 14, yPos);
+
+        yPos += 10;
         doc.setTextColor(0, 0, 0);
 
-        // Associação Section
+        // ========================================
+        // SEÇÃO 1: ASSOCIAÇÃO
+        // ========================================
         doc.setFillColor(250, 230, 230);
         doc.rect(14, yPos - 5, pageWidth - 28, 8, 'F');
         doc.setFontSize(13);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(204, 0, 0);
-        doc.text("1. ASSOCIAÇÃO", 16, yPos);
-        yPos += 10;
+        doc.text("ASSOCIAÇÃO", 16, yPos);
+        yPos += 12;
 
         doc.setTextColor(0, 0, 0);
+
+        // Bloco A: Saldos Atuais
         doc.setFontSize(11);
         doc.setFont(undefined, 'bold');
-        doc.text("Saldos Atuais:", 16, yPos);
+        doc.text("Saldos Atuais (independente do período):", 16, yPos);
         yPos += 6;
 
         doc.setFont(undefined, 'normal');
         doc.setFontSize(10);
-        doc.text(`• Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}`, 22, yPos);
+        doc.text(`Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}`, 22, yPos);
         yPos += 5;
-        doc.text(`• PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}`, 22, yPos);
+        doc.text(`PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}`, 22, yPos);
         yPos += 5;
-        doc.text(`• Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}`, 22, yPos);
+        doc.text(`Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}`, 22, yPos);
         yPos += 10;
 
+        // Bloco B: Resumo do Período
         doc.setFontSize(11);
         doc.setFont(undefined, 'bold');
         doc.text("Resumo do Período:", 16, yPos);
@@ -189,22 +212,29 @@ ${cxBlock}
 
         doc.setFont(undefined, 'normal');
         doc.setFontSize(10);
-        doc.text(`• Entradas (Espécie): ${formatCurrencyBRL(reportData.weeklyEntriesCash)}`, 22, yPos);
+        doc.setTextColor(0, 128, 0); // Green for entries
+        doc.text(`Entradas (Espécie): ${formatCurrencyBRL(reportData.weeklyEntriesCash)}`, 22, yPos);
         yPos += 5;
-        doc.text(`• Entradas (PIX): ${formatCurrencyBRL(reportData.weeklyEntriesPix)}`, 22, yPos);
+        doc.text(`Entradas (PIX): ${formatCurrencyBRL(reportData.weeklyEntriesPix)}`, 22, yPos);
         yPos += 5;
-        doc.text(`• Saídas (Espécie): ${formatCurrencyBRL(reportData.weeklyExpensesCash)}`, 22, yPos);
+
+        doc.setTextColor(204, 0, 0); // Red for expenses
+        doc.text(`Saídas (Espécie): ${formatCurrencyBRL(reportData.weeklyExpensesCash)}`, 22, yPos);
         yPos += 5;
-        doc.text(`• Saídas (PIX): ${formatCurrencyBRL(reportData.weeklyExpensesPix)}`, 22, yPos);
+        doc.text(`Saídas (PIX): ${formatCurrencyBRL(reportData.weeklyExpensesPix)}`, 22, yPos);
         yPos += 15;
 
-        // Estabelecimentos Section
+        doc.setTextColor(0, 0, 0); // Reset to black
+
+        // ========================================
+        // SEÇÃO 2: SALDOS DOS ESTABELECIMENTOS
+        // ========================================
         doc.setFillColor(250, 230, 230);
         doc.rect(14, yPos - 5, pageWidth - 28, 8, 'F');
         doc.setFontSize(13);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(204, 0, 0);
-        doc.text("2. SALDOS DOS ESTABELECIMENTOS", 16, yPos);
+        doc.text("SALDOS DOS ESTABELECIMENTOS", 16, yPos);
         yPos += 10;
 
         doc.setTextColor(0, 0, 0);
@@ -214,80 +244,144 @@ ${cxBlock}
         const activeMerchants = dashboardData.merchantBalances.filter(m => m.balance !== 0);
         if (activeMerchants.length > 0) {
             activeMerchants.forEach(m => {
-                doc.text(`• ${m.name}: ${formatCurrencyBRL(m.balance)}`, 22, yPos);
+                // Highlight negative balances in red
+                if (m.balance < 0) {
+                    doc.setTextColor(204, 0, 0);
+                    doc.text(`⚠ ${m.name}: ${formatCurrencyBRL(m.balance)}`, 22, yPos);
+                    doc.setTextColor(0, 0, 0);
+                } else {
+                    doc.text(`${m.name}: ${formatCurrencyBRL(m.balance)}`, 22, yPos);
+                }
                 yPos += 5;
             });
         } else {
-            doc.text("• Todos os saldos zerados", 22, yPos);
+            doc.text("Todos os saldos zerados", 22, yPos);
             yPos += 5;
         }
         yPos += 10;
 
-        // Recursos Section
+        // ========================================
+        // SEÇÃO 3: RECURSOS (UE/CX)
+        // ========================================
         doc.setFillColor(250, 230, 230);
         doc.rect(14, yPos - 5, pageWidth - 28, 8, 'F');
         doc.setFontSize(13);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(204, 0, 0);
-        doc.text("3. RECURSOS (UE/CX)", 16, yPos);
+        doc.text("RECURSOS (UE / CX)", 16, yPos);
         yPos += 10;
 
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(10);
         doc.setFont(undefined, 'normal');
 
-        const ueItems = dashboardData.resourceBalances.UE.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`);
-        const cxItems = dashboardData.resourceBalances.CX.map(a => `${a.name}: ${formatCurrencyBRL(a.balance)}`);
-
+        // UE (Unidade Executora)
         doc.setFont(undefined, 'bold');
-        doc.text("UE (Unidade Executora):", 22, yPos);
+        doc.text("Unidade Executora:", 22, yPos);
         yPos += 5;
         doc.setFont(undefined, 'normal');
-        ueItems.forEach(item => {
-            doc.text(`• ${item}`, 28, yPos);
+
+        if (dashboardData.resourceBalances.UE.length > 0) {
+            dashboardData.resourceBalances.UE.forEach(account => {
+                if (account.balance < 0) {
+                    doc.setTextColor(204, 0, 0);
+                } else {
+                    doc.setTextColor(0, 0, 0);
+                }
+                doc.text(`${account.name} (Conta: ${account.account_number || 'N/A'}): ${formatCurrencyBRL(account.balance)}`, 28, yPos);
+                doc.setTextColor(0, 0, 0);
+                yPos += 5;
+            });
+        } else {
+            doc.text("Sem contas cadastradas", 28, yPos);
             yPos += 5;
-        });
+        }
         yPos += 3;
 
+        // CX (Caixa Escolar)
         doc.setFont(undefined, 'bold');
-        doc.text("CX (Caixa Escolar):", 22, yPos);
+        doc.text("Caixa Escolar:", 22, yPos);
         yPos += 5;
         doc.setFont(undefined, 'normal');
-        cxItems.forEach(item => {
-            doc.text(`• ${item}`, 28, yPos);
-            yPos += 5;
-        });
-        yPos += 10;
 
-        // Transactions Section
+        if (dashboardData.resourceBalances.CX.length > 0) {
+            dashboardData.resourceBalances.CX.forEach(account => {
+                if (account.balance < 0) {
+                    doc.setTextColor(204, 0, 0);
+                } else {
+                    doc.setTextColor(0, 0, 0);
+                }
+                doc.text(`${account.name} (Conta: ${account.account_number || 'N/A'}): ${formatCurrencyBRL(account.balance)}`, 28, yPos);
+                doc.setTextColor(0, 0, 0);
+                yPos += 5;
+            });
+        } else {
+            doc.text("Sem contas cadastradas", 28, yPos);
+            yPos += 5;
+        }
+
+        // Footer for Page 1
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+            `Página 1 – Resumo Executivo | Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+        );
+
+        // ========================================
+        // QUEBRA DE PÁGINA EXPLÍCITA
+        // ========================================
+        doc.addPage();
+
+        // ========================================
+        // PÁGINA 2+: TRANSAÇÕES DO PERÍODO
+        // ========================================
+        yPos = 20;
+
+        doc.setTextColor(0, 0, 0);
         doc.setFillColor(250, 230, 230);
         doc.rect(14, yPos - 5, pageWidth - 28, 8, 'F');
         doc.setFontSize(13);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(204, 0, 0);
-        doc.text("4. TRANSAÇÕES DO PERÍODO", 16, yPos);
+        doc.text("TRANSAÇÕES DO PERÍODO", 16, yPos);
         yPos += 8;
 
-        const tableData = transactions.map(t => [
-            formatDateBR(t.transaction_date),
-            t.module,
-            t.payment_method || '-',
-            t.shift || '-',
-            t.source_account_name || t.destination_account_name || '-',
-            t.entity_name || '-',
-            formatCurrencyBRL(t.amount),
-            (t.description || '-').substring(0, 30),
-            (t.notes || '-').substring(0, 20),
-            (t.creator_name || '-').substring(0, 15)
-        ]);
+        doc.setTextColor(0, 0, 0);
+
+        // Prepare transaction data with humanized labels
+        const tableData = transactions.map(t => {
+            // Humanize module names
+            const moduleLabel = MODULE_LABELS[t.module] || t.module;
+
+            // Determine type based on module
+            let tipo = moduleLabel;
+            if (t.module === 'mensalidade') tipo = 'Mensalidade';
+            else if (t.module === 'gasto_associacao') tipo = 'Gasto Associação';
+            else if (t.module === 'aporte_saldo' || t.module === 'consumo_saldo') tipo = 'Gasto Estabelecimento';
+            else if (t.module === 'pix_direto_uecx') tipo = 'Gasto de Recurso';
+
+            return [
+                formatDateBR(t.transaction_date),
+                tipo,
+                t.source_account_name || t.destination_account_name || '-',
+                t.entity_name || '-',
+                formatCurrencyBRL(t.amount),
+                (t.description || '-').substring(0, 40),
+                (t.notes || '-').substring(0, 30),
+                (t.creator_name || '-').substring(0, 20)
+            ];
+        });
 
         autoTable(doc, {
             startY: yPos,
-            head: [['Data', 'Módulo', 'Meio', 'Turno', 'Conta', 'Estab.', 'Valor', 'Descrição', 'Obs.', 'Reg. Por']],
+            head: [['Data', 'Tipo', 'Origem / Conta', 'Estabelecimento', 'Valor', 'Descrição', 'Observação', 'Registrado por']],
             body: tableData,
             styles: {
-                fontSize: 7,
-                cellPadding: 1.5,
+                fontSize: 8,
+                cellPadding: 2,
                 overflow: 'linebreak',
                 cellWidth: 'wrap'
             },
@@ -296,38 +390,48 @@ ${cxBlock}
                 textColor: [255, 255, 255],
                 fontStyle: 'bold',
                 halign: 'center',
-                fontSize: 7
+                fontSize: 8
             },
             alternateRowStyles: {
                 fillColor: [250, 245, 245]
             },
             columnStyles: {
-                0: { cellWidth: 17 }, // Data
-                1: { cellWidth: 16 }, // Módulo
-                2: { cellWidth: 14 }, // Meio
-                3: { cellWidth: 14 }, // Turno
-                4: { cellWidth: 24 }, // Conta
-                5: { cellWidth: 24 }, // Estab.
-                6: { cellWidth: 18, halign: 'right' }, // Valor
-                7: { cellWidth: 28 }, // Descrição
-                8: { cellWidth: 20 }, // Obs
-                9: { cellWidth: 16 }  // Reg. Por
+                0: { cellWidth: 20 },  // Data
+                1: { cellWidth: 28 },  // Tipo
+                2: { cellWidth: 30 },  // Origem/Conta
+                3: { cellWidth: 28 },  // Estabelecimento
+                4: { cellWidth: 22, halign: 'right' }, // Valor
+                5: { cellWidth: 35 },  // Descrição
+                6: { cellWidth: 25 },  // Observação
+                7: { cellWidth: 22 }   // Registrado por
             },
             margin: { left: 10, right: 10 },
             tableWidth: 'auto',
-            theme: 'grid'
+            theme: 'grid',
+            didDrawPage: (data) => {
+                // Add footer to each transaction page
+                const currentPage = doc.getCurrentPageInfo().pageNumber;
+                doc.setFontSize(8);
+                doc.setTextColor(128, 128, 128);
+                doc.text(
+                    `Página ${currentPage} – Transações do período`,
+                    pageWidth / 2,
+                    pageHeight - 10,
+                    { align: 'center' }
+                );
+            }
         });
 
-        // Footer with page number
+        // Update page count in footer for all pages
         const pageCount = doc.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
+        for (let i = 2; i <= pageCount; i++) {
             doc.setPage(i);
             doc.setFontSize(8);
             doc.setTextColor(128, 128, 128);
             doc.text(
-                `Página ${i} de ${pageCount} - Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
+                `Página ${i} de ${pageCount} – Transações do período | Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
                 pageWidth / 2,
-                doc.internal.pageSize.getHeight() - 10,
+                pageHeight - 10,
                 { align: 'center' }
             );
         }
