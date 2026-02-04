@@ -120,13 +120,19 @@ ${cxBlock}
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
-        let yPos = 15;
+        let yPos = 20;
 
         // ========================================
         // PÁGINA 1: RESUMO EXECUTIVO
         // ========================================
 
-        // Add logo centered at the top, above the red banner
+        // Header with red background first
+        const headerHeight = 35;
+        const headerY = 15;
+        doc.setFillColor(204, 0, 0);
+        doc.rect(0, headerY, pageWidth, headerHeight, 'F');
+
+        // Add logos on both sides OVER the red banner
         try {
             const response = await fetch('/logo-cmcb.jpg');
             if (response.ok) {
@@ -135,38 +141,36 @@ ${cxBlock}
                 await new Promise((resolve) => {
                     reader.onloadend = () => {
                         const base64data = reader.result as string;
-                        // Center the logo at the top (40x40 size for better visibility)
-                        const logoSize = 40;
-                        const logoX = (pageWidth - logoSize) / 2;
-                        doc.addImage(base64data, 'JPEG', logoX, yPos, logoSize, logoSize);
+                        // Logo size and positioning
+                        const logoSize = 30;
+                        const logoY = headerY + 2.5; // Slightly inside the red banner
+                        const leftLogoX = 15;
+                        const rightLogoX = pageWidth - logoSize - 15;
+
+                        // Add logo on the left
+                        doc.addImage(base64data, 'JPEG', leftLogoX, logoY, logoSize, logoSize);
+                        // Add logo on the right
+                        doc.addImage(base64data, 'JPEG', rightLogoX, logoY, logoSize, logoSize);
                         resolve(null);
                     };
                     reader.readAsDataURL(blob);
                 });
-                yPos += 45; // Space after logo
-            } else {
-                yPos += 5; // Minimal space if no logo
             }
         } catch (error) {
             console.warn('Logo não carregado:', error);
-            yPos += 5; // Minimal space if logo fails
         }
 
-        // Header with red background (positioned after logo)
-        const headerHeight = 30;
-        doc.setFillColor(204, 0, 0);
-        doc.rect(0, yPos, pageWidth, headerHeight, 'F');
-
+        // Text on the red banner (centered)
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(18);
         doc.setFont(undefined, 'bold');
-        doc.text("PRESTAÇÃO DE CONTAS – CMCB-XI", pageWidth / 2, yPos + 12, { align: 'center' });
+        doc.text("PRESTAÇÃO DE CONTAS – CMCB-XI", pageWidth / 2, headerY + 15, { align: 'center' });
 
         doc.setFontSize(10);
         doc.setFont(undefined, 'normal');
-        doc.text(`Período: ${formatDateBR(startDate)} a ${formatDateBR(endDate)}`, pageWidth / 2, yPos + 22, { align: 'center' });
+        doc.text(`Período: ${formatDateBR(startDate)} a ${formatDateBR(endDate)}`, pageWidth / 2, headerY + 26, { align: 'center' });
 
-        yPos += headerHeight + 5;
+        yPos = headerY + headerHeight + 5;
 
         // Divider line
         doc.setDrawColor(204, 0, 0);
