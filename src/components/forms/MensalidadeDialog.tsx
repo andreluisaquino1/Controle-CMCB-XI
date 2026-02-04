@@ -48,11 +48,12 @@ export function MensalidadeDialog({
 }: MensalidadeDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Registrar Mensalidade</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
+                    {/* ... (existing fields) ... */}
                     <div className="space-y-2">
                         <Label>Data *</Label>
                         <DateInput value={state.date} onChange={setters.setDate} />
@@ -93,7 +94,7 @@ export function MensalidadeDialog({
                         }}
                         disabled={isLoading}
                     >
-                        {isLoading ? "Registrando..." : "Registrar"}
+                        {isLoading ? "Registrando..." : "Registrar Mensalidade"}
                     </Button>
                 </div>
             </DialogContent>

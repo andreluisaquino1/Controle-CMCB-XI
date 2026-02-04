@@ -61,7 +61,7 @@ export function GastoAssociacaoDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Registrar Gasto</DialogTitle>
                 </DialogHeader>
@@ -184,7 +184,7 @@ export function GastoAssociacaoDialog({
                         }}
                         disabled={isLoading}
                     >
-                        {isLoading ? "Registrando..." : "Registrar"}
+                        {isLoading ? "Registrando..." : "Registrar Gasto"}
                     </Button>
                 </div>
             </DialogContent>

@@ -52,7 +52,7 @@ export function ConsumoSaldoDialog({
 }: ConsumoSaldoDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Registrar Gasto</DialogTitle>
                 </DialogHeader>
