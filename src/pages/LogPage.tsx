@@ -71,14 +71,14 @@ export default function LogPage() {
             <div className="space-y-6 animate-fade-in">
                 <div>
                     <h1 className="text-2xl font-bold text-foreground">Auditoria e Logs</h1>
-                    <p className="text-muted-foreground">Rastreabilidade completa de edições e anulações de transações</p>
+                    <p className="text-muted-foreground">Rastreabilidade completa sem necessidade de rolagem lateral</p>
                 </div>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-lg">
                             <History className="h-5 w-5 text-primary" />
-                            Histórico de Alterações Detalhado
+                            Histórico de Alterações (Visão Consolidada)
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -91,67 +91,73 @@ export default function LogPage() {
                                 Nenhuma alteração registrada nos logs.
                             </div>
                         ) : (
-                            <div className="overflow-x-auto rounded-md border">
+                            <div className="rounded-md border bg-card">
                                 <Table>
-                                    <TableHeader className="bg-muted/50">
-                                        <TableRow>
-                                            <TableHead className="whitespace-nowrap">Data/Hora (Log)</TableHead>
-                                            <TableHead>Usuário</TableHead>
-                                            <TableHead>Ação</TableHead>
-                                            <TableHead className="whitespace-nowrap">Data Transação</TableHead>
-                                            <TableHead>Módulo</TableHead>
-                                            <TableHead>Descrição</TableHead>
-                                            <TableHead>Origem / Destino</TableHead>
-                                            <TableHead>Local / Entidade</TableHead>
-                                            <TableHead className="text-right">Valor</TableHead>
-                                            <TableHead className="min-w-[200px]">Motivo da Alteração</TableHead>
+                                    <TableHeader className="bg-muted/30">
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableHead className="w-[140px] px-3">Registro</TableHead>
+                                            <TableHead className="px-2">Transação / Contexto</TableHead>
+                                            <TableHead className="px-2 min-w-[150px]">Envolvidos</TableHead>
+                                            <TableHead className="w-[110px] text-right px-2">Valor</TableHead>
+                                            <TableHead className="px-3">Motivo da Alteração</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {logs.map((log) => (
-                                            <TableRow key={log.id}>
-                                                <TableCell className="whitespace-nowrap text-xs">
-                                                    {new Date(log.created_at).toLocaleString('pt-BR')}
-                                                </TableCell>
-                                                <TableCell className="font-medium whitespace-nowrap">
-                                                    {log.profiles?.name || "Sistema"}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase transition-colors ${log.action === 'void' ? 'bg-destructive/10 text-destructive border border-destructive/20' : 'bg-orange-500/10 text-orange-500 border border-orange-500/20'
-                                                        }`}>
-                                                        {log.action === 'void' ? <AlertCircle className="h-3 w-3" /> : <RotateCcw className="h-3 w-3" />}
-                                                        {log.action === 'void' ? 'Anulação' : 'Edição'}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="whitespace-nowrap text-sm">
-                                                    {log.transactions?.transaction_date ? formatDateBR(log.transactions.transaction_date) : "-"}
-                                                </TableCell>
-                                                <TableCell className="whitespace-nowrap">
-                                                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-secondary/10 text-secondary-foreground border border-secondary/20">
-                                                        {log.transactions?.module ? (MODULE_LABELS[log.transactions.module] || log.transactions.module) : "-"}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="max-w-[150px] truncate text-sm" title={log.transactions?.description || ""}>
-                                                    {log.transactions?.description || "-"}
-                                                </TableCell>
-                                                <TableCell className="text-xs">
+                                            <TableRow key={log.id} className="group">
+                                                <TableCell className="px-3 py-3 align-top">
                                                     <div className="flex flex-col gap-0.5">
-                                                        {log.transactions?.source?.name && (
-                                                            <span className="text-destructive font-medium">De: {log.transactions.source.name}</span>
-                                                        )}
-                                                        {log.transactions?.destination?.name && (
-                                                            <span className="text-success font-medium">Para: {log.transactions.destination.name}</span>
-                                                        )}
-                                                        {!log.transactions?.source?.name && !log.transactions?.destination?.name && "-"}
+                                                        <span className="text-[11px] font-semibold text-foreground">
+                                                            {new Date(log.created_at).toLocaleDateString('pt-BR')} {new Date(log.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                        <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
+                                                            {log.profiles?.name || "Sistema"}
+                                                        </span>
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-xs">
-                                                    {log.transactions?.merchant?.name || log.transactions?.entity?.name || "-"}
+                                                <TableCell className="px-2 py-3 align-top">
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] font-medium text-muted-foreground">
+                                                                {log.transactions?.transaction_date ? formatDateBR(log.transactions.transaction_date) : "-"}
+                                                            </span>
+                                                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-secondary/10 text-secondary-foreground border border-secondary/20 font-medium whitespace-nowrap">
+                                                                {log.transactions?.module ? (MODULE_LABELS[log.transactions.module] || log.transactions.module) : "-"}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-[11px] leading-tight text-foreground line-clamp-2" title={log.transactions?.description || ""}>
+                                                            {log.transactions?.description || "-"}
+                                                        </p>
+                                                    </div>
                                                 </TableCell>
-                                                <TableCell className="text-right font-bold tabular-nums whitespace-nowrap">
+                                                <TableCell className="px-2 py-3 align-top">
+                                                    <div className="flex flex-col gap-1 text-[10px]">
+                                                        {log.transactions?.source?.name && (
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="text-destructive font-bold">DE:</span>
+                                                                <span className="text-muted-foreground truncate">{log.transactions.source.name}</span>
+                                                            </div>
+                                                        )}
+                                                        {log.transactions?.destination?.name && (
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="text-success font-bold">PARA:</span>
+                                                                <span className="text-muted-foreground truncate">{log.transactions.destination.name}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="flex items-center gap-1 pt-0.5 border-t border-muted/30">
+                                                            <span className="text-primary/70 font-semibold uppercase text-[8px]">Unidade:</span>
+                                                            <span className="font-medium truncate max-w-[100px]">{log.transactions?.merchant?.name || log.transactions?.entity?.name || "-"}</span>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="px-2 py-3 align-top text-right font-bold tabular-nums text-sm">
                                                     {formatCurrencyBRL(log.transactions?.amount || 0)}
                                                 </TableCell>
-                                                <TableCell className="text-sm italic text-muted-foreground">{log.reason || "Não informado"}</TableCell>
+                                                <TableCell className="px-3 py-3 align-top">
+                                                    <p className="text-[11px] italic text-muted-foreground bg-muted/20 p-1.5 rounded leading-normal border border-muted/10">
+                                                        {log.reason || "Não informado"}
+                                                    </p>
+                                                </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
