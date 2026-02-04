@@ -147,14 +147,14 @@ export default function SaldosPage() {
 
         {/* Merchant Balances */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {merchants?.length === 0 ? (
+          {!merchants || merchants.length === 0 ? (
             <Card className="col-span-full">
               <CardContent className="py-8 text-center text-muted-foreground">
                 Nenhum estabelecimento cadastrado
               </CardContent>
             </Card>
           ) : (
-            [...merchants]
+            [...(merchants || [])]
               .sort((a, b) => a.name.localeCompare(b.name))
               .map((merchant) => (
                 <Card key={merchant.id} className="stat-card-secondary relative group">

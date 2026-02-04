@@ -246,10 +246,10 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-foreground">Saldos dos Estabelecimentos</h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {data.merchantBalances?.length === 0 ? (
+            {!data.merchantBalances || data.merchantBalances.length === 0 ? (
               <p className="text-muted-foreground col-span-full">Nenhum estabelecimento com saldo</p>
             ) : (
-              [...data.merchantBalances]
+              [...(data.merchantBalances || [])]
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((m) => (
                   <Card key={m.id} className="bg-card border-l-4 border-l-secondary">
