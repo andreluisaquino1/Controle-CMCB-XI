@@ -154,47 +154,49 @@ export default function SaldosPage() {
               </CardContent>
             </Card>
           ) : (
-            merchants?.map((merchant) => (
-              <Card key={merchant.id} className="stat-card-secondary relative group">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Wallet className="h-4 w-4" />
-                      {merchant.name}
-                    </div>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingMerchant({ id: merchant.id, name: merchant.name });
-                        }}
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeletingMerchant({ id: merchant.id, name: merchant.name });
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className={`text-2xl font-bold ${Number(merchant.balance) < 0 ? "text-destructive" : "text-foreground"}`}>
-                    {formatCurrencyBRL(Number(merchant.balance))}
-                  </p>
-                </CardContent>
-              </Card>
-            ))
+            [...merchants]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((merchant) => (
+                <Card key={merchant.id} className="stat-card-secondary relative group">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Wallet className="h-4 w-4" />
+                        {merchant.name}
+                      </div>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingMerchant({ id: merchant.id, name: merchant.name });
+                          }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeletingMerchant({ id: merchant.id, name: merchant.name });
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className={`text-2xl font-bold ${Number(merchant.balance) < 0 ? "text-destructive" : "text-foreground"}`}>
+                      {formatCurrencyBRL(Number(merchant.balance))}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))
           )}
         </div>
 

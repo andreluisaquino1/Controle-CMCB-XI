@@ -246,15 +246,17 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-foreground">Saldos dos Estabelecimentos</h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {data.merchantBalances.length === 0 ? (
+            {data.merchantBalances?.length === 0 ? (
               <p className="text-muted-foreground col-span-full">Nenhum estabelecimento com saldo</p>
             ) : (
-              data.merchantBalances.map((m) => (
-                <Card key={m.id} className="bg-card border-l-4 border-l-secondary">
-                  <CardHeader className="pb-2"><CardTitle className="text-xs font-semibold text-muted-foreground uppercase">{m.name}</CardTitle></CardHeader>
-                  <CardContent><p className={`text-xl font-bold ${Number(m.balance) < 0 ? "text-destructive" : ""}`}>{formatCurrencyBRL(Number(m.balance))}</p></CardContent>
-                </Card>
-              ))
+              [...data.merchantBalances]
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((m) => (
+                  <Card key={m.id} className="bg-card border-l-4 border-l-secondary">
+                    <CardHeader className="pb-2"><CardTitle className="text-xs font-semibold text-muted-foreground uppercase">{m.name}</CardTitle></CardHeader>
+                    <CardContent><p className={`text-xl font-bold ${Number(m.balance) < 0 ? "text-destructive" : ""}`}>{formatCurrencyBRL(Number(m.balance))}</p></CardContent>
+                  </Card>
+                ))
             )}
           </div>
         </section>
@@ -269,27 +271,31 @@ export default function DashboardPage() {
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-2">Unidade Executora</h3>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {data.resourceBalances.UE.map(acc => (
-                  <Card key={acc.id} className="bg-muted/50 border-none">
-                    <CardContent className="py-3 flex justify-between items-center">
-                      <span className="text-sm font-medium">{cleanAccountDisplayName(acc.name)}</span>
-                      <span className={`font-bold ${acc.balance < 0 ? "text-destructive" : ""}`}>{formatCurrencyBRL(acc.balance)}</span>
-                    </CardContent>
-                  </Card>
-                ))}
+                {data.resourceBalances?.UE
+                  ?.sort((a, b) => a.name.localeCompare(b.name))
+                  ?.map(acc => (
+                    <Card key={acc.id} className="bg-muted/50 border-none">
+                      <CardContent className="py-3 flex justify-between items-center">
+                        <span className="text-sm font-medium">{cleanAccountDisplayName(acc.name)}</span>
+                        <span className={`font-bold ${acc.balance < 0 ? "text-destructive" : ""}`}>{formatCurrencyBRL(acc.balance)}</span>
+                      </CardContent>
+                    </Card>
+                  ))}
               </div>
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-2">Caixa Escolar</h3>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {data.resourceBalances.CX.map(acc => (
-                  <Card key={acc.id} className="bg-muted/50 border-none">
-                    <CardContent className="py-3 flex justify-between items-center">
-                      <span className="text-sm font-medium">{cleanAccountDisplayName(acc.name)}</span>
-                      <span className={`font-bold ${acc.balance < 0 ? "text-destructive" : ""}`}>{formatCurrencyBRL(acc.balance)}</span>
-                    </CardContent>
-                  </Card>
-                ))}
+                {data.resourceBalances?.CX
+                  ?.sort((a, b) => a.name.localeCompare(b.name))
+                  ?.map(acc => (
+                    <Card key={acc.id} className="bg-muted/50 border-none">
+                      <CardContent className="py-3 flex justify-between items-center">
+                        <span className="text-sm font-medium">{cleanAccountDisplayName(acc.name)}</span>
+                        <span className={`font-bold ${acc.balance < 0 ? "text-destructive" : ""}`}>{formatCurrencyBRL(acc.balance)}</span>
+                      </CardContent>
+                    </Card>
+                  ))}
               </div>
             </div>
           </div>
