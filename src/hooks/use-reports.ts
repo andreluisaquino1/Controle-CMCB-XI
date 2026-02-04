@@ -126,42 +126,11 @@ ${cxBlock}
         // PÁGINA 1: RESUMO EXECUTIVO
         // ========================================
 
-        // Header with red background first
+        // Header with red background
         const headerHeight = 35;
         const headerY = 15;
         doc.setFillColor(204, 0, 0);
         doc.rect(0, headerY, pageWidth, headerHeight, 'F');
-
-        // Add logos on both sides OVER the red banner
-        // Logo is an emblem with bottom banner - preserve original proportions with transparency
-        try {
-            const response = await fetch('/logo-cmcb.png');
-            if (response.ok) {
-                const blob = await response.blob();
-                const reader = new FileReader();
-                await new Promise((resolve) => {
-                    reader.onloadend = () => {
-                        const base64data = reader.result as string;
-                        // Logo dimensions - preserving emblem proportions (not perfectly circular)
-                        // The logo has a bottom banner that extends beyond the circle
-                        const logoWidth = 28;
-                        const logoHeight = 30; // Slightly taller to accommodate bottom banner
-                        const logoY = headerY + 2.5; // Adjusted to fit within red banner
-                        const leftLogoX = 12;
-                        const rightLogoX = pageWidth - logoWidth - 12;
-
-                        // Add logo on the left with PNG transparency support
-                        doc.addImage(base64data, 'PNG', leftLogoX, logoY, logoWidth, logoHeight, undefined, 'FAST');
-                        // Add logo on the right with PNG transparency support
-                        doc.addImage(base64data, 'PNG', rightLogoX, logoY, logoWidth, logoHeight, undefined, 'FAST');
-                        resolve(null);
-                    };
-                    reader.readAsDataURL(blob);
-                });
-            }
-        } catch (error) {
-            console.warn('Logo não carregado:', error);
-        }
 
         // Text on the red banner (centered)
         doc.setTextColor(255, 255, 255);
