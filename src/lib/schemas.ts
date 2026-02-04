@@ -7,6 +7,7 @@ export const mensalidadeSchema = z.object({
     }),
     cash: z.number().min(0),
     pix: z.number().min(0),
+    obs: z.string().optional(),
 }).refine((data) => data.cash > 0 || data.pix > 0, {
     message: "Informe pelo menos um valor (Espécie ou PIX)",
     path: ["cash"],

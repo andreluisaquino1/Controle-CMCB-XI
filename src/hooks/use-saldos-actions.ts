@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { MerchantBalance, Entity, Account } from "@/types";
+import { Merchant, Entity, Account } from "@/types";
 import { toast } from "sonner";
 import { useCreateTransaction } from "@/hooks/use-transactions";
 import { useCreateMerchant, useUpdateMerchant, useDeactivateMerchant } from "@/hooks/use-merchants";
@@ -8,7 +8,7 @@ import { formatCurrencyBRL } from "@/lib/currency";
 import { aporteSaldoSchema, consumoSaldoSchema } from "@/lib/schemas";
 
 export function useSaldosActions(
-    merchants: MerchantBalance[] | undefined,
+    merchants: Merchant[] | undefined,
     entities: Entity[] | undefined,
     onSuccess?: () => void
 ) {

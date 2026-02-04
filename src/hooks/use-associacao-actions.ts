@@ -19,6 +19,7 @@ interface AssociacaoState {
         turno: string;
         cash: number;
         pix: number;
+        obs: string;
     };
     gasto: {
         date: string;
@@ -57,7 +58,7 @@ export function useAssociacaoActions(
     const createTransaction = useCreateTransaction();
 
     const [state, setState] = useState<AssociacaoState>({
-        mensalidade: { date: getTodayString(), turno: "", cash: 0, pix: 0 },
+        mensalidade: { date: getTodayString(), turno: "", cash: 0, pix: 0, obs: "" },
         gasto: { date: getTodayString(), meio: "cash", valor: 0, descricao: "", obs: "" },
         mov: { date: getTodayString(), de: "", para: "", valor: 0, descricao: "", obs: "" },
         ajusteEspecie: { date: getTodayString(), valor: 0, motivo: "", obs: "" },
@@ -73,6 +74,7 @@ export function useAssociacaoActions(
         setMensalidadeTurno: (turno: string) => setState((s) => ({ ...s, mensalidade: { ...s.mensalidade, turno } })),
         setMensalidadeCash: (cash: number) => setState((s) => ({ ...s, mensalidade: { ...s.mensalidade, cash } })),
         setMensalidadePix: (pix: number) => setState((s) => ({ ...s, mensalidade: { ...s.mensalidade, pix } })),
+        setMensalidadeObs: (obs: string) => setState((s) => ({ ...s, mensalidade: { ...s.mensalidade, obs } })),
         setGastoDate: (date: string) => setState((s) => ({ ...s, gasto: { ...s.gasto, date } })),
         setGastoMeio: (meio: string) => setState((s) => ({ ...s, gasto: { ...s.gasto, meio } })),
         setGastoValor: (valor: number) => setState((s) => ({ ...s, gasto: { ...s.gasto, valor } })),
@@ -95,7 +97,7 @@ export function useAssociacaoActions(
     };
 
     const resetMensalidade = useCallback(() => {
-        setState((s) => ({ ...s, mensalidade: { date: getTodayString(), turno: "", cash: 0, pix: 0 } }));
+        setState((s) => ({ ...s, mensalidade: { date: getTodayString(), turno: "", cash: 0, pix: 0, obs: "" } }));
     }, []);
 
     const resetGasto = useCallback(() => {
@@ -152,6 +154,7 @@ export function useAssociacaoActions(
                         payment_method: "cash",
                         shift: state.mensalidade.turno as "matutino" | "vespertino",
                         description: `Mensalidade ${state.mensalidade.turno}`,
+                        notes: state.mensalidade.obs || null,
                     },
                 });
             }
@@ -168,6 +171,7 @@ export function useAssociacaoActions(
                         payment_method: "pix",
                         shift: state.mensalidade.turno as "matutino" | "vespertino",
                         description: `Mensalidade ${state.mensalidade.turno}`,
+                        notes: state.mensalidade.obs || null,
                     },
                 });
             }

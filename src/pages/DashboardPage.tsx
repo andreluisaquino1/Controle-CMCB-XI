@@ -154,6 +154,10 @@ export default function DashboardPage() {
                   </div>
                   <div className="space-y-2"><Label>Espécie (R$)</Label><CurrencyInput value={assocState.mensalidade.cash} onChange={assocSetters.setMensalidadeCash} /></div>
                   <div className="space-y-2"><Label>PIX (R$)</Label><CurrencyInput value={assocState.mensalidade.pix} onChange={assocSetters.setMensalidadePix} /></div>
+                  <div className="space-y-2">
+                    <Label>Observação</Label>
+                    <Input value={assocState.mensalidade.obs} onChange={(e) => assocSetters.setMensalidadeObs(e.target.value)} placeholder="Opcional" />
+                  </div>
                   <Button className="w-full" onClick={() => assocHandlers.handleMensalidadeSubmit()} disabled={assocLoading}>Registrar</Button>
                 </div>
               </DialogContent>
@@ -262,6 +266,10 @@ export default function DashboardPage() {
                       placeholder="O que foi pago?"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Observação</Label>
+                    <Input value={assocState.gasto.obs} onChange={(e) => assocSetters.setGastoObs(e.target.value)} placeholder="Opcional" />
+                  </div>
                   <Button className="w-full" onClick={() => assocHandlers.handleGastoSubmit(true)} disabled={assocLoading}>Registrar</Button>
                 </div>
               </DialogContent>
@@ -293,6 +301,10 @@ export default function DashboardPage() {
                   </div>
                   <div className="space-y-2"><Label>Valor *</Label><CurrencyInput value={saldosState.gasto.valor} onChange={saldosSetters.setGastoValor} /></div>
                   <div className="space-y-2"><Label>Descrição *</Label><Input value={saldosState.gasto.descricao} onChange={(e) => saldosSetters.setGastoDescricao(e.target.value)} placeholder="Ex: Lanche alunos" /></div>
+                  <div className="space-y-2">
+                    <Label>Observação</Label>
+                    <Input value={saldosState.gasto.obs} onChange={(e) => saldosSetters.setGastoObs(e.target.value)} placeholder="Opcional" />
+                  </div>
                   <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={() => saldosHandlers.handleGastoSubmit()} disabled={saldosLoading}>Registrar Consumo</Button>
                 </div>
               </DialogContent>

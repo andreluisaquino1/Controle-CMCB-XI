@@ -56,7 +56,7 @@ export default function SaldosPage() {
 
   const { aporte, gasto, newMerchantName, editingMerchant, deletingMerchant } = state;
   const {
-    setAporteDate, setAporteOrigem, setAporteConta, setAporteMerchant, setAporteValor, setAporteDescricao, setAporteObs, setAporteCapitalCusteio,
+    setAporteDate, setAporteOrigem, setAporteAccount, setAporteMerchant, setAporteValor, setAporteDescricao, setAporteObs, setAporteCapitalCusteio,
     setGastoDate, setGastoMerchant, setGastoValor, setGastoDescricao, setGastoObs,
     setNewMerchantName, setEditingMerchant, setDeletingMerchant
   } = setters;
@@ -297,7 +297,7 @@ export default function SaldosPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Conta *</Label>
-                  <Select value={aporte.conta} onValueChange={setAporteConta} disabled={!aporte.origem}>
+                  <Select value={aporte.conta} onValueChange={setAporteAccount} disabled={!aporte.origem}>
                     <SelectTrigger>
                       <SelectValue placeholder={aporte.origem ? "Selecione a conta" : "Selecione origem primeiro"} />
                     </SelectTrigger>
@@ -461,6 +461,7 @@ export default function SaldosPage() {
                       <TableHead>Descrição</TableHead>
                       <TableHead>Meio</TableHead>
                       <TableHead>Registrado por</TableHead>
+                      <TableHead>Observação</TableHead>
                       <TableHead className="w-[80px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -490,6 +491,9 @@ export default function SaldosPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {t.creator_name || "-"}
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate text-muted-foreground">
+                          {t.notes || "-"}
                         </TableCell>
                         <TableCell>
                           {t.status === 'posted' && (

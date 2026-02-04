@@ -281,6 +281,7 @@ export default function RecursosPage() {
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead>Registrado por</TableHead>
+                      <TableHead>Observação</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -294,6 +295,7 @@ export default function RecursosPage() {
                         </TableCell>
                         <TableCell className="max-w-xs truncate">{t.description}</TableCell>
                         <TableCell className="text-muted-foreground">{t.creator_name}</TableCell>
+                        <TableCell className="max-w-xs truncate text-muted-foreground">{t.notes || "-"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

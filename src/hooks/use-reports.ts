@@ -305,15 +305,7 @@ ${cxBlock}
             yPos += 5;
         }
 
-        // Footer for Page 1
-        doc.setFontSize(8);
-        doc.setTextColor(128, 128, 128);
-        doc.text(
-            `Página 1 – Resumo Executivo | Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
-            pageWidth / 2,
-            pageHeight - 10,
-            { align: 'center' }
-        );
+
 
         // ========================================
         // QUEBRA DE PÁGINA EXPLÍCITA
@@ -394,31 +386,25 @@ ${cxBlock}
             tableWidth: 'auto',
             theme: 'grid',
             didDrawPage: (data) => {
-                // Add footer to each transaction page
-                const currentPage = doc.getCurrentPageInfo().pageNumber;
-                doc.setFontSize(8);
-                doc.setTextColor(128, 128, 128);
-                doc.text(
-                    `Página ${currentPage} – Transações do período`,
-                    pageWidth / 2,
-                    pageHeight - 10,
-                    { align: 'center' }
-                );
+                // Footer is now handled at the end to prevent overlap
             }
         });
 
-        // Update page count in footer for all pages
+        // Update page count in footer for all pages uniformly
         const pageCount = doc.getNumberOfPages();
-        for (let i = 2; i <= pageCount; i++) {
+        for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
             doc.setFontSize(8);
             doc.setTextColor(128, 128, 128);
-            doc.text(
-                `Página ${i} de ${pageCount} – Transações do período | Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
-                pageWidth / 2,
-                pageHeight - 10,
-                { align: 'center' }
-            );
+
+            const subtitle = i === 1 ? "Resumo Executivo" : "Transações do período";
+            const footerText = `Página ${i} de ${pageCount} – ${subtitle} | Gerado em ${new Date().toLocaleDateString('pt-BR')}`;
+
+            // Clear any potential existing footer area (clean overwrite)
+            doc.setFillColor(255, 255, 255);
+            doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
+
+            doc.text(footerText, pageWidth / 2, pageHeight - 10, { align: 'center' });
         }
 
         doc.save(`prestacao_contas_${endDate}.pdf`);

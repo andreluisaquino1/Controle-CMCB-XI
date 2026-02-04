@@ -61,7 +61,7 @@ export default function AssociacaoPage() {
 
   const { mensalidade, gasto, mov, ajusteEspecie, ajusteCofre } = state;
   const {
-    setMensalidadeDate, setMensalidadeTurno, setMensalidadeCash, setMensalidadePix,
+    setMensalidadeDate, setMensalidadeTurno, setMensalidadeCash, setMensalidadePix, setMensalidadeObs,
     setGastoDate, setGastoMeio, setGastoValor, setGastoDescricao, setGastoObs,
     setMovDate, setMovDe, setMovPara, setMovValor, setMovDescricao, setMovObs,
     setAjusteEspecieDate, setAjusteEspecieValor, setAjusteEspecieMotivo, setAjusteEspecieObs,
@@ -212,6 +212,10 @@ export default function AssociacaoPage() {
                 <div className="space-y-2">
                   <Label>PIX (R$)</Label>
                   <CurrencyInput value={mensalidade.pix} onChange={setMensalidadePix} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Observação</Label>
+                  <Input value={mensalidade.obs} onChange={(e) => setMensalidadeObs(e.target.value)} placeholder="Opcional" />
                 </div>
                 <Button
                   className="w-full"
