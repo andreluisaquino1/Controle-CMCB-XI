@@ -164,8 +164,10 @@ export function useCreateTransaction() {
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["merchants"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] });
       queryClient.invalidateQueries({ queryKey: ["all-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["saldos-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["recursos-transactions"] });
     },
   });
 }
@@ -224,8 +226,10 @@ export function useVoidTransaction() {
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["merchants"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] });
       queryClient.invalidateQueries({ queryKey: ["all-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["saldos-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["recursos-transactions"] });
       toast.success("A transação foi anulada com sucesso.");
     },
   });

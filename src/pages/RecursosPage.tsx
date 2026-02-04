@@ -270,6 +270,8 @@ export default function RecursosPage() {
             <TransactionTable
               transactions={transactions}
               isLoading={transactionsLoading}
+              showOrigin={true}
+              showAccount={true}
             />
           </CardContent>
         </Card>

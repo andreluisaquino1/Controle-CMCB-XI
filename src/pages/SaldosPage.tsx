@@ -345,6 +345,9 @@ export default function SaldosPage() {
               transactions={transactions}
               isLoading={transactionsLoading}
               onVoid={(id) => setVoidingId(id)}
+              showMerchant={true}
+              showOrigin={true}
+              showAccount={true}
             />
           </CardContent>
         </Card>
