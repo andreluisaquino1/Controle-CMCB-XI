@@ -40,6 +40,9 @@ import { DateInput } from "@/components/forms/DateInput";
 import { cleanAccountDisplayName } from "@/lib/account-display";
 import { useAssociacaoActions } from "@/hooks/use-associacao-actions";
 import { useSaldosActions } from "@/hooks/use-saldos-actions";
+import { MensalidadeDialog } from "@/components/forms/MensalidadeDialog";
+import { GastoAssociacaoDialog } from "@/components/forms/GastoAssociacaoDialog";
+import { ConsumoSaldoDialog } from "@/components/forms/ConsumoSaldoDialog";
 
 export default function DashboardPage() {
   const { data, isLoading, error, refetch } = useDashboardData();
@@ -128,187 +131,88 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-foreground">Ações Rápidas</h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Dialog open={openDialog === "mensalidade"} onOpenChange={(o) => {
-              setOpenDialog(o ? "mensalidade" : null);
-              if (!o) assocHandlers.resetMensalidade();
-            }}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="h-16 justify-start gap-4 px-4 bg-success/5 border-success/20 hover:bg-success/10 group">
-                  <Banknote className="h-6 w-6 text-success transition-transform group-hover:scale-110" />
-                  <div className="text-left">
-                    <p className="font-semibold text-success">Mensalidade</p>
-                    <p className="text-xs text-muted-foreground">Nova entrada</p>
-                  </div>
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>Registrar Mensalidade</DialogTitle></DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2"><Label>Data *</Label><DateInput value={assocState.mensalidade.date} onChange={assocSetters.setMensalidadeDate} /></div>
-                  <div className="space-y-2">
-                    <Label>Turno *</Label>
-                    <Select value={assocState.mensalidade.turno} onValueChange={assocSetters.setMensalidadeTurno}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent><SelectItem value="matutino">Matutino</SelectItem><SelectItem value="vespertino">Vespertino</SelectItem></SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2"><Label>Espécie (R$)</Label><CurrencyInput value={assocState.mensalidade.cash} onChange={assocSetters.setMensalidadeCash} /></div>
-                  <div className="space-y-2"><Label>PIX (R$)</Label><CurrencyInput value={assocState.mensalidade.pix} onChange={assocSetters.setMensalidadePix} /></div>
-                  <div className="space-y-2">
-                    <Label>Observação</Label>
-                    <Input value={assocState.mensalidade.obs} onChange={(e) => assocSetters.setMensalidadeObs(e.target.value)} placeholder="Opcional" />
-                  </div>
-                  <Button className="w-full" onClick={() => assocHandlers.handleMensalidadeSubmit()} disabled={assocLoading}>Registrar</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button variant="outline" className="h-16 justify-start gap-4 px-4 bg-success/5 border-success/20 hover:bg-success/10 group" onClick={() => setOpenDialog("mensalidade")}>
+              <Banknote className="h-6 w-6 text-success transition-transform group-hover:scale-110" />
+              <div className="text-left">
+                <p className="font-semibold text-success">Mensalidade</p>
+                <p className="text-xs text-muted-foreground">Nova entrada</p>
+              </div>
+            </Button>
 
-            <Dialog open={openDialog === "gasto-assoc"} onOpenChange={(o) => {
-              setOpenDialog(o ? "gasto-assoc" : null);
-              if (!o) assocHandlers.resetGasto();
-            }}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="h-16 justify-start gap-4 px-4 bg-destructive/5 border-destructive/20 hover:bg-destructive/10 group">
-                  <Minus className="h-6 w-6 text-destructive transition-transform group-hover:scale-110" />
-                  <div className="text-left">
-                    <p className="font-semibold text-destructive">Gasto Associação</p>
-                    <p className="text-xs text-muted-foreground">Nova despesa</p>
-                  </div>
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>Gasto da Associação</DialogTitle></DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2"><Label>Data *</Label><DateInput value={assocState.gasto.date} onChange={assocSetters.setGastoDate} /></div>
-                  <div className="space-y-2">
-                    <Label>Meio *</Label>
-                    <Select value={assocState.gasto.meio} onValueChange={assocSetters.setGastoMeio}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent><SelectItem value="cash">Espécie</SelectItem><SelectItem value="pix">PIX</SelectItem></SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2"><Label>Valor *</Label><CurrencyInput value={assocState.gasto.valor} onChange={assocSetters.setGastoValor} /></div>
-                  <div className="space-y-2">
-                    <Label>Descrição *</Label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {shortcuts.map((s) => (
-                        <div key={s} className="group relative">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-[10px] px-2 bg-muted/30 border-muted-foreground/20 hover:bg-muted pr-6"
-                            onClick={() => assocSetters.setGastoDescricao(s)}
-                          >
-                            {s}
-                          </Button>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); removeShortcut(s); }}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-all"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                      {!showShortcutInput && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-[10px] px-2 text-muted-foreground hover:text-foreground"
-                          onClick={() => setShowShortcutInput(true)}
-                        >
-                          <PlusCircle className="h-3 w-3 mr-1" />
-                          Adicionar
-                        </Button>
-                      )}
-                    </div>
-                    {showShortcutInput && (
-                      <div className="flex gap-2 items-center mb-4">
-                        <Input
-                          value={newShortcut}
-                          onChange={(e) => setNewShortcut(e.target.value)}
-                          placeholder="Novo atalho (ex: Gelo)"
-                          className="h-8 text-xs"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              addShortcut(newShortcut);
-                              setNewShortcut("");
-                              setShowShortcutInput(false);
-                            }
-                            if (e.key === 'Escape') {
-                              setNewShortcut("");
-                              setShowShortcutInput(false);
-                            }
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={() => {
-                            addShortcut(newShortcut);
-                            setNewShortcut("");
-                            setShowShortcutInput(false);
-                          }}
-                        >
-                          <PlusCircle className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                    <Input
-                      value={assocState.gasto.descricao}
-                      onChange={(e) => assocSetters.setGastoDescricao(e.target.value)}
-                      placeholder="O que foi pago?"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Observação</Label>
-                    <Input value={assocState.gasto.obs} onChange={(e) => assocSetters.setGastoObs(e.target.value)} placeholder="Opcional" />
-                  </div>
-                  <Button className="w-full" onClick={() => assocHandlers.handleGastoSubmit(true)} disabled={assocLoading}>Registrar</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <MensalidadeDialog
+              open={openDialog === "mensalidade"}
+              onOpenChange={(o) => {
+                setOpenDialog(o ? "mensalidade" : null);
+                if (!o) assocHandlers.resetMensalidade();
+              }}
+              state={assocState.mensalidade}
+              setters={{
+                setDate: assocSetters.setMensalidadeDate,
+                setTurno: assocSetters.setMensalidadeTurno,
+                setCash: assocSetters.setMensalidadeCash,
+                setPix: assocSetters.setMensalidadePix,
+                setObs: assocSetters.setMensalidadeObs,
+              }}
+              onSubmit={assocHandlers.handleMensalidadeSubmit}
+              isLoading={assocLoading}
+            />
 
-            <Dialog open={openDialog === "consumo-mer"} onOpenChange={(o) => {
-              setOpenDialog(o ? "consumo-mer" : null);
-              if (!o) saldosHandlers.resetGasto();
-            }}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="h-16 justify-start gap-4 px-4 bg-orange-500/5 border-orange-500/20 hover:bg-orange-500/10 group">
-                  <ArrowRightLeft className="h-6 w-6 text-orange-500 transition-transform group-hover:scale-110" />
-                  <div className="text-left">
-                    <p className="font-semibold text-orange-500">Gasto Estabelecimento</p>
-                    <p className="text-xs text-muted-foreground">Baixa de saldo</p>
-                  </div>
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>Registrar Consumo Estabelecimento</DialogTitle></DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2"><Label>Data *</Label><DateInput value={saldosState.gasto.date} onChange={saldosSetters.setGastoDate} /></div>
-                  <div className="space-y-2">
-                    <Label>Estabelecimento *</Label>
-                    <Select value={saldosState.gasto.merchant} onValueChange={saldosSetters.setGastoMerchant}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>{data.merchantBalances.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2"><Label>Valor *</Label><CurrencyInput value={saldosState.gasto.valor} onChange={saldosSetters.setGastoValor} /></div>
-                  <div className="space-y-2"><Label>Descrição *</Label><Input value={saldosState.gasto.descricao} onChange={(e) => saldosSetters.setGastoDescricao(e.target.value)} placeholder="Ex: Lanche alunos" /></div>
-                  <div className="space-y-2">
-                    <Label>Observação</Label>
-                    <Input value={saldosState.gasto.obs} onChange={(e) => saldosSetters.setGastoObs(e.target.value)} placeholder="Opcional" />
-                  </div>
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={() => saldosHandlers.handleGastoSubmit()} disabled={saldosLoading}>Registrar Consumo</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button variant="outline" className="h-16 justify-start gap-4 px-4 bg-destructive/5 border-destructive/20 hover:bg-destructive/10 group" onClick={() => setOpenDialog("gasto-assoc")}>
+              <Minus className="h-6 w-6 text-destructive transition-transform group-hover:scale-110" />
+              <div className="text-left">
+                <p className="font-semibold text-destructive">Gasto Associação</p>
+                <p className="text-xs text-muted-foreground">Nova despesa</p>
+              </div>
+            </Button>
+
+            <GastoAssociacaoDialog
+              open={openDialog === "gasto-assoc"}
+              onOpenChange={(o) => {
+                setOpenDialog(o ? "gasto-assoc" : null);
+                if (!o) assocHandlers.resetGasto();
+              }}
+              state={assocState.gasto}
+              setters={{
+                setDate: assocSetters.setGastoDate,
+                setMeio: assocSetters.setGastoMeio,
+                setValor: assocSetters.setGastoValor,
+                setDescricao: assocSetters.setGastoDescricao,
+                setObs: assocSetters.setGastoObs,
+              }}
+              shortcuts={shortcuts}
+              addShortcut={addShortcut}
+              removeShortcut={removeShortcut}
+              onSubmit={assocHandlers.handleGastoSubmit}
+              isLoading={assocLoading}
+              strictBalance={true}
+            />
+
+            <Button variant="outline" className="h-16 justify-start gap-4 px-4 bg-orange-500/5 border-orange-500/20 hover:bg-orange-500/10 group" onClick={() => setOpenDialog("consumo-mer")}>
+              <ArrowRightLeft className="h-6 w-6 text-orange-500 transition-transform group-hover:scale-110" />
+              <div className="text-left">
+                <p className="font-semibold text-orange-500">Gasto Estabelecimento</p>
+                <p className="text-xs text-muted-foreground">Baixa de saldo</p>
+              </div>
+            </Button>
+
+            <ConsumoSaldoDialog
+              open={openDialog === "consumo-mer"}
+              onOpenChange={(o) => {
+                setOpenDialog(o ? "consumo-mer" : null);
+                if (!o) saldosHandlers.resetGasto();
+              }}
+              state={saldosState.gasto}
+              setters={{
+                setDate: saldosSetters.setGastoDate,
+                setMerchant: saldosSetters.setGastoMerchant,
+                setValor: saldosSetters.setGastoValor,
+                setDescricao: saldosSetters.setGastoDescricao,
+                setObs: saldosSetters.setGastoObs,
+              }}
+              merchants={data?.merchantBalances || []}
+              onSubmit={saldosHandlers.handleGastoSubmit}
+              isLoading={saldosLoading}
+            />
 
           </div>
         </section>

@@ -8,7 +8,7 @@ import { formatCurrencyBRL } from "@/lib/currency";
 import { aporteSaldoSchema, consumoSaldoSchema } from "@/lib/schemas";
 
 export function useSaldosActions(
-    merchants: Merchant[] | undefined,
+    merchants: { id: string; name: string; balance: number }[] | undefined,
     entities: Entity[] | undefined,
     onSuccess?: () => void
 ) {

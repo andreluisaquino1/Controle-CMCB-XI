@@ -39,6 +39,9 @@ import { formatDateBR } from "@/lib/date-utils";
 import { cleanAccountDisplayName } from "@/lib/account-display";
 import { MODULE_LABELS } from "@/lib/constants";
 import { useSaldosActions } from "@/hooks/use-saldos-actions";
+import { AporteSaldoDialog } from "@/components/forms/AporteSaldoDialog";
+import { ConsumoSaldoDialog } from "@/components/forms/ConsumoSaldoDialog";
+import { TransactionTable } from "@/components/transactions/TransactionTable";
 
 export default function SaldosPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
@@ -257,179 +260,76 @@ export default function SaldosPage() {
         {/* Actions */}
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Aportar Saldo */}
-          <Dialog open={openDialog === "aporte"} onOpenChange={(open) => { setOpenDialog(open ? "aporte" : null); if (!open) resetAporte(); }}>
-            <DialogTrigger asChild>
-              <Card className="cursor-pointer hover:shadow-elevated transition-shadow">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center">
-                      <Plus className="h-6 w-6 text-success" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">Aportar Saldo</h3>
-                      <p className="text-sm text-muted-foreground">Depósito em estabelecimento</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Aportar Saldo</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label>Data *</Label>
-                  <DateInput value={aporte.date} onChange={setAporteDate} />
+          <Card className="cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => setOpenDialog("aporte")}>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center">
+                  <Plus className="h-6 w-6 text-success" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Origem do Recurso *</Label>
-                  <Select value={aporte.origem} onValueChange={setAporteOrigem}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ASSOC">Associação</SelectItem>
-                      <SelectItem value="UE">Unidade Executora</SelectItem>
-                      <SelectItem value="CX">Caixa Escolar</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div>
+                  <h3 className="font-semibold text-foreground">Aportar Saldo</h3>
+                  <p className="text-sm text-muted-foreground">Depósito em estabelecimento</p>
                 </div>
-                <div className="space-y-2">
-                  <Label>Conta *</Label>
-                  <Select value={aporte.conta} onValueChange={setAporteAccount} disabled={!aporte.origem}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={aporte.origem ? "Selecione a conta" : "Selecione origem primeiro"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredAccounts.map((acc) => (
-                        <SelectItem key={acc.id} value={acc.id}>
-                          {cleanAccountDisplayName(acc.name)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Estabelecimento *</Label>
-                  <Select value={aporte.merchant} onValueChange={setAporteMerchant}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {merchants?.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Valor (R$) *</Label>
-                  <CurrencyInput value={aporte.valor} onChange={setAporteValor} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Descrição *</Label>
-                  <Input value={aporte.descricao} onChange={(e) => setAporteDescricao(e.target.value)} placeholder="Descreva o aporte" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Observação</Label>
-                  <Input value={aporte.obs} onChange={(e) => setAporteObs(e.target.value)} placeholder="Opcional" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Capital/Custeio (opcional)</Label>
-                  <Select value={aporte.capitalCusteio} onValueChange={setAporteCapitalCusteio}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="capital">Capital</SelectItem>
-                      <SelectItem value="custeio">Custeio</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={async () => {
-                    const success = await handleAporteSubmit();
-                    if (success) setOpenDialog(null);
-                  }}
-                  disabled={actionsLoading}
-                >
-                  {actionsLoading ? "Registrando..." : "Registrar Aporte"}
-                </Button>
               </div>
-            </DialogContent>
-          </Dialog>
+            </CardContent>
+          </Card>
+
+          <AporteSaldoDialog
+            open={openDialog === "aporte"}
+            onOpenChange={(o) => {
+              setOpenDialog(o ? "aporte" : null);
+              if (!o) resetAporte();
+            }}
+            state={aporte}
+            setters={{
+              setDate: setAporteDate,
+              setOrigem: setAporteOrigem,
+              setAccount: setAporteAccount,
+              setMerchant: setAporteMerchant,
+              setValor: setAporteValor,
+              setDescricao: setAporteDescricao,
+              setObs: setAporteObs,
+              setCapitalCusteio: setAporteCapitalCusteio,
+            }}
+            accounts={filteredAccounts}
+            merchants={merchants || []}
+            onSubmit={handleAporteSubmit}
+            isLoading={actionsLoading}
+          />
 
           {/* Gastos */}
-          <Dialog open={openDialog === "gasto"} onOpenChange={(open) => { setOpenDialog(open ? "gasto" : null); if (!open) resetGasto(); }}>
-            <DialogTrigger asChild>
-              <Card className="cursor-pointer hover:shadow-elevated transition-shadow">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-destructive/10 flex items-center justify-center">
-                      <Minus className="h-6 w-6 text-destructive" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">Gastos</h3>
-                      <p className="text-sm text-muted-foreground">Registrar compra</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Registrar Gasto</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label>Data *</Label>
-                  <DateInput value={gasto.date} onChange={setGastoDate} />
+          <Card className="cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => setOpenDialog("gasto")}>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <Minus className="h-6 w-6 text-destructive" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Estabelecimento *</Label>
-                  <Select value={gasto.merchant} onValueChange={setGastoMerchant}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {merchants?.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.name} ({formatCurrencyBRL(Number(m.balance))})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div>
+                  <h3 className="font-semibold text-foreground">Gastos</h3>
+                  <p className="text-sm text-muted-foreground">Registrar compra</p>
                 </div>
-                <div className="space-y-2">
-                  <Label>Valor (R$) *</Label>
-                  <CurrencyInput value={gasto.valor} onChange={setGastoValor} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Descrição *</Label>
-                  <Input value={gasto.descricao} onChange={(e) => setGastoDescricao(e.target.value)} placeholder="Descreva a compra" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Observação</Label>
-                  <Input value={gasto.obs} onChange={(e) => setGastoObs(e.target.value)} placeholder="Opcional" />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  * Gasto pode deixar o saldo negativo
-                </p>
-                <Button
-                  className="w-full"
-                  onClick={async () => {
-                    const success = await handleGastoSubmit();
-                    if (success) setOpenDialog(null);
-                  }}
-                  disabled={actionsLoading}
-                >
-                  {actionsLoading ? "Registrando..." : "Registrar Gasto"}
-                </Button>
               </div>
-            </DialogContent>
-          </Dialog>
+            </CardContent>
+          </Card>
+
+          <ConsumoSaldoDialog
+            open={openDialog === "gasto"}
+            onOpenChange={(o) => {
+              setOpenDialog(o ? "gasto" : null);
+              if (!o) resetGasto();
+            }}
+            state={gasto}
+            setters={{
+              setDate: setGastoDate,
+              setMerchant: setGastoMerchant,
+              setValor: setGastoValor,
+              setDescricao: setGastoDescricao,
+              setObs: setGastoObs,
+            }}
+            merchants={merchants || []}
+            onSubmit={handleGastoSubmit}
+            isLoading={actionsLoading}
+          />
         </div>
 
         {/* Transactions Table */}
@@ -441,78 +341,11 @@ export default function SaldosPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {transactionsLoading ? (
-              <div className="py-8 text-center">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-              </div>
-            ) : !transactions || transactions.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground">
-                Nenhuma transação registrada
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Estabelecimento</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Meio</TableHead>
-                      <TableHead>Registrado por</TableHead>
-                      <TableHead>Observação</TableHead>
-                      <TableHead className="w-[80px]">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.map((t) => (
-                      <TableRow key={t.id} className={t.status === 'voided' ? 'opacity-50 grayscale' : ''}>
-                        <TableCell className="whitespace-nowrap">
-                          {formatDateBR(t.transaction_date)}
-                        </TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${t.module === "aporte_saldo" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
-                            }`}>
-                            {MODULE_LABELS[t.module] || t.module}
-                          </span>
-                        </TableCell>
-                        <TableCell>{t.merchant_name || "-"}</TableCell>
-                        <TableCell className={`text-right font-medium ${t.module === "aporte_saldo" ? "text-success" : "text-destructive"
-                          }`}>
-                          {t.module === "aporte_saldo" ? "+" : "-"}
-                          {formatCurrencyBRL(Number(t.amount))}
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {t.description || "-"}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {t.payment_method === 'cash' ? 'Espécie' : t.payment_method === 'pix' ? 'PIX' : '-'}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {t.creator_name || "-"}
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate text-muted-foreground">
-                          {t.notes || "-"}
-                        </TableCell>
-                        <TableCell>
-                          {t.status === 'posted' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => setVoidingId(t.id)}
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+            <TransactionTable
+              transactions={transactions}
+              isLoading={transactionsLoading}
+              onVoid={(id) => setVoidingId(id)}
+            />
           </CardContent>
         </Card>
 

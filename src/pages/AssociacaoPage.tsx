@@ -38,6 +38,10 @@ import { formatDateBR } from "@/lib/date-utils";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { ACCOUNT_NAMES, MODULE_LABELS } from "@/lib/constants";
 import { useAssociacaoActions } from "@/hooks/use-associacao-actions";
+import { MensalidadeDialog } from "@/components/forms/MensalidadeDialog";
+import { GastoAssociacaoDialog } from "@/components/forms/GastoAssociacaoDialog";
+import { MovimentarSaldoDialog } from "@/components/forms/MovimentarSaldoDialog";
+import { TransactionTable } from "@/components/transactions/TransactionTable";
 
 export default function AssociacaoPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
@@ -168,291 +172,108 @@ export default function AssociacaoPage() {
         {/* Quick Actions */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {/* Mensalidades */}
-          <Dialog open={openDialog === "mensalidade"} onOpenChange={(open) => { setOpenDialog(open ? "mensalidade" : null); if (!open) resetMensalidade(); }}>
-            <DialogTrigger asChild>
-              <Card className="cursor-pointer hover:shadow-elevated transition-shadow">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center">
-                      <Banknote className="h-6 w-6 text-success" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">Mensalidades</h3>
-                      <p className="text-sm text-muted-foreground">Registrar entrada</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Registrar Mensalidade</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label>Data *</Label>
-                  <DateInput value={mensalidade.date} onChange={setMensalidadeDate} />
+          <Card className="cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => setOpenDialog("mensalidade")}>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center">
+                  <Banknote className="h-6 w-6 text-success" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Turno *</Label>
-                  <Select value={mensalidade.turno} onValueChange={setMensalidadeTurno}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o turno" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="matutino">Matutino</SelectItem>
-                      <SelectItem value="vespertino">Vespertino</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div>
+                  <h3 className="font-semibold text-foreground">Mensalidades</h3>
+                  <p className="text-sm text-muted-foreground">Registrar entrada</p>
                 </div>
-                <div className="space-y-2">
-                  <Label>Espécie (R$)</Label>
-                  <CurrencyInput value={mensalidade.cash} onChange={setMensalidadeCash} />
-                </div>
-                <div className="space-y-2">
-                  <Label>PIX (R$)</Label>
-                  <CurrencyInput value={mensalidade.pix} onChange={setMensalidadePix} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Observação</Label>
-                  <Input value={mensalidade.obs} onChange={(e) => setMensalidadeObs(e.target.value)} placeholder="Opcional" />
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={async () => {
-                    const success = await handleMensalidadeSubmit();
-                    if (success) setOpenDialog(null);
-                  }}
-                  disabled={actionsLoading}
-                >
-                  {actionsLoading ? "Registrando..." : "Registrar"}
-                </Button>
               </div>
-            </DialogContent>
-          </Dialog>
+            </CardContent>
+          </Card>
+
+          <MensalidadeDialog
+            open={openDialog === "mensalidade"}
+            onOpenChange={(o) => {
+              setOpenDialog(o ? "mensalidade" : null);
+              if (!o) resetMensalidade();
+            }}
+            state={mensalidade}
+            setters={{
+              setDate: setMensalidadeDate,
+              setTurno: setMensalidadeTurno,
+              setCash: setMensalidadeCash,
+              setPix: setMensalidadePix,
+              setObs: setMensalidadeObs,
+            }}
+            onSubmit={handleMensalidadeSubmit}
+            isLoading={actionsLoading}
+          />
 
           {/* Gastos */}
-          <Dialog open={openDialog === "gasto"} onOpenChange={(open) => { setOpenDialog(open ? "gasto" : null); if (!open) resetGasto(); }}>
-            <DialogTrigger asChild>
-              <Card className="cursor-pointer hover:shadow-elevated transition-shadow">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-destructive/10 flex items-center justify-center">
-                      <CreditCard className="h-6 w-6 text-destructive" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">Gastos</h3>
-                      <p className="text-sm text-muted-foreground">Registrar despesa</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Registrar Gasto</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label>Data *</Label>
-                  <DateInput value={gasto.date} onChange={setGastoDate} />
+          <Card className="cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => setOpenDialog("gasto")}>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <CreditCard className="h-6 w-6 text-destructive" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Meio de Pagamento *</Label>
-                  <Select value={gasto.meio} onValueChange={setGastoMeio}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">Espécie</SelectItem>
-                      <SelectItem value="pix">PIX</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div>
+                  <h3 className="font-semibold text-foreground">Gastos</h3>
+                  <p className="text-sm text-muted-foreground">Registrar despesa</p>
                 </div>
-                <div className="space-y-2">
-                  <Label>Valor (R$) *</Label>
-                  <CurrencyInput value={gasto.valor} onChange={setGastoValor} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Descrição *</Label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {shortcuts.map((s) => (
-                      <div key={s} className="group relative">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-[10px] px-2 bg-muted/30 border-muted-foreground/20 hover:bg-muted pr-6"
-                          onClick={() => setGastoDescricao(s)}
-                        >
-                          {s}
-                        </Button>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); removeShortcut(s); }}
-                          className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-all"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {!showShortcutInput && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-[10px] px-2 text-muted-foreground hover:text-foreground"
-                        onClick={() => setShowShortcutInput(true)}
-                      >
-                        <PlusCircle className="h-3 w-3 mr-1" />
-                        Adicionar
-                      </Button>
-                    )}
-                  </div>
-                  {showShortcutInput && (
-                    <div className="flex gap-2 items-center mb-4">
-                      <Input
-                        value={newShortcut}
-                        onChange={(e) => setNewShortcut(e.target.value)}
-                        placeholder="Novo atalho (ex: Gelo)"
-                        className="h-8 text-xs"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            addShortcut(newShortcut);
-                            setNewShortcut("");
-                            setShowShortcutInput(false);
-                          }
-                          if (e.key === 'Escape') {
-                            setNewShortcut("");
-                            setShowShortcutInput(false);
-                          }
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => {
-                          addShortcut(newShortcut);
-                          setNewShortcut("");
-                          setShowShortcutInput(false);
-                        }}
-                      >
-                        <PlusCircle className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                  <Input
-                    value={gasto.descricao}
-                    onChange={(e) => setGastoDescricao(e.target.value)}
-                    placeholder="Descreva o gasto"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Observação</Label>
-                  <Input value={gasto.obs} onChange={(e) => setGastoObs(e.target.value)} placeholder="Opcional" />
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={async () => {
-                    const success = await handleGastoSubmit();
-                    if (success) setOpenDialog(null);
-                  }}
-                  disabled={actionsLoading}
-                >
-                  {actionsLoading ? "Registrando..." : "Registrar"}
-                </Button>
               </div>
-            </DialogContent>
-          </Dialog>
+            </CardContent>
+          </Card>
+
+          <GastoAssociacaoDialog
+            open={openDialog === "gasto"}
+            onOpenChange={(o) => {
+              setOpenDialog(o ? "gasto" : null);
+              if (!o) resetGasto();
+            }}
+            state={gasto}
+            setters={{
+              setDate: setGastoDate,
+              setMeio: setGastoMeio,
+              setValor: setGastoValor,
+              setDescricao: setGastoDescricao,
+              setObs: setGastoObs,
+            }}
+            shortcuts={shortcuts}
+            addShortcut={addShortcut}
+            removeShortcut={removeShortcut}
+            onSubmit={handleGastoSubmit}
+            isLoading={actionsLoading}
+          />
 
           {/* Movimentar Saldo */}
-          <Dialog open={openDialog === "movimentar"} onOpenChange={(open) => { setOpenDialog(open ? "movimentar" : null); if (!open) resetMov(); }}>
-            <DialogTrigger asChild>
-              <Card className="cursor-pointer hover:shadow-elevated transition-shadow">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center">
-                      <ArrowRightLeft className="h-6 w-6 text-secondary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">Movimentar Saldo</h3>
-                      <p className="text-sm text-muted-foreground">Transferência/Depósito</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Movimentar Saldo</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label>Data *</Label>
-                  <DateInput value={mov.date} onChange={setMovDate} />
+          <Card className="cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => setOpenDialog("movimentar")}>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center">
+                  <ArrowRightLeft className="h-6 w-6 text-secondary" />
                 </div>
-                <div className="space-y-2">
-                  <Label>De *</Label>
-                  <Select value={mov.de} onValueChange={setMovDe}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Conta de origem" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts?.map((acc) => (
-                        <SelectItem key={acc.id} value={acc.id}>
-                          {getAccountDisplayName(acc.name)} ({formatCurrencyBRL(acc.balance)})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedSourceAccount && (
-                    <p className="text-xs text-muted-foreground">
-                      Saldo disponível: {formatCurrencyBRL(selectedSourceAccount.balance)}
-                    </p>
-                  )}
+                <div>
+                  <h3 className="font-semibold text-foreground">Movimentar Saldo</h3>
+                  <p className="text-sm text-muted-foreground">Transferência/Depósito</p>
                 </div>
-                <div className="space-y-2">
-                  <Label>Para *</Label>
-                  <Select value={mov.para} onValueChange={setMovPara}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Conta de destino" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts?.filter(a => a.id !== mov.de).map((acc) => (
-                        <SelectItem key={acc.id} value={acc.id}>{getAccountDisplayName(acc.name)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Valor (R$) *</Label>
-                  <CurrencyInput value={mov.valor} onChange={setMovValor} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Descrição *</Label>
-                  <Input value={mov.descricao} onChange={(e) => setMovDescricao(e.target.value)} placeholder="Descreva a movimentação" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Observação</Label>
-                  <Input value={mov.obs} onChange={(e) => setMovObs(e.target.value)} placeholder="Opcional" />
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={async () => {
-                    const success = await handleMovimentarSubmit();
-                    if (success) setOpenDialog(null);
-                  }}
-                  disabled={actionsLoading}
-                >
-                  {actionsLoading ? "Registrando..." : "Registrar"}
-                </Button>
               </div>
-            </DialogContent>
-          </Dialog>
+            </CardContent>
+          </Card>
+
+          <MovimentarSaldoDialog
+            open={openDialog === "movimentar"}
+            onOpenChange={(o) => {
+              setOpenDialog(o ? "movimentar" : null);
+              if (!o) resetMov();
+            }}
+            state={mov}
+            setters={{
+              setDate: setMovDate,
+              setDe: setMovDe,
+              setPara: setMovPara,
+              setValor: setMovValor,
+              setDescricao: setMovDescricao,
+              setObs: setMovObs,
+            }}
+            accounts={accounts || []}
+            onSubmit={handleMovimentarSubmit}
+            isLoading={actionsLoading}
+          />
         </div>
 
         {/* Ajustes Section */}
@@ -594,80 +415,11 @@ export default function AssociacaoPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {transactionsLoading ? (
-              <div className="py-8 text-center">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-              </div>
-            ) : !transactions || transactions.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground">
-                Nenhuma transação registrada
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Meio</TableHead>
-                      <TableHead>Turno</TableHead>
-                      <TableHead>Observação</TableHead>
-                      <TableHead>Registrado por</TableHead>
-                      <TableHead className="w-[80px]">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.map((t) => (
-                      <TableRow key={t.id} className={t.status === 'voided' ? 'opacity-50 grayscale' : ''}>
-                        <TableCell className="whitespace-nowrap">
-                          {formatDateBR(t.transaction_date)}
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted">
-                            {MODULE_LABELS[t.module] || t.module}
-                          </span>
-                        </TableCell>
-                        <TableCell className={`text-right font-medium ${t.direction === "in" ? "text-success" :
-                          t.direction === "out" ? "text-destructive" : ""
-                          }`}>
-                          {t.direction === "in" ? "+" : t.direction === "out" ? "-" : ""}
-                          {formatCurrencyBRL(Number(t.amount))}
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {t.description || "-"}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {t.payment_method === 'cash' ? 'Espécie' : t.payment_method === 'pix' ? 'PIX' : '-'}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {t.shift === 'matutino' ? 'Matutino' : t.shift === 'vespertino' ? 'Vespertino' : '-'}
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate text-muted-foreground">
-                          {t.notes || "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {t.creator_name || "-"}
-                        </TableCell>
-                        <TableCell>
-                          {t.status === 'posted' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => setVoidingId(t.id)}
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+            <TransactionTable
+              transactions={transactions}
+              isLoading={transactionsLoading}
+              onVoid={(id) => setVoidingId(id)}
+            />
           </CardContent>
         </Card>
 

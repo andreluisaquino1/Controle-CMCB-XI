@@ -37,6 +37,7 @@ import { getTodayString, formatDateBR } from "@/lib/date-utils";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { cleanAccountDisplayName } from "@/lib/account-display";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { TransactionTable } from "@/components/transactions/TransactionTable";
 
 export default function RecursosPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
@@ -266,42 +267,10 @@ export default function RecursosPage() {
         <Card>
           <CardHeader><CardTitle className="text-lg">Histórico Recente (UE/CX)</CardTitle></CardHeader>
           <CardContent>
-            {transactionsLoading ? (
-              <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
-            ) : !transactions || transactions.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">Nenhuma movimentação</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Origem</TableHead>
-                      <TableHead>Conta</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Registrado por</TableHead>
-                      <TableHead>Observação</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.map((t) => (
-                      <TableRow key={t.id}>
-                        <TableCell className="whitespace-nowrap">{formatDateBR(t.transaction_date)}</TableCell>
-                        <TableCell><span className="font-semibold">{t.origin_fund || (t.entity_type?.toUpperCase())}</span></TableCell>
-                        <TableCell>{t.source_account_name || t.destination_account_name || "-"}</TableCell>
-                        <TableCell className={`text-right font-medium ${t.direction === "in" ? "text-success" : "text-destructive"}`}>
-                          {t.direction === "in" ? "+" : "-"}{formatCurrencyBRL(Number(t.amount))}
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate">{t.description}</TableCell>
-                        <TableCell className="text-muted-foreground">{t.creator_name}</TableCell>
-                        <TableCell className="max-w-xs truncate text-muted-foreground">{t.notes || "-"}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+            <TransactionTable
+              transactions={transactions}
+              isLoading={transactionsLoading}
+            />
           </CardContent>
         </Card>
 
