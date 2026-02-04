@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
-import { Building2, Loader2, ArrowUpCircle, ArrowDownCircle, ScrollText } from "lucide-react";
+import { Building2, Loader2, ArrowUpCircle, ArrowDownCircle, ScrollText, Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { useCreateTransaction } from "@/hooks/use-transactions";
-import { useEntitiesWithAccounts } from "@/hooks/use-accounts";
+import { useCreateTransaction, useVoidTransaction } from "@/hooks/use-transactions";
+import { useEntitiesWithAccounts, useCreateAccount, useUpdateAccount, useDeactivateAccount } from "@/hooks/use-accounts";
 import { useRecursosTransactions } from "@/hooks/use-entity-transactions";
 import { getTodayString } from "@/lib/date-utils";
 import { formatCurrencyBRL } from "@/lib/currency";
@@ -12,13 +12,30 @@ import { cleanAccountDisplayName } from "@/lib/account-display";
 import { ActionCard } from "@/components/ActionCard";
 import { EntradaRecursoDialog } from "@/components/forms/EntradaRecursoDialog";
 import { GastoRecursoDialog } from "@/components/forms/GastoRecursoDialog";
+import { AccountDialog } from "@/components/forms/AccountDialog";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Account } from "@/types";
 
 export default function RecursosPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
   const createTransaction = useCreateTransaction();
-  const { data: entitiesData, isLoading: entitiesLoading } = useEntitiesWithAccounts();
+  const voidTransaction = useVoidTransaction();
+  const [voidingId, setVoidingId] = useState<string | null>(null);
+  const [voidReason, setVoidReason] = useState("");
+
+  const { data: entitiesData, isLoading: entitiesLoading, refetch: refetchEntities } = useEntitiesWithAccounts();
   const { data: transactions, isLoading: transactionsLoading } = useRecursosTransactions();
+
+  // Account Management
+  const createAccount = useCreateAccount();
+  const updateAccount = useUpdateAccount();
+  const deactivateAccount = useDeactivateAccount();
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [deactivatingAccount, setDeactivatingAccount] = useState<Account | null>(null);
 
   // Form state for EntradaRecursoDialog
   const [entrada, setEntrada] = useState({
@@ -146,6 +163,63 @@ export default function RecursosPage() {
     }
   };
 
+  const handleVoidTx = async () => {
+    if (!voidingId || !voidReason.trim()) return;
+    try {
+      await voidTransaction.mutateAsync({ transactionId: voidingId, reason: voidReason });
+      toast.success("Lançamento anulado com sucesso.");
+      setVoidingId(null);
+      setVoidReason("");
+    } catch (error) {
+      // Handled in hook
+    }
+  };
+
+  const handleCreateAccount = async (data: { name: string; account_number: string; entity_id: string }) => {
+    setActionsLoading(true);
+    try {
+      await createAccount.mutateAsync(data);
+      refetchEntities();
+      return true;
+    } catch (error) {
+      return false;
+    } finally {
+      setActionsLoading(false);
+    }
+  };
+
+  const handleUpdateAccount = async (data: { name: string; account_number: string; entity_id: string }) => {
+    if (!editingAccount) return false;
+    setActionsLoading(true);
+    try {
+      await updateAccount.mutateAsync({
+        id: editingAccount.id,
+        name: data.name,
+        account_number: data.account_number,
+      });
+      refetchEntities();
+      setEditingAccount(null);
+      return true;
+    } catch (error) {
+      return false;
+    } finally {
+      setActionsLoading(false);
+    }
+  };
+
+  const handleDeactivateAccount = async () => {
+    if (!deactivatingAccount) return;
+    setActionsLoading(true);
+    try {
+      await deactivateAccount.mutateAsync(deactivatingAccount.id);
+      refetchEntities();
+      setDeactivatingAccount(null);
+    } catch (error) {
+    } finally {
+      setActionsLoading(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
@@ -154,6 +228,10 @@ export default function RecursosPage() {
             <h1 className="text-2xl font-bold text-foreground">Recursos (UE e CX)</h1>
             <p className="text-muted-foreground">Entradas e gastos diretos das contas da Unidade Executora e Caixa Escolar</p>
           </div>
+          <Button variant="outline" size="sm" onClick={() => setOpenDialog("nova-conta")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Conta
+          </Button>
         </div>
 
         {/* Saldos por Conta Block */}
@@ -168,10 +246,16 @@ export default function RecursosPage() {
                 {entitiesLoading ? (
                   <div className="h-20 flex items-center justify-center bg-muted/20 rounded-lg"><Loader2 className="h-5 w-5 animate-spin" /></div>
                 ) : accounts.filter(a => a.entity_id === ueEntity?.id).map(acc => (
-                  <Card key={acc.id} className="bg-card border-none shadow-sm">
+                  <Card key={acc.id} className="bg-card border-none shadow-sm relative group">
                     <CardContent className="p-4 flex justify-between items-center">
                       <div className="space-y-0.5">
-                        <p className="text-sm font-medium text-foreground">{cleanAccountDisplayName(acc.name)}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground">{cleanAccountDisplayName(acc.name)}</p>
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                            <button className="text-muted-foreground hover:text-primary transition-colors" onClick={() => setEditingAccount(acc)}><Pencil className="h-3 w-3" /></button>
+                            <button className="text-muted-foreground hover:text-destructive transition-colors" onClick={() => setDeactivatingAccount(acc)}><Trash2 className="h-3 w-3" /></button>
+                          </div>
+                        </div>
                         <p className="text-[10px] text-muted-foreground">{acc.account_number || "Sem conta"}</p>
                       </div>
                       <p className={`font-bold ${acc.balance < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrencyBRL(acc.balance)}</p>
@@ -190,10 +274,16 @@ export default function RecursosPage() {
                 {entitiesLoading ? (
                   <div className="h-20 flex items-center justify-center bg-muted/20 rounded-lg"><Loader2 className="h-5 w-5 animate-spin" /></div>
                 ) : accounts.filter(a => a.entity_id === cxEntity?.id).map(acc => (
-                  <Card key={acc.id} className="bg-card border-none shadow-sm">
+                  <Card key={acc.id} className="bg-card border-none shadow-sm relative group">
                     <CardContent className="p-4 flex justify-between items-center">
                       <div className="space-y-0.5">
-                        <p className="text-sm font-medium text-foreground">{cleanAccountDisplayName(acc.name)}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground">{cleanAccountDisplayName(acc.name)}</p>
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                            <button className="text-muted-foreground hover:text-primary transition-colors" onClick={() => setEditingAccount(acc)}><Pencil className="h-3 w-3" /></button>
+                            <button className="text-muted-foreground hover:text-destructive transition-colors" onClick={() => setDeactivatingAccount(acc)}><Trash2 className="h-3 w-3" /></button>
+                          </div>
+                        </div>
                         <p className="text-[10px] text-muted-foreground">{acc.account_number || "Sem conta"}</p>
                       </div>
                       <p className={`font-bold ${acc.balance < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrencyBRL(acc.balance)}</p>
@@ -222,6 +312,47 @@ export default function RecursosPage() {
             onClick={() => setOpenDialog("gasto")}
           />
         </div>
+
+        {/* Account Management Dialogs */}
+        <AccountDialog
+          open={openDialog === "nova-conta"}
+          onOpenChange={(o) => setOpenDialog(o ? "nova-conta" : null)}
+          title="Nova Conta de Recurso"
+          entities={entities}
+          onSubmit={handleCreateAccount}
+          isLoading={actionsLoading}
+        />
+
+        <AccountDialog
+          open={!!editingAccount}
+          onOpenChange={(o) => !o && setEditingAccount(null)}
+          title="Editar Conta de Recurso"
+          initialData={editingAccount ? { name: editingAccount.name, account_number: editingAccount.account_number || "", entity_id: editingAccount.entity_id } : undefined}
+          entities={entities}
+          onSubmit={handleUpdateAccount}
+          isLoading={actionsLoading}
+        />
+
+        {/* Deactivate Account Action (Confirm Dialog) */}
+        <Dialog open={!!deactivatingAccount} onOpenChange={(o) => !o && setDeactivatingAccount(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Desativar Conta</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <p className="text-sm text-muted-foreground">
+                Tem certeza que deseja desativar a conta <strong>{deactivatingAccount?.name}</strong>?
+                Os registros históricos não serão apagados, mas a conta não aparecerá mais para novos lançamentos.
+              </p>
+              <div className="flex gap-3 mt-4">
+                <Button variant="outline" className="flex-1" onClick={() => setDeactivatingAccount(null)}>Cancelar</Button>
+                <Button variant="destructive" className="flex-1" onClick={handleDeactivateAccount} disabled={actionsLoading}>
+                  {actionsLoading ? "Desativando..." : "Confirmar Desativação"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <EntradaRecursoDialog
           open={openDialog === "entrada"}
@@ -271,7 +402,7 @@ export default function RecursosPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <ScrollText className="h-5 w-5 text-primary" />
-              Histórico Recente (UE/CX)
+              Histórico dos Recursos
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -280,9 +411,40 @@ export default function RecursosPage() {
               isLoading={transactionsLoading}
               showOrigin={true}
               showAccount={true}
+              onVoid={(id) => setVoidingId(id)}
             />
           </CardContent>
         </Card>
+
+        {/* Void Transaction Dialog */}
+        <Dialog open={!!voidingId} onOpenChange={(open) => !open && setVoidingId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Anular Lançamento</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label>Motivo da Anulação *</Label>
+                <Input
+                  value={voidReason}
+                  onChange={(e) => setVoidReason(e.target.value)}
+                  placeholder="Ex: Valor digitado errado"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground bg-destructive/5 p-2 rounded border border-destructive/20">
+                <strong>Atenção:</strong> Esta ação reverterá o impacto financeiro no saldo das contas envolvidas.
+              </p>
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={handleVoidTx}
+                disabled={voidTransaction.isPending || !voidReason.trim()}
+              >
+                {voidTransaction.isPending ? "Anulando..." : "Confirmar Anulação"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Footer Info Section */}
         <Card className="bg-muted/30 border-dashed">

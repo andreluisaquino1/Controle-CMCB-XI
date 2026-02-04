@@ -14,6 +14,7 @@ export interface Account {
     bank: string | null;
     agency: string | null;
     account_number: string | null;
+    active: boolean;
 }
 
 export interface Merchant {

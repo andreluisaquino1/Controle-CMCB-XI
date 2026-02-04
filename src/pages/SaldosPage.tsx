@@ -235,7 +235,7 @@ export default function SaldosPage() {
         <Dialog open={!!deletingMerchant} onOpenChange={(open) => !open && setDeletingMerchant(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Confirmar Exclusão</DialogTitle>
+              <DialogTitle>Desativar Estabelecimento</DialogTitle>
             </DialogHeader>
             <p className="py-4">
               Tem certeza que deseja desativar o estabelecimento <strong>{deletingMerchant?.name}</strong>?

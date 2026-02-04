@@ -285,7 +285,7 @@ export default function AssociacaoPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Building2 className="h-5 w-5 text-primary" />
-              Transações da Associação
+              Histórico da Associação
             </CardTitle>
           </CardHeader>
           <CardContent>

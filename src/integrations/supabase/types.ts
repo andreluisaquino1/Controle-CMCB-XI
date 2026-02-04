@@ -26,6 +26,7 @@ export type Database = {
           name: string
           type: Database["public"]["Enums"]["account_type"]
           updated_at: string
+          active: boolean
         }
         Insert: {
           account_number?: string | null
@@ -38,6 +39,7 @@ export type Database = {
           name: string
           type: Database["public"]["Enums"]["account_type"]
           updated_at?: string
+          active?: boolean
         }
         Update: {
           account_number?: string | null
@@ -50,6 +52,7 @@ export type Database = {
           name?: string
           type?: Database["public"]["Enums"]["account_type"]
           updated_at?: string
+          active?: boolean
         }
         Relationships: [
           {

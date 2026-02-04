@@ -147,7 +147,7 @@ export default function RelatoriosPage() {
         <div className="space-y-4 pt-4">
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <FileText className="h-5 w-5 md:hidden" />
-            Transações do Período
+            Histórico do Período
           </h2>
 
           <Card>
