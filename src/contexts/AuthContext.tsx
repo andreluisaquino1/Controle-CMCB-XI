@@ -109,11 +109,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, name: string) => {
+    const origin = window.location.origin.includes("localhost")
+      ? "https://cmcb-xi.vercel.app"
+      : window.location.origin;
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth`,
+        emailRedirectTo: `${origin}/auth`,
         data: { name },
       },
     });
@@ -128,8 +132,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetPassword = async (email: string) => {
+    const origin = window.location.origin.includes("localhost")
+      ? "https://cmcb-xi.vercel.app"
+      : window.location.origin;
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
+      redirectTo: `${origin}/auth/reset-password`,
     });
     return { error };
   };
