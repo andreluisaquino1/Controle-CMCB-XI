@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Mail, Lock, User, ArrowLeft } from "lucide-react";
-import logo from "@/assets/logo-cmcb.jpg";
+import logo from "@/assets/logo-cmcb.png";
 
 type AuthMode = "login" | "register" | "forgot-password";
 

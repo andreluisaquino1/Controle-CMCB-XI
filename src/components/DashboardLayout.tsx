@@ -16,7 +16,7 @@ import {
   Settings,
   History,
 } from "lucide-react";
-import logo from "@/assets/logo-cmcb.jpg";
+import logo from "@/assets/logo-cmcb.png";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
