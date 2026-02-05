@@ -224,18 +224,57 @@ export default function DashboardPage() {
             <div className="module-icon"><Building2 className="h-5 w-5" /></div>
             <h2 className="text-lg font-semibold text-foreground">Saldos Associação</h2>
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
             <Card className="stat-card-primary">
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2"><Wallet className="h-4 w-4" />Espécie</CardTitle></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{formatCurrencyBRL(data.especieBalance)}</p></CardContent>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  Espécie
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{formatCurrencyBRL(data.especieBalance)}</p>
+              </CardContent>
             </Card>
+
             <Card className="stat-card-secondary">
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2"><CreditCard className="h-4 w-4" />PIX</CardTitle></CardHeader>
-              <CardContent><p className={`text-2xl font-bold ${data.pixBalance < 0 ? "text-destructive" : ""}`}>{formatCurrencyBRL(data.pixBalance)}</p></CardContent>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  PIX (Conta BB)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className={`text-2xl font-bold ${data.pixBalance < 0 ? "text-destructive" : ""}`}>
+                  {formatCurrencyBRL(data.pixBalance)}
+                </p>
+              </CardContent>
             </Card>
+
+            <Card className="stat-card-primary border-l-indigo-600">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Conta Digital
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className={`text-2xl font-bold ${data.contaDigitalBalance < 0 ? "text-destructive" : ""}`}>
+                  {formatCurrencyBRL(data.contaDigitalBalance)}
+                </p>
+              </CardContent>
+            </Card>
+
             <Card className="stat-card-accent">
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2"><Wallet className="h-4 w-4" />Cofre</CardTitle></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{formatCurrencyBRL(data.cofreBalance)}</p></CardContent>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  Cofre
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{formatCurrencyBRL(data.cofreBalance)}</p>
+              </CardContent>
             </Card>
           </div>
         </section>

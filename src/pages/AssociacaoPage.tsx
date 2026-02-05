@@ -156,11 +156,11 @@ export default function AssociacaoPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-indigo-50/50 to-purple-50/50 border-none shadow-sm">
+          <Card className="stat-card-primary border-l-indigo-600">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <CreditCard className="h-4 w-4" />
-                Conta Digital
+                Conta Digital (Escolaweb)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -286,7 +286,7 @@ export default function AssociacaoPage() {
         {/* Ajustes Section */}
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-4">Ajustes</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-3">
             <ActionCard
               title="Ajustar Espécie"
               description="Correção ou valor inicial"
@@ -295,18 +295,18 @@ export default function AssociacaoPage() {
               onClick={() => setOpenDialog("ajuste-especie")}
             />
             <ActionCard
-              title="Ajustar Cofre"
-              description="Correção ou valor inicial"
-              icon={Settings}
-              variant="warning"
-              onClick={() => setOpenDialog("ajuste-cofre")}
-            />
-            <ActionCard
               title="Ajustar Conta Digital"
               description="Correção ou valor inicial"
               icon={Settings}
               variant="warning"
               onClick={() => setOpenDialog("ajuste-conta-digital")}
+            />
+            <ActionCard
+              title="Ajustar Cofre"
+              description="Correção ou valor inicial"
+              icon={Settings}
+              variant="warning"
+              onClick={() => setOpenDialog("ajuste-cofre")}
             />
           </div>
         </div>
@@ -372,6 +372,74 @@ export default function AssociacaoPage() {
                 disabled={voidTransaction.isPending || !voidReason.trim()}
               >
                 {voidTransaction.isPending ? "Anulando..." : "Confirmar Anulação"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Ajuste Espécie Dialog */}
+        <Dialog open={openDialog === "ajuste-especie"} onOpenChange={(o) => setOpenDialog(o ? "ajuste-especie" : null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Ajustar Saldo em Espécie</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label>Data *</Label>
+                <DateInput value={ajusteEspecie.date} onChange={setAjusteEspecieDate} />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor do Ajuste (R$) *</Label>
+                <CurrencyInput value={ajusteEspecie.valor} onChange={setAjusteEspecieValor} />
+                <p className="text-xs text-muted-foreground">Positivo para somar, negativo para subtrair.</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Motivo *</Label>
+                <Input value={ajusteEspecie.motivo} onChange={(e) => setAjusteEspecieMotivo(e.target.value)} placeholder="Ex: Saldo inicial" />
+              </div>
+              <div className="space-y-2">
+                <Label>Observação</Label>
+                <Input value={ajusteEspecie.obs} onChange={(e) => setAjusteEspecieObs(e.target.value)} placeholder="Opcional" />
+              </div>
+              <Button className="w-full" onClick={async () => {
+                const success = await handleAjusteEspecieSubmit();
+                if (success) setOpenDialog(null);
+              }} disabled={actionsLoading}>
+                {actionsLoading ? "Salvando..." : "Salvar Ajuste"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Ajuste Cofre Dialog */}
+        <Dialog open={openDialog === "ajuste-cofre"} onOpenChange={(o) => setOpenDialog(o ? "ajuste-cofre" : null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Ajustar Saldo do Cofre</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label>Data *</Label>
+                <DateInput value={ajusteCofre.date} onChange={setAjusteCofreDate} />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor do Ajuste (R$) *</Label>
+                <CurrencyInput value={ajusteCofre.valor} onChange={setAjusteCofreValor} />
+                <p className="text-xs text-muted-foreground">Positivo para somar, negativo para subtrair.</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Motivo *</Label>
+                <Input value={ajusteCofre.motivo} onChange={(e) => setAjusteCofreMotivo(e.target.value)} placeholder="Ex: Saldo inicial" />
+              </div>
+              <div className="space-y-2">
+                <Label>Observação</Label>
+                <Input value={ajusteCofre.obs} onChange={(e) => setAjusteCofreObs(e.target.value)} placeholder="Opcional" />
+              </div>
+              <Button className="w-full" onClick={async () => {
+                const success = await handleAjusteCofreSubmit();
+                if (success) setOpenDialog(null);
+              }} disabled={actionsLoading}>
+                {actionsLoading ? "Salvando..." : "Salvar Ajuste"}
               </Button>
             </div>
           </DialogContent>

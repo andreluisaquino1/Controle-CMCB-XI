@@ -15,6 +15,7 @@ async function fetchCurrentBalances(): Promise<DashboardData> {
     especieBalance?: number;
     cofreBalance?: number;
     pixBalance?: number;
+    contaDigitalBalance?: number;
     merchantBalances?: MerchantBalance[];
     resourceBalances?: { UE: Account[]; CX: Account[] };
   };
@@ -23,6 +24,7 @@ async function fetchCurrentBalances(): Promise<DashboardData> {
     especieBalance: Number(result?.especieBalance || 0),
     cofreBalance: Number(result?.cofreBalance || 0),
     pixBalance: Number(result?.pixBalance || 0),
+    contaDigitalBalance: Number(result?.contaDigitalBalance || 0),
     merchantBalances: result?.merchantBalances || [],
     resourceBalances: result?.resourceBalances || { UE: [], CX: [] },
   };
@@ -42,6 +44,7 @@ async function fetchReportSummary(startDate: string, endDate: string): Promise<R
   const result = data as {
     weeklyExpensesCash?: number;
     weeklyExpensesPix?: number;
+    weeklyExpensesDigital?: number;
     weeklyEntriesCash?: number;
     weeklyEntriesPix?: number;
     weeklyDeposits?: number;
@@ -52,6 +55,7 @@ async function fetchReportSummary(startDate: string, endDate: string): Promise<R
   return {
     weeklyExpensesCash: Number(result?.weeklyExpensesCash || 0),
     weeklyExpensesPix: Number(result?.weeklyExpensesPix || 0),
+    weeklyExpensesDigital: Number(result?.weeklyExpensesDigital || 0),
     weeklyEntriesCash: Number(result?.weeklyEntriesCash || 0),
     weeklyEntriesPix: Number(result?.weeklyEntriesPix || 0),
     weeklyDeposits: Number(result?.weeklyDeposits || 0),

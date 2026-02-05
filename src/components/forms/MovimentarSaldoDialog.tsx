@@ -76,11 +76,13 @@ export function MovimentarSaldoDialog({
                                     <SelectValue placeholder="Origem" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {accounts.map((acc) => (
-                                        <SelectItem key={acc.id} value={acc.id}>
-                                            {cleanAccountDisplayName(acc.name)}
-                                        </SelectItem>
-                                    ))}
+                                    {accounts
+                                        .filter(acc => acc.id !== state.para)
+                                        .map((acc) => (
+                                            <SelectItem key={acc.id} value={acc.id}>
+                                                {cleanAccountDisplayName(acc.name)}
+                                            </SelectItem>
+                                        ))}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -91,11 +93,19 @@ export function MovimentarSaldoDialog({
                                     <SelectValue placeholder="Destino" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {accounts.map((acc) => (
-                                        <SelectItem key={acc.id} value={acc.id}>
-                                            {cleanAccountDisplayName(acc.name)}
-                                        </SelectItem>
-                                    ))}
+                                    {accounts
+                                        .filter(acc => acc.id !== state.de)
+                                        .filter(acc => {
+                                            if (isContaDigital) {
+                                                return acc.name.includes("PIX (Conta BB)");
+                                            }
+                                            return true;
+                                        })
+                                        .map((acc) => (
+                                            <SelectItem key={acc.id} value={acc.id}>
+                                                {cleanAccountDisplayName(acc.name)}
+                                            </SelectItem>
+                                        ))}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -114,11 +124,6 @@ export function MovimentarSaldoDialog({
                             />
                         </div>
                     </div>
-                    {isContaDigital && (
-                        <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
-                            <strong>Regra:</strong> Movimentações da Conta Digital só podem ir para o PIX (Conta BB) e exigem o valor da taxa.
-                        </p>
-                    )}
                     <div className="space-y-2">
                         <Label>Descrição *</Label>
                         <Input
