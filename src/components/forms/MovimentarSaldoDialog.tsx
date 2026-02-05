@@ -27,6 +27,7 @@ interface MovimentarSaldoDialogProps {
         de: string;
         para: string;
         valor: number;
+        taxa: number;
         descricao: string;
         obs: string;
     };
@@ -35,6 +36,7 @@ interface MovimentarSaldoDialogProps {
         setDe: (v: string) => void;
         setPara: (v: string) => void;
         setValor: (v: number) => void;
+        setTaxa: (v: number) => void;
         setDescricao: (v: string) => void;
         setObs: (v: string) => void;
     };
@@ -52,6 +54,9 @@ export function MovimentarSaldoDialog({
     onSubmit,
     isLoading,
 }: MovimentarSaldoDialogProps) {
+    const sourceAccount = accounts.find(a => a.id === state.de);
+    const isContaDigital = sourceAccount?.name.includes("Conta Digital");
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
@@ -95,10 +100,25 @@ export function MovimentarSaldoDialog({
                             </Select>
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <Label>Valor (R$) *</Label>
-                        <CurrencyInput value={state.valor} onChange={setters.setValor} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Valor (R$) *</Label>
+                            <CurrencyInput value={state.valor} onChange={setters.setValor} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Taxa (R$)</Label>
+                            <CurrencyInput
+                                value={state.taxa}
+                                onChange={setters.setTaxa}
+                                disabled={!isContaDigital}
+                            />
+                        </div>
                     </div>
+                    {isContaDigital && (
+                        <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                            <strong>Regra:</strong> Movimentações da Conta Digital só podem ir para o PIX (Conta BB) e exigem o valor da taxa.
+                        </p>
+                    )}
                     <div className="space-y-2">
                         <Label>Descrição *</Label>
                         <Input

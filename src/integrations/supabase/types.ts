@@ -371,9 +371,12 @@ export type Database = {
       | "especie_deposito_pix"
       | "especie_ajuste"
       | "cofre_ajuste"
+      | "conta_digital_ajuste"
+      | "conta_digital_taxa"
       | "aporte_saldo"
       | "consumo_saldo"
       | "pix_direto_uecx"
+      | "aporte_estabelecimento_recurso"
       transaction_status: "posted" | "voided"
     }
     CompositeTypes: {

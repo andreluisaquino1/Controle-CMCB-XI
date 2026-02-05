@@ -64,6 +64,8 @@ export default function AssociacaoPage() {
     isLoading: actionsLoading
   } = useAssociacaoActions(accounts || [], associacaoEntity);
 
+  const contaDigitalAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.CONTA_DIGITAL);
+
   const { mensalidade, gasto, mov, ajusteEspecie, ajusteCofre } = state;
   const {
     setMensalidadeDate, setMensalidadeTurno, setMensalidadeCash, setMensalidadePix, setMensalidadeObs,
@@ -71,10 +73,12 @@ export default function AssociacaoPage() {
     setMovDate, setMovDe, setMovPara, setMovValor, setMovDescricao, setMovObs,
     setAjusteEspecieDate, setAjusteEspecieValor, setAjusteEspecieMotivo, setAjusteEspecieObs,
     setAjusteCofreDate, setAjusteCofreValor, setAjusteCofreMotivo, setAjusteCofreObs,
+    setMovTaxa,
+    setAjusteContaDigitalDate, setAjusteContaDigitalValor, setAjusteContaDigitalMotivo, setAjusteContaDigitalObs,
   } = setters;
   const {
     handleMensalidadeSubmit, handleGastoSubmit, handleMovimentarSubmit,
-    handleAjusteEspecieSubmit, handleAjusteCofreSubmit,
+    handleAjusteEspecieSubmit, handleAjusteCofreSubmit, handleAjusteContaDigitalSubmit,
     resetMensalidade, resetGasto, resetMov
   } = handlers;
 
@@ -96,7 +100,8 @@ export default function AssociacaoPage() {
   const getAccountDisplayName = (name: string) => {
     if (name === ACCOUNT_NAMES.ESPECIE) return "Espécie";
     if (name === ACCOUNT_NAMES.COFRE) return "Cofre";
-    if (name === ACCOUNT_NAMES.PIX) return "PIX";
+    if (name === ACCOUNT_NAMES.PIX) return "PIX (Conta BB)";
+    if (name === ACCOUNT_NAMES.CONTA_DIGITAL) return "Conta Digital (Escolaweb)";
     return name;
   };
 
@@ -114,7 +119,7 @@ export default function AssociacaoPage() {
         </div>
 
         {/* Balances */}
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="stat-card-primary">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -137,7 +142,7 @@ export default function AssociacaoPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <CreditCard className="h-4 w-4" />
-                PIX
+                PIX (Conta BB)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -146,6 +151,24 @@ export default function AssociacaoPage() {
               ) : (
                 <p className={`text-2xl font-bold ${(Number(pixAccount?.balance || 0)) < 0 ? "text-destructive" : "text-foreground"}`}>
                   {formatCurrencyBRL(Number(pixAccount?.balance || 0))}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-indigo-50/50 to-purple-50/50 border-none shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Conta Digital
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {accountsLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <p className={`text-2xl font-bold ${(Number(contaDigitalAccount?.balance || 0)) < 0 ? "text-destructive" : "text-foreground"}`}>
+                  {formatCurrencyBRL(Number(contaDigitalAccount?.balance || 0))}
                 </p>
               )}
             </CardContent>
@@ -250,6 +273,7 @@ export default function AssociacaoPage() {
               setDe: setMovDe,
               setPara: setMovPara,
               setValor: setMovValor,
+              setTaxa: setMovTaxa,
               setDescricao: setMovDescricao,
               setObs: setMovObs,
             }}
@@ -276,6 +300,13 @@ export default function AssociacaoPage() {
               icon={Settings}
               variant="warning"
               onClick={() => setOpenDialog("ajuste-cofre")}
+            />
+            <ActionCard
+              title="Ajustar Conta Digital"
+              description="Correção ou valor inicial"
+              icon={Settings}
+              variant="warning"
+              onClick={() => setOpenDialog("ajuste-conta-digital")}
             />
           </div>
         </div>
@@ -341,6 +372,40 @@ export default function AssociacaoPage() {
                 disabled={voidTransaction.isPending || !voidReason.trim()}
               >
                 {voidTransaction.isPending ? "Anulando..." : "Confirmar Anulação"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Ajuste Conta Digital Dialog */}
+        <Dialog open={openDialog === "ajuste-conta-digital"} onOpenChange={(o) => setOpenDialog(o ? "ajuste-conta-digital" : null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Ajustar Conta Digital (Escolaweb)</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label>Data *</Label>
+                <DateInput value={state.ajusteContaDigital.date} onChange={setAjusteContaDigitalDate} />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor do Ajuste (R$) *</Label>
+                <CurrencyInput value={state.ajusteContaDigital.valor} onChange={setAjusteContaDigitalValor} />
+                <p className="text-xs text-muted-foreground">Positivo para somar, negativo para subtrair.</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Motivo *</Label>
+                <Input value={state.ajusteContaDigital.motivo} onChange={(e) => setAjusteContaDigitalMotivo(e.target.value)} placeholder="Ex: Saldo inicial" />
+              </div>
+              <div className="space-y-2">
+                <Label>Observação</Label>
+                <Input value={state.ajusteContaDigital.obs} onChange={(e) => setAjusteContaDigitalObs(e.target.value)} placeholder="Opcional" />
+              </div>
+              <Button className="w-full" onClick={async () => {
+                const success = await handleAjusteContaDigitalSubmit();
+                if (success) setOpenDialog(null);
+              }} disabled={actionsLoading}>
+                {actionsLoading ? "Salvando..." : "Salvar Ajuste"}
               </Button>
             </div>
           </DialogContent>

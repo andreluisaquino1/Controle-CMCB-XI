@@ -47,7 +47,8 @@ export function useReports(
         // 2.1 Associação
         const saldosAtuaisLines = [
             `Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}`,
-            `PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}`,
+            `PIX (Conta BB): ${formatCurrencyBRL(dashboardData.pixBalance)}`,
+            `Conta Digital (Escolaweb): ${formatCurrencyBRL(dashboardData.contaDigitalBalance)}`,
             `Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}`
         ];
 
@@ -55,7 +56,8 @@ export function useReports(
             `Entradas (Espécie): ${formatCurrencyBRL(reportData.weeklyEntriesCash)}`,
             `Entradas (PIX): ${formatCurrencyBRL(reportData.weeklyEntriesPix)}`,
             `Saídas (Espécie): ${formatCurrencyBRL(reportData.weeklyExpensesCash)}`,
-            `Saídas (PIX): ${formatCurrencyBRL(reportData.weeklyExpensesPix)}`
+            `Saídas (PIX): ${formatCurrencyBRL(reportData.weeklyExpensesPix)}`,
+            `Saídas (Conta Digital): ${formatCurrencyBRL(reportData.weeklyExpensesDigital)}`
         ];
 
         const associacaoSection = `
@@ -214,7 +216,9 @@ ${cxBlock}
         doc.setFontSize(10);
         doc.text(`Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}`, 22, yPos);
         yPos += 5;
-        doc.text(`PIX: ${formatCurrencyBRL(dashboardData.pixBalance)}`, 22, yPos);
+        doc.text(`PIX (Conta BB): ${formatCurrencyBRL(dashboardData.pixBalance)}`, 22, yPos);
+        yPos += 5;
+        doc.text(`Conta Digital (Escolaweb): ${formatCurrencyBRL(dashboardData.contaDigitalBalance)}`, 22, yPos);
         yPos += 5;
         doc.text(`Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}`, 22, yPos);
         yPos += 10;
@@ -237,6 +241,8 @@ ${cxBlock}
         doc.text(`Saídas (Espécie): ${formatCurrencyBRL(reportData.weeklyExpensesCash)}`, 22, yPos);
         yPos += 5;
         doc.text(`Saídas (PIX): ${formatCurrencyBRL(reportData.weeklyExpensesPix)}`, 22, yPos);
+        yPos += 5;
+        doc.text(`Saídas (Conta Digital): ${formatCurrencyBRL(reportData.weeklyExpensesDigital)}`, 22, yPos);
         yPos += 15;
 
         doc.setTextColor(0, 0, 0); // Reset to black

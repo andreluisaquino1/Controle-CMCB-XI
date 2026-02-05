@@ -29,6 +29,7 @@ interface GastoRecursoDialogProps {
         date: string;
         entityId: string;
         accountId: string;
+        merchantId: string;
         amount: number;
         description: string;
         notes: string;
@@ -38,6 +39,7 @@ interface GastoRecursoDialogProps {
         setDate: (v: string) => void;
         setEntityId: (v: string) => void;
         setAccountId: (v: string) => void;
+        setMerchantId: (v: string) => void;
         setAmount: (v: number) => void;
         setDescription: (v: string) => void;
         setNotes: (v: string) => void;
@@ -45,6 +47,7 @@ interface GastoRecursoDialogProps {
     };
     entities: Entity[];
     accounts: Account[];
+    merchants: { id: string; name: string }[];
     onSubmit: () => Promise<boolean>;
     isLoading: boolean;
 }
@@ -56,6 +59,7 @@ export function GastoRecursoDialog({
     setters,
     entities,
     accounts,
+    merchants,
     onSubmit,
     isLoading,
 }: GastoRecursoDialogProps) {
@@ -108,6 +112,21 @@ export function GastoRecursoDialog({
                                 Saldo atual: {formatCurrencyBRL(Number(selectedAccount.balance))}
                             </p>
                         )}
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Estabelecimento (Para) *</Label>
+                        <Select value={state.merchantId} onValueChange={setters.setMerchantId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione o estabelecimento" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {merchants.map(m => (
+                                    <SelectItem key={m.id} value={m.id}>
+                                        {m.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="space-y-2">
                         <Label>Valor (R$) *</Label>

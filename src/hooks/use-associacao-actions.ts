@@ -33,6 +33,7 @@ interface AssociacaoState {
         de: string;
         para: string;
         valor: number;
+        taxa: number;
         descricao: string;
         obs: string;
     };
@@ -43,6 +44,12 @@ interface AssociacaoState {
         obs: string;
     };
     ajusteCofre: {
+        date: string;
+        valor: number;
+        motivo: string;
+        obs: string;
+    };
+    ajusteContaDigital: {
         date: string;
         valor: number;
         motivo: string;
@@ -60,14 +67,16 @@ export function useAssociacaoActions(
     const [state, setState] = useState<AssociacaoState>({
         mensalidade: { date: getTodayString(), turno: "", cash: 0, pix: 0, obs: "" },
         gasto: { date: getTodayString(), meio: "cash", valor: 0, descricao: "", obs: "" },
-        mov: { date: getTodayString(), de: "", para: "", valor: 0, descricao: "", obs: "" },
+        mov: { date: getTodayString(), de: "", para: "", valor: 0, taxa: 0, descricao: "", obs: "" },
         ajusteEspecie: { date: getTodayString(), valor: 0, motivo: "", obs: "" },
         ajusteCofre: { date: getTodayString(), valor: 0, motivo: "", obs: "" },
+        ajusteContaDigital: { date: getTodayString(), valor: 0, motivo: "", obs: "" },
     });
 
     const especieAccount = useMemo(() => accounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE), [accounts]);
     const pixAccount = useMemo(() => accounts?.find(a => a.name === ACCOUNT_NAMES.PIX), [accounts]);
     const cofreAccount = useMemo(() => accounts?.find(a => a.name === ACCOUNT_NAMES.COFRE), [accounts]);
+    const contaDigitalAccount = useMemo(() => accounts?.find(a => a.name === ACCOUNT_NAMES.CONTA_DIGITAL), [accounts]);
 
     const setters = {
         setMensalidadeDate: (date: string) => setState((s) => ({ ...s, mensalidade: { ...s.mensalidade, date } })),
@@ -84,6 +93,7 @@ export function useAssociacaoActions(
         setMovDe: (de: string) => setState((s) => ({ ...s, mov: { ...s.mov, de } })),
         setMovPara: (para: string) => setState((s) => ({ ...s, mov: { ...s.mov, para } })),
         setMovValor: (valor: number) => setState((s) => ({ ...s, mov: { ...s.mov, valor } })),
+        setMovTaxa: (taxa: number) => setState((s) => ({ ...s, mov: { ...s.mov, taxa } })),
         setMovDescricao: (descricao: string) => setState((s) => ({ ...s, mov: { ...s.mov, descricao } })),
         setMovObs: (obs: string) => setState((s) => ({ ...s, mov: { ...s.mov, obs } })),
         setAjusteEspecieDate: (date: string) => setState((s) => ({ ...s, ajusteEspecie: { ...s.ajusteEspecie, date } })),
@@ -94,6 +104,10 @@ export function useAssociacaoActions(
         setAjusteCofreValor: (valor: number) => setState((s) => ({ ...s, ajusteCofre: { ...s.ajusteCofre, valor } })),
         setAjusteCofreMotivo: (motivo: string) => setState((s) => ({ ...s, ajusteCofre: { ...s.ajusteCofre, motivo } })),
         setAjusteCofreObs: (obs: string) => setState((s) => ({ ...s, ajusteCofre: { ...s.ajusteCofre, obs } })),
+        setAjusteContaDigitalDate: (date: string) => setState((s) => ({ ...s, ajusteContaDigital: { ...s.ajusteContaDigital, date } })),
+        setAjusteContaDigitalValor: (valor: number) => setState((s) => ({ ...s, ajusteContaDigital: { ...s.ajusteContaDigital, valor } })),
+        setAjusteContaDigitalMotivo: (motivo: string) => setState((s) => ({ ...s, ajusteContaDigital: { ...s.ajusteContaDigital, motivo } })),
+        setAjusteContaDigitalObs: (obs: string) => setState((s) => ({ ...s, ajusteContaDigital: { ...s.ajusteContaDigital, obs } })),
     };
 
     const resetMensalidade = useCallback(() => {
@@ -105,7 +119,7 @@ export function useAssociacaoActions(
     }, []);
 
     const resetMov = useCallback(() => {
-        setState((s) => ({ ...s, mov: { date: getTodayString(), de: "", para: "", valor: 0, descricao: "", obs: "" } }));
+        setState((s) => ({ ...s, mov: { date: getTodayString(), de: "", para: "", valor: 0, taxa: 0, descricao: "", obs: "" } }));
     }, []);
 
     const handleMensalidadeSubmit = async (): Promise<boolean> => {
@@ -247,12 +261,23 @@ export function useAssociacaoActions(
         const destAccount = accounts?.find(a => a.id === state.mov.para);
         if (!sourceAccount || !destAccount) return false;
 
-        if (state.mov.valor > sourceAccount.balance) {
-            toast.error(`Saldo insuficiente em ${sourceAccount.name}.`);
+        const totalAmount = state.mov.valor + state.mov.taxa;
+
+        if (totalAmount > sourceAccount.balance) {
+            toast.error(`Saldo insuficiente em ${sourceAccount.name}. Necessário ${formatCurrencyBRL(totalAmount)}.`);
             return false;
         }
 
+        // Regras restritivas da Conta Digital
+        if (sourceAccount.name === ACCOUNT_NAMES.CONTA_DIGITAL) {
+            if (destAccount.name !== ACCOUNT_NAMES.PIX) {
+                toast.error("A Conta Digital só pode movimentar para o PIX (Conta BB).");
+                return false;
+            }
+        }
+
         try {
+            // 1. Transferência principal
             await createTransaction.mutateAsync({
                 transaction: {
                     transaction_date: state.mov.date,
@@ -266,6 +291,22 @@ export function useAssociacaoActions(
                     notes: state.mov.obs || null,
                 },
             });
+
+            // 2. Registro da taxa (se houver)
+            if (state.mov.taxa > 0) {
+                await createTransaction.mutateAsync({
+                    transaction: {
+                        transaction_date: state.mov.date,
+                        module: "conta_digital_taxa",
+                        entity_id: associacaoEntity.id,
+                        source_account_id: sourceAccount.id,
+                        destination_account_id: null,
+                        amount: state.mov.taxa,
+                        direction: "out",
+                        description: `Taxa da movimentação: ${sourceAccount.name} -> ${destAccount.name}`,
+                    },
+                });
+            }
 
             toast.success("Movimentação registrada.");
             resetMov();
@@ -351,6 +392,43 @@ export function useAssociacaoActions(
         }
     };
 
+    const handleAjusteContaDigitalSubmit = async (): Promise<boolean> => {
+        const result = ajusteSchema.safeParse(state.ajusteContaDigital);
+        if (!result.success) {
+            toast.error(result.error.errors[0].message);
+            return false;
+        }
+
+        if (!contaDigitalAccount || !associacaoEntity) return false;
+
+        const direction = state.ajusteContaDigital.valor > 0 ? "in" : "out";
+        const absAmount = Math.abs(state.ajusteContaDigital.valor);
+
+        try {
+            await createTransaction.mutateAsync({
+                transaction: {
+                    transaction_date: state.ajusteContaDigital.date,
+                    module: "conta_digital_ajuste",
+                    entity_id: associacaoEntity.id,
+                    source_account_id: direction === "out" ? contaDigitalAccount.id : null,
+                    destination_account_id: direction === "in" ? contaDigitalAccount.id : null,
+                    amount: absAmount,
+                    direction,
+                    description: `Ajuste: ${state.ajusteContaDigital.motivo}`,
+                    notes: state.ajusteContaDigital.obs || null,
+                },
+            });
+
+            toast.success("Ajuste de conta digital registrado.");
+            setState(s => ({ ...s, ajusteContaDigital: { ...s.ajusteContaDigital, valor: 0, motivo: "", obs: "" } }));
+            if (onSuccess) onSuccess();
+            return true;
+        } catch (error) {
+            toast.error("Falha ao registrar ajuste.");
+            return false;
+        }
+    };
+
     return {
         state,
         setters,
@@ -360,6 +438,7 @@ export function useAssociacaoActions(
             handleMovimentarSubmit,
             handleAjusteEspecieSubmit,
             handleAjusteCofreSubmit,
+            handleAjusteContaDigitalSubmit,
             resetMensalidade,
             resetGasto,
             resetMov

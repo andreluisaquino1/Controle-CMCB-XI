@@ -117,7 +117,7 @@ export function useCreateTransaction() {
           const mIdx = newDashboard.merchantBalances.findIndex(m => m.id === transaction.merchant_id);
           if (mIdx !== -1) {
             const m = { ...newDashboard.merchantBalances[mIdx] };
-            if (transaction.module === "aporte_saldo") {
+            if (transaction.module === "aporte_saldo" || transaction.module === "aporte_estabelecimento_recurso") {
               m.balance += amount;
             } else if (transaction.module === "consumo_saldo") {
               m.balance -= amount;

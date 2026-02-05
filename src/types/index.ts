@@ -65,6 +65,7 @@ export interface DashboardData {
     especieBalance: number;
     cofreBalance: number;
     pixBalance: number;
+    contaDigitalBalance: number;
     merchantBalances: MerchantBalance[];
     resourceBalances: {
         UE: Account[];
@@ -72,6 +73,7 @@ export interface DashboardData {
     };
     weeklyExpensesCash?: number;
     weeklyExpensesPix?: number;
+    weeklyExpensesDigital?: number;
     weeklyEntriesCash?: number;
     weeklyEntriesPix?: number;
 }
@@ -79,6 +81,7 @@ export interface DashboardData {
 export interface ReportData {
     weeklyExpensesCash: number;
     weeklyExpensesPix: number;
+    weeklyExpensesDigital: number;
     weeklyEntriesCash: number;
     weeklyEntriesPix: number;
     weeklyDeposits: number;

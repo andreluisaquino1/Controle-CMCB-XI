@@ -5,6 +5,7 @@ import { Building2, Loader2, ArrowUpCircle, ArrowDownCircle, ScrollText, Pencil,
 import { toast } from "sonner";
 import { useCreateTransaction, useVoidTransaction } from "@/hooks/use-transactions";
 import { useEntitiesWithAccounts, useCreateAccount, useUpdateAccount, useDeactivateAccount } from "@/hooks/use-accounts";
+import { useMerchants } from "@/hooks/use-merchants";
 import { useRecursosTransactions } from "@/hooks/use-entity-transactions";
 import { getTodayString } from "@/lib/date-utils";
 import { formatCurrencyBRL } from "@/lib/currency";
@@ -29,6 +30,7 @@ export default function RecursosPage() {
 
   const { data: entitiesData, isLoading: entitiesLoading, refetch: refetchEntities } = useEntitiesWithAccounts();
   const { data: transactions, isLoading: transactionsLoading } = useRecursosTransactions();
+  const { data: merchantsData } = useMerchants();
 
   // Account Management
   const createAccount = useCreateAccount();
@@ -70,6 +72,7 @@ export default function RecursosPage() {
     date: getTodayString(),
     entityId: "",
     accountId: "",
+    merchantId: "",
     amount: 0,
     description: "",
     notes: "",
@@ -80,6 +83,7 @@ export default function RecursosPage() {
   const setGastoEntityId = (entityId: string) => setGasto(prev => ({ ...prev, entityId, accountId: "" }));
   const setGastoAccountId = (accountId: string) => setGasto(prev => ({ ...prev, accountId }));
   const setGastoAmount = (amount: number) => setGasto(prev => ({ ...prev, amount }));
+  const setGastoMerchantId = (merchantId: string) => setGasto(prev => ({ ...prev, merchantId }));
   const setGastoDescription = (description: string) => setGasto(prev => ({ ...prev, description }));
   const setGastoNotes = (notes: string) => setGasto(prev => ({ ...prev, notes }));
   const setGastoCapitalCusteio = (capitalCusteio: string) => setGasto(prev => ({ ...prev, capitalCusteio }));
@@ -89,6 +93,7 @@ export default function RecursosPage() {
       date: getTodayString(),
       entityId: "",
       accountId: "",
+      merchantId: "",
       amount: 0,
       description: "",
       notes: "",
@@ -134,17 +139,22 @@ export default function RecursosPage() {
   };
 
   const handleGastoSubmit = async () => {
+    if (!gasto.merchantId) {
+      toast.error("Selecione um estabelecimento.");
+      return false;
+    }
     setActionsLoading(true);
     try {
       await createTransaction.mutateAsync({
         transaction: {
           transaction_date: gasto.date,
-          module: "pix_direto_uecx",
+          module: "aporte_estabelecimento_recurso",
           entity_id: gasto.entityId,
           source_account_id: gasto.accountId,
           destination_account_id: null,
+          merchant_id: gasto.merchantId,
           amount: gasto.amount,
-          direction: "out",
+          direction: "transfer", // Debita conta, credita merchant
           payment_method: "pix",
           origin_fund: entities.find(e => e.id === gasto.entityId)?.type === "ue" ? "UE" : "CX",
           description: gasto.description,
@@ -152,7 +162,7 @@ export default function RecursosPage() {
           capital_custeio: (gasto.capitalCusteio as any) || null,
         },
       });
-      toast.success("Gasto registrado.");
+      toast.success("Gasto de recurso registrado com sucesso.");
       resetGasto();
       setOpenDialog(null);
       return true;
@@ -386,6 +396,7 @@ export default function RecursosPage() {
             setDate: setGastoDate,
             setEntityId: setGastoEntityId,
             setAccountId: setGastoAccountId,
+            setMerchantId: setGastoMerchantId,
             setAmount: setGastoAmount,
             setDescription: setGastoDescription,
             setNotes: setGastoNotes,
@@ -393,6 +404,7 @@ export default function RecursosPage() {
           }}
           entities={entities}
           accounts={accounts}
+          merchants={merchantsData || []}
           onSubmit={handleGastoSubmit}
           isLoading={actionsLoading}
         />
@@ -411,6 +423,7 @@ export default function RecursosPage() {
               isLoading={transactionsLoading}
               showOrigin={true}
               showAccount={true}
+              showMerchant={true}
               onVoid={(id) => setVoidingId(id)}
             />
           </CardContent>
