@@ -26,7 +26,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   // Check if user has active profile
-  if (profile && !profile.active) {
+  if (!profile || !profile.active) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="max-w-md text-center">
@@ -37,7 +37,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
             Aguardando Ativação
           </h1>
           <p className="text-muted-foreground mb-4">
-            Sua conta ainda não foi ativada. Entre em contato com o <strong>Tenente Aquino</strong>{" "}
+            Sua conta ainda não foi ativada ou o perfil foi removido. Entre em contato com o <strong>Tenente Aquino</strong>{" "}
             solicitando a ativação para acessar o sistema.
           </p>
           <button
