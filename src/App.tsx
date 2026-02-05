@@ -17,6 +17,7 @@ const RelatoriosPage = lazy(() => import("./pages/RelatoriosPage"));
 const PerfilPage = lazy(() => import("./pages/PerfilPage"));
 const UsuariosPage = lazy(() => import("./pages/UsuariosPage"));
 const LogPage = lazy(() => import("./pages/LogPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Optimized QueryClient
@@ -40,6 +41,7 @@ const App = () => (
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
               <Route
                 path="/"
                 element={

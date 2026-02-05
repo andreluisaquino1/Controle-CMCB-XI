@@ -66,7 +66,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
-        // Defer profile fetch with setTimeout to avoid deadlock
+        if (event === "PASSWORD_RECOVERY") {
+          // Force redirect to reset password page when the event is detected
+          window.location.href = "/auth/reset-password";
+        }
+
+        // Defer profile fetch
         if (currentSession?.user) {
           setTimeout(() => {
             fetchProfile(currentSession.user.id).then(setProfile);
