@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, profile, isAdmin, loading } = useAuth();
+  const { user, profile, isAdmin, loading, signOut } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -41,7 +41,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
             solicitando a ativação para acessar o sistema.
           </p>
           <button
-            onClick={() => window.location.href = "/auth"}
+            onClick={() => signOut()}
             className="text-primary hover:underline"
           >
             Voltar ao login
