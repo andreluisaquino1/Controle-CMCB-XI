@@ -220,7 +220,7 @@ export function AjustarSaldoDialog({
                         <AlertDialogTrigger asChild>
                             <Button
                                 className="w-full"
-                                disabled={isLoading || !state.accountId || !state.motivo}
+                                disabled={isLoading || !state.accountId || !state.motivo || state.motivo.length < 5}
                             >
                                 {isLoading ? "Salvando..." : "Registrar Ajuste"}
                             </Button>

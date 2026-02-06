@@ -97,7 +97,7 @@ export function ConsumoSaldoDialog({
                             const success = await onSubmit();
                             if (success) onOpenChange(false);
                         }}
-                        disabled={isLoading}
+                        disabled={isLoading || !state.merchant || !state.descricao || state.descricao.length < 5}
                     >
                         {isLoading ? "Registrando..." : "Registrar Consumo"}
                     </Button>

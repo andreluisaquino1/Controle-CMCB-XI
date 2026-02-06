@@ -168,7 +168,7 @@ export function GastoRecursoDialog({
                             const success = await onSubmit();
                             if (success) onOpenChange(false);
                         }}
-                        disabled={isLoading}
+                        disabled={isLoading || !state.entityId || !state.accountId || !state.merchantId || !state.description || state.description.length < 5}
                     >
                         {isLoading ? "Registrando..." : "Registrar Gasto"}
                     </Button>

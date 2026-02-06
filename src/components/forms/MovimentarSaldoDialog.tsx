@@ -14,6 +14,18 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { cleanAccountDisplayName } from "@/lib/account-display";
@@ -57,7 +69,9 @@ export function MovimentarSaldoDialog({
     isLoading,
 }: MovimentarSaldoDialogProps) {
     const sourceAccount = accounts.find(a => a.id === state.de);
+    const destinationAccount = accounts.find(a => a.id === state.para);
     const isContaDigital = sourceAccount?.name.includes("Conta Digital");
+    const [confirmOpen, setConfirmOpen] = useState(false);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -164,16 +178,37 @@ export function MovimentarSaldoDialog({
                             </div>
                         </div>
                     )}
-                    <Button
-                        className="w-full"
-                        onClick={async () => {
-                            const success = await onSubmit();
-                            if (success) onOpenChange(false);
-                        }}
-                        disabled={isLoading}
-                    >
-                        {isLoading ? "Processando..." : "Confirmar Movimentação"}
-                    </Button>
+                    <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                className="w-full"
+                                disabled={isLoading || !state.de || !state.para || !state.descricao || state.descricao.length < 5}
+                            >
+                                {isLoading ? "Processando..." : "Confirmar Movimentação"}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="w-[95vw] max-w-md">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Movimentação?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Você está transferindo <strong>{formatCurrencyBRL(state.valor)}</strong> de {sourceAccount ? cleanAccountDisplayName(sourceAccount.name) : ""} para <strong>{destinationAccount ? cleanAccountDisplayName(destinationAccount.name) : ""}</strong>.
+                                    {state.taxa > 0 && ` Uma taxa de ${formatCurrencyBRL(state.taxa)} será aplicada.`}
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={async () => {
+                                        const success = await onSubmit();
+                                        if (success) onOpenChange(false);
+                                    }}
+                                    className="bg-primary hover:bg-primary/90"
+                                >
+                                    Confirmar Transferência
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </DialogContent>
         </Dialog>

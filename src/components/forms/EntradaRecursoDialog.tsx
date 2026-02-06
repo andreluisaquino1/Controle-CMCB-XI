@@ -116,7 +116,7 @@ export function EntradaRecursoDialog({
                             const success = await onSubmit();
                             if (success) onOpenChange(false);
                         }}
-                        disabled={isLoading}
+                        disabled={isLoading || !state.entityId || !state.accountId || !state.description || state.description.length < 5}
                     >
                         {isLoading ? "Registrando..." : "Registrar Entrada"}
                     </Button>

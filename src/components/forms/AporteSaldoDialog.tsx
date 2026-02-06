@@ -153,7 +153,7 @@ export function AporteSaldoDialog({
                             const success = await onSubmit();
                             if (success) onOpenChange(false);
                         }}
-                        disabled={isLoading}
+                        disabled={isLoading || !state.origem || !state.conta || !state.merchant || !state.descricao || state.descricao.length < 5}
                     >
                         {isLoading ? "Registrando..." : "Registrar Aporte"}
                     </Button>
