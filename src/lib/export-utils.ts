@@ -33,20 +33,44 @@ export function exportToCSV(data: Record<string, unknown>[], filename: string) {
 }
 
 /**
- * Lazy-loaded Excel export - only loads xlsx library when called
+ * Lazy-loaded Excel export - only loads exceljs library when called
  * This reduces the main bundle size significantly
  */
 export async function exportToExcel(data: Record<string, unknown>[], filename: string) {
     if (!data || data.length === 0) return;
 
-    // Dynamically import xlsx only when needed
-    const XLSX = await import('xlsx');
+    // Dynamically import exceljs only when needed
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Dados');
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Dados');
+    // Headers from first object keys
+    const headers = Object.keys(data[0]);
+    worksheet.columns = headers.map(header => ({
+        header,
+        key: header,
+        width: 20
+    }));
 
-    XLSX.writeFile(workbook, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    // Add rows
+    worksheet.addRows(data);
+
+    // Style the header
+    worksheet.getRow(1).font = { bold: true };
+
+    // Generate buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    // Save file
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 /**
