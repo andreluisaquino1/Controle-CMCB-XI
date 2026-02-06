@@ -221,6 +221,28 @@ export const demoStore = {
         }
     },
 
+    setMerchantActive: (merchantId: string, active: boolean) => {
+        const state = getStoredState();
+        if (!state) return;
+
+        const merc = state.merchants.find(m => m.id === merchantId);
+        if (merc) {
+            merc.active = active;
+            setStoredState(state);
+        }
+    },
+
+    setAccountActive: (accountId: string, active: boolean) => {
+        const state = getStoredState();
+        if (!state) return;
+
+        const acc = state.accounts.find(a => a.id === accountId);
+        if (acc) {
+            acc.active = active;
+            setStoredState(state);
+        }
+    },
+
     getReportSummary: (startDate: string, endDate: string) => {
         demoStore.init();
         const transactions = getStoredState()?.transactions || [];

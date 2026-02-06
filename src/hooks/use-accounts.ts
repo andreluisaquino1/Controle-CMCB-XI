@@ -273,9 +273,15 @@ export function useUpdateAccount() {
 
 export function useDeactivateAccount() {
   const queryClient = useQueryClient();
+  const { isDemo } = useAuth();
+  const { setAccountActive } = useDemoData();
 
   return useMutation({
     mutationFn: async (id: string) => {
+      if (isDemo) {
+        setAccountActive(id, false);
+        return;
+      }
       const { error } = await supabase
         .from("accounts")
         .update({ active: false })
@@ -296,9 +302,15 @@ export function useDeactivateAccount() {
 }
 export function useActivateAccount() {
   const queryClient = useQueryClient();
+  const { isDemo } = useAuth();
+  const { setAccountActive } = useDemoData();
 
   return useMutation({
     mutationFn: async (id: string) => {
+      if (isDemo) {
+        setAccountActive(id, true);
+        return;
+      }
       const { error } = await supabase
         .from("accounts")
         .update({ active: true })

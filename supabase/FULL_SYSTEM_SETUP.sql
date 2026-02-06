@@ -1,9 +1,11 @@
 -- ============================================================================
--- CMCB-XI DATABASE: FULL SYSTEM SETUP (CONSOLIDATED)
+-- CMCB-XI DATABASE: FULL SYSTEM SETUP (CONSOLIDATED 2026-02-06)
 -- ============================================================================
 -- Este script configura o banco de dados do zero, incluindo tipos, tabelas, 
 -- segurança (RLS), funções de auditoria e lógica de negócio (RPCs).
 -- Execute este script no SQL Editor do Supabase.
+
+BEGIN;
 
 -- 1. ENUMS & TYPES
 DO $$ BEGIN
@@ -160,17 +162,9 @@ CREATE TABLE IF NOT EXISTS public.transaction_items (
     amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
     occurred_at TIMESTAMPTZ,
     description TEXT,
-    created_by UUID NOT NULL REFERENCES auth.users(id),
+    created_by UUID REFERENCES auth.users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
--- Indexes for Items
-CREATE INDEX IF NOT EXISTS idx_transaction_items_parent ON public.transaction_items(parent_transaction_id);
-CREATE INDEX IF NOT EXISTS idx_transaction_items_created_at ON public.transaction_items(created_at);
-
--- Ensure nullable columns for manual SQL execution (SQL Editor)
-ALTER TABLE public.transactions ALTER COLUMN created_by DROP NOT NULL;
-ALTER TABLE public.audit_logs ALTER COLUMN user_id DROP NOT NULL;
 
 -- 3. SECURITY (Helpers, RLS, Triggers)
 
@@ -183,49 +177,61 @@ ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.merchants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transaction_items ENABLE ROW LEVEL SECURITY;
 
+-- Profiles
 DROP POLICY IF EXISTS "Profiles: Admins/Own view" ON public.profiles;
 CREATE POLICY "Profiles: Admins/Own view" ON public.profiles FOR SELECT TO authenticated USING (public.is_admin_user(auth.uid()) OR auth.uid() = user_id);
-
 DROP POLICY IF EXISTS "Profiles: Admins/Own update" ON public.profiles;
 CREATE POLICY "Profiles: Admins/Own update" ON public.profiles FOR UPDATE TO authenticated USING (public.is_admin_user(auth.uid()) OR auth.uid() = user_id) WITH CHECK (public.is_admin_user(auth.uid()) OR auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Admins only: manage roles" ON public.user_roles;
-CREATE POLICY "Admins only: manage roles" ON public.user_roles FOR ALL TO authenticated USING (public.is_admin_user(auth.uid()));
+-- User Roles
+DROP POLICY IF EXISTS "User Roles: Admins only" ON public.user_roles;
+CREATE POLICY "User Roles: Admins only" ON public.user_roles FOR ALL TO authenticated USING (public.is_admin_user(auth.uid()));
 
-DROP POLICY IF EXISTS "Admins only: view audit" ON public.audit_logs;
-DROP POLICY IF EXISTS "Active users view audit" ON public.audit_logs;
-CREATE POLICY "Active users view audit" ON public.audit_logs FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
+-- Audit Logs
+DROP POLICY IF EXISTS "Audit Logs: Active users view" ON public.audit_logs;
+CREATE POLICY "Audit Logs: Active users view" ON public.audit_logs FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
 
-DROP POLICY IF EXISTS "Active users view data" ON public.accounts;
-CREATE POLICY "Active users view data" ON public.accounts FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
+-- Accounts
+DROP POLICY IF EXISTS "Accounts: Active users view" ON public.accounts;
+CREATE POLICY "Accounts: Active users view" ON public.accounts FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
+DROP POLICY IF EXISTS "Accounts: Active users update" ON public.accounts;
+CREATE POLICY "Accounts: Active users update" ON public.accounts FOR UPDATE TO authenticated USING (public.is_active_user(auth.uid())) WITH CHECK (public.is_active_user(auth.uid()));
+DROP POLICY IF EXISTS "Accounts: Active users insert" ON public.accounts;
+CREATE POLICY "Accounts: Active users insert" ON public.accounts FOR INSERT TO authenticated WITH CHECK (public.is_active_user(auth.uid()));
 
-DROP POLICY IF EXISTS "Active users view entities" ON public.entities;
-CREATE POLICY "Active users view entities" ON public.entities FOR SELECT TO authenticated USING (true);
+-- Merchants
+DROP POLICY IF EXISTS "Merchants: Active users view" ON public.merchants;
+CREATE POLICY "Merchants: Active users view" ON public.merchants FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
+DROP POLICY IF EXISTS "Merchants: Active users update" ON public.merchants;
+CREATE POLICY "Merchants: Active users update" ON public.merchants FOR UPDATE TO authenticated USING (public.is_active_user(auth.uid())) WITH CHECK (public.is_active_user(auth.uid()));
+DROP POLICY IF EXISTS "Merchants: Active users insert" ON public.merchants;
+CREATE POLICY "Merchants: Active users insert" ON public.merchants FOR INSERT TO authenticated WITH CHECK (public.is_active_user(auth.uid()));
 
-DROP POLICY IF EXISTS "Active users view transactions" ON public.transactions;
-CREATE POLICY "Active users view transactions" ON public.transactions FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
+-- Entities
+DROP POLICY IF EXISTS "Entities: Authenticated view" ON public.entities;
+CREATE POLICY "Entities: Authenticated view" ON public.entities FOR SELECT TO authenticated USING (true);
 
--- Transaction Items Policies (Phase 2)
-DROP POLICY IF EXISTS "Active users view items" ON public.transaction_items;
-CREATE POLICY "Active users view items" ON public.transaction_items FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
+-- Transactions
+DROP POLICY IF EXISTS "Transactions: Active users view" ON public.transactions;
+CREATE POLICY "Transactions: Active users view" ON public.transactions FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
 
-DROP POLICY IF EXISTS "Active users create items" ON public.transaction_items;
-CREATE POLICY "Active users create items" ON public.transaction_items FOR INSERT TO authenticated WITH CHECK (public.is_active_user(auth.uid()) AND auth.uid() = created_by);
+-- Transaction Items
+DROP POLICY IF EXISTS "Transaction Items: Active users view" ON public.transaction_items;
+CREATE POLICY "Transaction Items: Active users view" ON public.transaction_items FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
+DROP POLICY IF EXISTS "Transaction Items: Active users create" ON public.transaction_items;
+CREATE POLICY "Transaction Items: Active users create" ON public.transaction_items FOR INSERT TO authenticated WITH CHECK (public.is_active_user(auth.uid()));
 
+-- Triggers
 CREATE OR REPLACE FUNCTION public.update_updated_at_column() RETURNS TRIGGER AS 'BEGIN NEW.updated_at = now(); RETURN NEW; END;' LANGUAGE plpgsql SET search_path = public;
 DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
 DROP TRIGGER IF EXISTS update_accounts_updated_at ON public.accounts;
 CREATE TRIGGER update_accounts_updated_at BEFORE UPDATE ON public.accounts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-CREATE OR REPLACE FUNCTION public.log_security_event() RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS 'BEGIN IF TG_TABLE_NAME = ''profiles'' AND (OLD.active IS DISTINCT FROM NEW.active) THEN INSERT INTO public.audit_logs (action, before_json, after_json, reason, user_id) VALUES (''change'', jsonb_build_object(''active'', OLD.active), jsonb_build_object(''active'', NEW.active), ''Status alterado'', auth.uid()); ELSIF TG_TABLE_NAME = ''user_roles'' THEN INSERT INTO public.audit_logs (action, before_json, after_json, reason, user_id) VALUES (''change'', ''{}''::jsonb, jsonb_build_object(''role'', NEW.role, ''user'', NEW.user_id), ''Role updated'', auth.uid()); END IF; IF TG_OP = ''DELETE'' THEN RETURN OLD; END IF; RETURN NEW; END;';
-DROP TRIGGER IF EXISTS trigger_log_profile_changes ON public.profiles;
-CREATE TRIGGER trigger_log_profile_changes AFTER UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.log_security_event();
+DROP TRIGGER IF EXISTS update_merchants_updated_at ON public.merchants;
+CREATE TRIGGER update_merchants_updated_at BEFORE UPDATE ON public.merchants FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- 4. BUSINESS LOGIC (RPCs)
 
@@ -235,17 +241,7 @@ DECLARE v_amount numeric; v_direction text; v_src uuid; v_dst uuid; v_txn public
   IF NOT public.is_active_user(v_user_id) THEN RAISE EXCEPTION 'Unauthorized'; END IF;
   v_amount := (p_tx->>'amount')::numeric; v_direction := p_tx->>'direction';
   v_src := (p_tx->>'source_account_id')::uuid; v_dst := (p_tx->>'destination_account_id')::uuid;
-  IF v_amount <= 0 THEN RAISE EXCEPTION 'Amount must be > 0'; END IF;
   
-  -- Validations (Fase 1.1)
-  IF v_direction = 'in' AND v_dst IS NULL THEN RAISE EXCEPTION 'Direction "in" requires destination_account_id'; END IF;
-  IF v_direction = 'out' AND v_src IS NULL THEN RAISE EXCEPTION 'Direction "out" requires source_account_id'; END IF;
-  IF v_direction = 'transfer' AND (v_src IS NULL OR v_dst IS NULL) THEN RAISE EXCEPTION 'Direction "transfer" requires both IDs'; END IF;
-
-  -- Validate Account Existence
-  IF v_src IS NOT NULL AND NOT EXISTS (SELECT 1 FROM accounts WHERE id = v_src) THEN RAISE EXCEPTION 'Source account not found'; END IF;
-  IF v_dst IS NOT NULL AND NOT EXISTS (SELECT 1 FROM accounts WHERE id = v_dst) THEN RAISE EXCEPTION 'Destination account not found'; END IF;
-
   INSERT INTO public.transactions (transaction_date, module, entity_id, source_account_id, destination_account_id, merchant_id, amount, direction, payment_method, origin_fund, capital_custeio, shift, description, notes, created_by, status, parent_transaction_id)
   VALUES (COALESCE((p_tx->>'transaction_date')::date, CURRENT_DATE), (p_tx->>'module')::public.transaction_module, (p_tx->>'entity_id')::uuid, v_src, v_dst, (p_tx->>'merchant_id')::uuid, v_amount, v_direction::public.transaction_direction, (p_tx->>'payment_method')::public.payment_method, (p_tx->>'origin_fund')::public.fund_origin, (p_tx->>'capital_custeio')::public.capital_custeio, (p_tx->>'shift')::public.shift_type, p_tx->>'description', p_tx->>'notes', v_user_id, 'posted', (p_tx->>'parent_transaction_id')::uuid) RETURNING * INTO v_txn;
   
@@ -257,62 +253,17 @@ DECLARE v_amount numeric; v_direction text; v_src uuid; v_dst uuid; v_txn public
     IF v_txn.module = 'aporte_saldo' THEN UPDATE public.merchants SET balance = balance + v_amount WHERE id = v_txn.merchant_id;
     ELSIF v_txn.module = 'consumo_saldo' THEN UPDATE public.merchants SET balance = balance - v_amount WHERE id = v_txn.merchant_id; END IF;
   END IF;
-  INSERT INTO public.audit_logs (transaction_id, action, before_json, after_json, user_id, reason) VALUES (v_txn.id, 'create', '{}'::jsonb, row_to_json(v_txn)::jsonb, v_user_id, 'Transaction processed');
   RETURN row_to_json(v_txn);
 END; $$;
-
-CREATE OR REPLACE FUNCTION public.process_resource_transaction(p_tx jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
-DECLARE v_acc uuid; v_type text; BEGIN
-  IF NOT public.is_active_user(auth.uid()) THEN RAISE EXCEPTION 'Unauthorized'; END IF;
-  v_acc := (p_tx->>'source_account_id')::uuid;
-  IF v_acc IS NULL THEN RAISE EXCEPTION 'Source account ID is required for resource transactions'; END IF;
-  SELECT e.type INTO v_type FROM public.accounts a JOIN public.entities e ON e.id = a.entity_id WHERE a.id = v_acc;
-  IF v_type NOT IN ('ue', 'cx') THEN RAISE EXCEPTION 'Access Denied: Resource entities (UE/CX) only'; END IF;
-  RETURN public.process_transaction(p_tx);
-END; $$;
-
-CREATE OR REPLACE FUNCTION public.process_pix_fee_batch(p_entity_id uuid, p_payload jsonb) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
-DECLARE v_user_id uuid; v_source_account_id uuid; v_total numeric := 0; v_item jsonb; v_txn_id uuid; v_txn public.transactions; v_items_count int := 0; v_occurred_at timestamptz;
-BEGIN
-  v_user_id := auth.uid();
-  IF v_user_id IS NULL OR NOT public.is_active_user(v_user_id) THEN RAISE EXCEPTION 'Unauthorized'; END IF;
-  SELECT id INTO v_source_account_id FROM public.accounts WHERE entity_id = p_entity_id AND name = 'PIX (Conta BB)' AND active = true;
-  IF v_source_account_id IS NULL THEN RAISE EXCEPTION 'Conta "PIX (Conta BB)" não encontrada ou inativa para esta entidade.'; END IF;
-  FOR v_item IN SELECT * FROM jsonb_array_elements(p_payload->'items') LOOP
-    IF (v_item->>'amount')::numeric <= 0 THEN RAISE EXCEPTION 'Item amount must be positive'; END IF;
-    v_total := v_total + (v_item->>'amount')::numeric;
-    v_items_count := v_items_count + 1;
-  END LOOP;
-  IF v_total <= 0 THEN RAISE EXCEPTION 'Total amount must be positive'; END IF;
-  v_occurred_at := COALESCE((p_payload->>'occurred_at')::timestamptz, now());
-  
-  INSERT INTO public.transactions (transaction_date, module, entity_id, source_account_id, destination_account_id, amount, direction, payment_method, origin_fund, description, notes, created_by, status) 
-  VALUES (v_occurred_at::date, 'taxa_pix_bb', p_entity_id, v_source_account_id, NULL, v_total, 'out', 'cash', NULL, 'Taxas PIX (Lote)', 'Referência: ' || COALESCE(p_payload->>'reference', 'N/A') || ' | Itens: ' || v_items_count, v_user_id, 'posted') RETURNING * INTO v_txn;
-  v_txn_id := v_txn.id;
-  
-  UPDATE public.accounts SET balance = balance - v_total WHERE id = v_source_account_id;
-  
-  INSERT INTO public.transaction_items (parent_transaction_id, amount, occurred_at, description, created_by)
-  SELECT v_txn_id, (item->>'amount')::numeric, COALESCE((item->>'occurred_at')::timestamptz, v_occurred_at), item->>'description', v_user_id FROM jsonb_array_elements(p_payload->'items') AS item;
-  
-  INSERT INTO public.audit_logs (transaction_id, action, before_json, after_json, reason, user_id) 
-  VALUES (v_txn_id, 'create', '{}'::jsonb, jsonb_build_object('total', v_total, 'items', v_items_count, 'reference', p_payload->>'reference'), 'PIX Fee Batch Creation', v_user_id);
-  RETURN v_txn_id;
-END; $$;
-
-CREATE OR REPLACE FUNCTION public.get_transaction_items(p_parent_transaction_id uuid) RETURNS SETOF public.transaction_items LANGUAGE sql SECURITY DEFINER SET search_path TO 'public' STABLE AS $$
-  SELECT * FROM public.transaction_items WHERE parent_transaction_id = p_parent_transaction_id AND public.is_active_user(auth.uid()) ORDER BY occurred_at DESC NULLS LAST, created_at ASC;
-$$;
 
 CREATE OR REPLACE FUNCTION public.void_transaction(p_id uuid, p_reason text) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE v_before jsonb; v_txn record; v_user_id uuid; BEGIN
     v_user_id := auth.uid();
-    IF v_user_id IS NULL OR NOT public.is_active_user(v_user_id) THEN RAISE EXCEPTION 'Unauthorized'; END IF;
+    IF NOT public.is_active_user(v_user_id) THEN RAISE EXCEPTION 'Unauthorized'; END IF;
     SELECT row_to_json(t)::jsonb INTO v_before FROM public.transactions t WHERE id = p_id FOR UPDATE;
     IF v_before IS NULL THEN RAISE EXCEPTION 'Transaction not found'; END IF;
     IF (v_before->>'status') = 'voided' THEN RAISE EXCEPTION 'Already voided'; END IF;
     
-    -- Using v_before for logic
     IF (v_before->>'direction') = 'in' THEN UPDATE public.accounts SET balance = balance - (v_before->>'amount')::numeric WHERE id = (v_before->>'destination_account_id')::uuid;
     ELSIF (v_before->>'direction') = 'out' THEN UPDATE public.accounts SET balance = balance + (v_before->>'amount')::numeric WHERE id = (v_before->>'source_account_id')::uuid;
     ELSIF (v_before->>'direction') = 'transfer' THEN
@@ -327,8 +278,6 @@ DECLARE v_before jsonb; v_txn record; v_user_id uuid; BEGIN
     END IF;
     
     UPDATE public.transactions SET status = 'voided', notes = COALESCE(notes, '') || ' | VOID: ' || p_reason WHERE id = p_id RETURNING * INTO v_txn;
-    INSERT INTO public.audit_logs (transaction_id, action, before_json, after_json, reason, user_id) 
-    VALUES (p_id, 'void', v_before, row_to_json(v_txn)::jsonb, p_reason, v_user_id);
     RETURN row_to_json(v_txn);
 END; $$;
 
@@ -348,23 +297,6 @@ DECLARE v_assoc uuid; BEGIN
   );
 END; $$;
 
-CREATE OR REPLACE FUNCTION public.get_report_summary(p_start_date date, p_end_date date, p_entity_id uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
-DECLARE v_cd_id uuid; v_summary record; BEGIN
-  IF NOT public.is_active_user(auth.uid()) THEN RAISE EXCEPTION 'Unauthorized'; END IF;
-  SELECT id INTO v_cd_id FROM accounts WHERE entity_id = p_entity_id AND name = 'Conta Digital (Escolaweb)' LIMIT 1;
-  SELECT COALESCE(SUM(CASE WHEN t.module = 'gasto_associacao' AND t.payment_method = 'cash' THEN t.amount ELSE 0 END), 0) as expenses_cash,
-    COALESCE(SUM(CASE WHEN t.module = 'gasto_associacao' AND t.payment_method = 'pix' THEN t.amount ELSE 0 END), 0) as expenses_pix,
-    COALESCE(SUM(CASE WHEN (c.category = 'transfer' OR t.module = 'conta_digital_taxa') AND t.source_account_id = v_cd_id THEN t.amount ELSE 0 END), 0) as expenses_digital,
-    COALESCE(SUM(CASE WHEN t.module = 'mensalidade' AND t.payment_method = 'cash' THEN t.amount ELSE 0 END), 0) as entries_cash,
-    COALESCE(SUM(CASE WHEN t.module = 'mensalidade' AND t.payment_method = 'pix' THEN t.amount ELSE 0 END), 0) as entries_pix,
-    COALESCE(SUM(CASE WHEN t.module = 'aporte_saldo' THEN t.amount ELSE 0 END), 0) as deposits,
-    COALESCE(SUM(CASE WHEN t.module = 'consumo_saldo' THEN t.amount ELSE 0 END), 0) as consumption,
-    COALESCE(SUM(CASE WHEN t.module = 'pix_direto_uecx' THEN t.amount ELSE 0 END), 0) as direct_pix
-  INTO v_summary FROM transactions t JOIN transaction_modules_config c ON c.module_key = t.module 
-  WHERE transaction_date >= p_start_date AND transaction_date <= p_end_date AND status = 'posted' AND t.entity_id = p_entity_id;
-  RETURN jsonb_build_object('weeklyExpensesCash', v_summary.expenses_cash, 'weeklyExpensesPix', v_summary.expenses_pix, 'weeklyExpensesDigital', v_summary.expenses_digital, 'weeklyEntriesCash', v_summary.entries_cash, 'weeklyEntriesPix', v_summary.entries_pix, 'weeklyDeposits', v_summary.deposits, 'weeklyConsumption', v_summary.consumption, 'weeklyDirectPix', v_summary.direct_pix);
-END; $$;
-
 -- 5. SEED DATA
 
 INSERT INTO public.entities (name, cnpj, type) VALUES ('Associação CMCB-XI', '37.812.756/0001-45', 'associacao'), ('Unidade Executora CMCB-XI', '38.331.489/0001-57', 'ue'), ('Caixa Escolar CMCB-XI', '37.812.693/0001-27', 'cx') ON CONFLICT (cnpj) DO NOTHING;
@@ -374,11 +306,10 @@ DO $$ DECLARE v_id uuid; BEGIN
   INSERT INTO public.accounts (entity_id, name, type) VALUES (v_id, 'Espécie', 'cash'), (v_id, 'PIX (Conta BB)', 'bank'), (v_id, 'Conta Digital (Escolaweb)', 'virtual'), (v_id, 'Cofre', 'cash_reserve') ON CONFLICT (entity_id, name) DO NOTHING;
 END $$;
 
-INSERT INTO public.merchants (name, mode) VALUES ('Bom Preço', 'saldo'), ('2 Irmãos', 'saldo'), ('Sacolão Brasil', 'saldo'), ('Fort.com', 'saldo'), ('Mercadinho Sampaio', 'saldo'), ('Fename', 'saldo') ON CONFLICT DO NOTHING;
-
 INSERT INTO public.transaction_modules_config (module_key, label, category)
 VALUES ('mensalidade', 'Mensalidade', 'entry'), ('gasto_associacao', 'Despesa Associação', 'expense'), ('assoc_transfer', 'Movimentação Associação', 'transfer'), ('especie_transfer', 'Movimentação entre Contas', 'transfer'), ('especie_deposito_pix', 'Depósito PIX', 'transfer'), ('especie_ajuste', 'Ajuste de Saldo (Espécie)', 'adjustment'), ('pix_ajuste', 'Ajuste de Saldo (PIX)', 'adjustment'), ('cofre_ajuste', 'Ajuste de Saldo (Cofre)', 'adjustment'), ('conta_digital_ajuste', 'Ajuste Conta Digital', 'adjustment'), ('conta_digital_taxa', 'Taxa Escolaweb', 'expense'), ('consumo_saldo', 'Gasto Estabelecimento', 'expense'), ('pix_direto_uecx', 'Gasto de Recurso', 'expense'), ('aporte_saldo', 'Depósito em Estabelecimento', 'transfer'), ('aporte_estabelecimento_recurso', 'Aporte em Estabelecimento (Recurso)', 'transfer'), ('taxa_pix_bb', 'Taxas PIX BB (Lote)', 'expense')
 ON CONFLICT (module_key) DO UPDATE SET label = EXCLUDED.label, category = EXCLUDED.category;
 
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;
+
+COMMIT;

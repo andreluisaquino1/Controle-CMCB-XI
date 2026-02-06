@@ -62,6 +62,14 @@ export function useDemoData() {
             triggerDemoUpdate();
         },
         getReportSummary: (start: string, end: string) => demoStore.getReportSummary(start, end),
+        setMerchantActive: (id: string, active: boolean) => {
+            demoStore.setMerchantActive(id, active);
+            triggerDemoUpdate();
+        },
+        setAccountActive: (id: string, active: boolean) => {
+            demoStore.setAccountActive(id, active);
+            triggerDemoUpdate();
+        },
         refresh
     };
 }

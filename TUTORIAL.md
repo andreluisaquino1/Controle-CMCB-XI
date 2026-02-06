@@ -110,6 +110,7 @@ Módulo para controle de contas correntes em fornecedores (supermercados, papela
 O sistema controla quanto crédito a instituição possui em cada local.
 - **Saldo Positivo (Verde)**: Temos crédito para gastar.
 - **Saldo Negativo (Vermelho)**: Devemos ao estabelecimento.
+- **Aviso de Saldo**: O sistema agora permite registrar compras mesmo que o saldo se torne negativo. Nestes casos, um **aviso amarelo (toast)** aparecerá para informar que a conta ficou "no vermelho", mas a gravação não será bloqueada.
 
 ### Operações Disponíveis:
 
@@ -126,7 +127,9 @@ Baixa o saldo do estabelecimento quando uma compra é feita.
 
 #### **Gerenciar Estabelecimentos**
 - **Novo Estabelecimento**: Cadastra um novo fornecedor.
-- **Editar/Excluir**: Ícones visíveis nos cartões de cada estabelecimento.
+- **Desativar**: Clique no ícone de lixeira para desativar um estabelecimento que não é mais utilizado. Ele deixará de aparecer nas listas de seleção e no Resumo, mas seu histórico será preservado.
+- **Mostrar Inativos / Reativar**: Marque a opção **"Mostrar Inativos"** no topo da página para ver os estabelecimentos arquivados. Para reativar, clique no ícone de **Seta Circular (Reativar)** presente no cartão do item inativo.
+- **Editar**: Ícone de lápis para alterar nome ou modo do estabelecimento.
 
 ---
 

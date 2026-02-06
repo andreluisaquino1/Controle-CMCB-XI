@@ -91,9 +91,15 @@ export function useUpdateMerchant() {
 
 export function useDeactivateMerchant() {
   const queryClient = useQueryClient();
+  const { isDemo } = useAuth();
+  const { setMerchantActive } = useDemoData();
 
   return useMutation({
     mutationFn: async (id: string) => {
+      if (isDemo) {
+        setMerchantActive(id, false);
+        return;
+      }
       const { error } = await supabase
         .from("merchants")
         .update({ active: false })
@@ -113,9 +119,15 @@ export function useDeactivateMerchant() {
 }
 export function useActivateMerchant() {
   const queryClient = useQueryClient();
+  const { isDemo } = useAuth();
+  const { setMerchantActive } = useDemoData();
 
   return useMutation({
     mutationFn: async (id: string) => {
+      if (isDemo) {
+        setMerchantActive(id, true);
+        return;
+      }
       const { error } = await supabase
         .from("merchants")
         .update({ active: true })
