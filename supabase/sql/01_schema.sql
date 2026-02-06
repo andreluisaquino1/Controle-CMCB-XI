@@ -41,7 +41,9 @@ DO $$ BEGIN
         'conta_digital_ajuste',
         'aporte_saldo',
         'consumo_saldo',
-        'pix_direto_uecx'
+        'pix_direto_uecx',
+        'recurso_transfer',
+        'aporte_estabelecimento_recurso'
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
@@ -112,6 +114,15 @@ CREATE TABLE IF NOT EXISTS public.merchants (
   balance DECIMAL(15,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+-- Transaction Modules Config
+CREATE TABLE IF NOT EXISTS public.transaction_modules_config (
+    module_key public.transaction_module PRIMARY KEY,
+    label text NOT NULL,
+    category text NOT NULL CHECK (category IN ('entry', 'expense', 'transfer', 'adjustment', 'neutral')),
+    is_active boolean DEFAULT true,
+    created_at timestamptz DEFAULT now()
 );
 
 -- Transactions

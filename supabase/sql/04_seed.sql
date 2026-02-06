@@ -63,6 +63,26 @@ INSERT INTO public.merchants (name, mode, balance) VALUES
   ('Fename', 'saldo', 0)
 ON CONFLICT (id) DO NOTHING;
 
--- 4. INITIAL ADMIN (Optional/Manual)
+-- 4. TRANSACTION MODULES CONFIG
+INSERT INTO public.transaction_modules_config (module_key, label, category)
+VALUES 
+    ('mensalidade', 'Mensalidade', 'entry'),
+    ('gasto_associacao', 'Despesa Associação', 'expense'),
+    ('assoc_transfer', 'Movimentação Associação', 'transfer'),
+    ('especie_transfer', 'Movimentação entre Contas', 'transfer'),
+    ('especie_deposito_pix', 'Depósito PIX', 'transfer'),
+    ('especie_ajuste', 'Ajuste de Saldo (Espécie)', 'adjustment'),
+    ('pix_ajuste', 'Ajuste de Saldo (PIX)', 'adjustment'),
+    ('cofre_ajuste', 'Ajuste de Saldo (Cofre)', 'adjustment'),
+    ('conta_digital_ajuste', 'Ajuste Conta Digital', 'adjustment'),
+    ('conta_digital_taxa', 'Taxa Escolaweb', 'expense'),
+    ('consumo_saldo', 'Gasto Estabelecimento', 'expense'),
+    ('pix_direto_uecx', 'Gasto de Recurso', 'expense'),
+    ('aporte_saldo', 'Depósito em Estabelecimento', 'transfer'),
+    ('aporte_estabelecimento_recurso', 'Aporte em Estabelecimento (Recurso)', 'transfer')
+ON CONFLICT (module_key) DO UPDATE 
+SET label = EXCLUDED.label, category = EXCLUDED.category;
+
+-- 5. INITIAL ADMIN (Optional/Manual)
 -- To grant admin manually:
 -- INSERT INTO user_roles (user_id, role) VALUES ('<USER_ID>', 'admin');

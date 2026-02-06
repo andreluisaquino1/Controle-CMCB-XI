@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useDashboardData, useReportData } from "@/hooks/use-dashboard-data";
 import { useAllTransactionsWithCreator } from "@/hooks/use-entity-transactions";
+import { useEntities } from "@/hooks/use-accounts";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { formatDateBR, getWeekStartDate, formatDateString, getTodayString } from "@/lib/date-utils";
 import { MODULE_LABELS } from "@/lib/constants";
@@ -48,8 +49,13 @@ export default function RelatoriosPage() {
 
   // Fetch current balances
   const { data: dashboardData, isLoading: dashboardLoading } = useDashboardData();
+
+  // Fetch entities to get association ID
+  const { data: entities } = useEntities();
+  const associacaoId = entities?.find(e => e.type === 'associacao')?.id;
+
   // Fetch period-based summary
-  const { data: reportData, isLoading: reportLoading } = useReportData(startDate, endDate);
+  const { data: reportData, isLoading: reportLoading } = useReportData(startDate, endDate, associacaoId);
   // Fetch transactions
   const { data: transactions, isLoading: transactionsLoading } = useAllTransactionsWithCreator(startDate, endDate);
 

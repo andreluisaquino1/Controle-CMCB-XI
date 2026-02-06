@@ -33,10 +33,11 @@ async function fetchCurrentBalances(): Promise<DashboardData> {
   };
 }
 
-async function fetchReportSummary(startDate: string, endDate: string): Promise<ReportData> {
+async function fetchReportSummary(startDate: string, endDate: string, entityId: string): Promise<ReportData> {
   const { data, error } = await supabase.rpc("get_report_summary", {
     p_start_date: startDate,
     p_end_date: endDate,
+    p_entity_id: entityId,
   });
 
   if (error) {
@@ -110,15 +111,15 @@ export function useDashboardData() {
 /**
  * Hook for Reports page - returns period-based transaction summaries
  */
-export function useReportData(startDate: string, endDate: string) {
+export function useReportData(startDate: string, endDate: string, entityId?: string) {
   const { isDemo } = useAuth();
   const { getReportSummary } = useDemoData();
 
   const query = useQuery({
-    queryKey: ["report-data", startDate, endDate],
-    queryFn: () => fetchReportSummary(startDate, endDate),
+    queryKey: ["report-data", startDate, endDate, entityId],
+    queryFn: () => fetchReportSummary(startDate, endDate, entityId!),
     staleTime: 1000 * 60,
-    enabled: !!startDate && !!endDate && !isDemo,
+    enabled: !!startDate && !!endDate && !!entityId && !isDemo,
   });
 
   if (isDemo && startDate && endDate) {

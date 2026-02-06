@@ -113,7 +113,7 @@ export function useCreateTransaction() {
           }
         }
 
-        if ((transaction.direction === "transfer" || transaction.module === "assoc_transfer") && transaction.source_account_id && transaction.destination_account_id) {
+        if (transaction.direction === "transfer" && transaction.source_account_id && transaction.destination_account_id) {
           const srcAcc = previousAccounts?.find(a => a.id === transaction.source_account_id);
           const dstAcc = previousAccounts?.find(a => a.id === transaction.destination_account_id);
 
@@ -152,7 +152,7 @@ export function useCreateTransaction() {
           const amount = Number(transaction.amount);
           let newBalance = acc.balance;
 
-          if (transaction.direction === "transfer" || transaction.module === "assoc_transfer") {
+          if (transaction.direction === "transfer") {
             if (acc.id === transaction.source_account_id) newBalance -= amount;
             if (acc.id === transaction.destination_account_id) newBalance += amount;
           } else if (transaction.direction === "in" && acc.id === transaction.destination_account_id) {

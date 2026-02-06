@@ -181,7 +181,7 @@
 
     <h1>Manual do Usuário - Sistema Financeiro CMCB-XI</h1>
     <p>Bem-vindo ao manual completo do Sistema Financeiro CMCB-XI. Este documento detalha todas as funcionalidades do
-        sistema.</p>
+        sistema, organizadas por abas e módulos.</p>
 
     <div class="toc">
         <h2>Índice</h2>
@@ -199,84 +199,96 @@
     <h2 id="acesso">1. Acesso e Perfil</h2>
 
     <h3>Login</h3>
-    <p>Ao acessar, utilize seu e-mail e senha cadastrados. <strong>Esqueci a senha</strong>: Clique em "Recuperar senha"
-        na tela de login.</p>
+    <p>Ao acessar o sistema, utilize seu e-mail e senha cadastrados. <strong>Esqueci a senha</strong>: Na tela de login,
+        clique em "Recuperar senha" para receber um link de redefinição por e-mail.</p>
 
     <h3>Perfil e Configurações</h3>
     <p>Acesse clicando em <strong>Perfil</strong> no menu lateral.</p>
     <ul>
         <li><strong>Alterar Nome</strong>: Atualize seu nome de exibição.</li>
-        <li><strong>Alterar Senha</strong>: Permite trocar sua senha atual.</li>
-        <li><strong>Nível de Acesso</strong>: No perfil, você visualiza se sua conta é <strong>Administrador</strong>,
-            <strong>Usuário</strong> ou <strong>Demo</strong>.</li>
-        <li><strong>Status da Conta</strong>: Se ainda não foi autorizado, você verá a tela <strong>"Aguardando
-                Ativação"</strong>. Se entrou no sistema, sua conta está 100% ativa.</li>
+        <li><strong>Alterar Senha</strong>: Permite trocar sua senha atual por uma nova.</li>
+        <li><strong>Nível de Acesso</strong>: No perfil, você pode visualizar se sua conta tem permissão de
+            <strong>Administrador</strong>, <strong>Usuário Comum</strong> ou <strong>Demonstração</strong>.</li>
+        <li><strong>Status da Conta</strong>: Caso sua conta ainda não tenha sido autorizada, você verá uma tela de
+            bloqueio informando <strong>"Aguardando Ativação"</strong>. Ao entrar no sistema, sua conta já estará
+            plenamente ativa.</li>
     </ul>
 
     <h2 id="dashboard">2. Dashboard (Visão Geral)</h2>
-    <p>O <strong>Painel Principal</strong> oferece um resumo imediato da saúde financeira.</p>
+    <p>O <strong>Painel Principal</strong> oferece um resumo imediato da saúde financeira da instituição.</p>
 
     <h3>Funcionalidades:</h3>
     <ul>
-        <li><strong>Resumo Financeiro</strong>: Saldas da Associação:
+        <li><strong>Resumo Financeiro</strong>: Exibe o saldo consolidado das contas da Associação:
             <ul>
-                <li><strong>Espécie</strong> (Dinheiro), <strong>PIX</strong> (Banco), <strong>Conta Digital</strong>
-                    (Escolaweb), <strong>Cofre</strong>.</li>
+                <li><strong>Espécie</strong>: Dinheiro físico em caixa.</li>
+                <li><strong>PIX (BB)</strong>: Saldo bancário da conta de movimento.</li>
+                <li><strong>Conta Digital</strong>: Saldo na plataforma de cobrança (Escolaweb).</li>
+                <li><strong>Cofre</strong>: Reserva física.</li>
             </ul>
         </li>
-        <li><strong>Ações Rápidas</strong>: Atalhos para Mensalidade, Despesa Associação e Gasto Estabelecimento.</li>
-        <li><strong>Saldos dos Estabelecimentos</strong>: Crédito ou débito em cada fornecedor.</li>
-        <li><strong>Recursos (UE/CX)</strong>: Resumo dos saldos bancários de recursos públicos.</li>
+        <li><strong>Ações Rápidas</strong>: Atalhos para as operações mais comuns (Mensalidade, Despesa Associação e
+            Gasto Estabelecimento).</li>
+        <li><strong>Saldos dos Estabelecimentos</strong>: Mostra quanto crédito ou débito a instituição possui em cada
+            fornecedor cadastrado.</li>
+        <li><strong>Recursos (UE/CX)</strong>: Resumo dos saldos bancários das contas de recursos federais/estaduais.
+        </li>
     </ul>
 
     <h2 id="associacao">3. Associação</h2>
-    <p>Gestão dos recursos próprios da Associação de Pais.</p>
+    <p>Esta aba é destinada à gestão exclusiva dos recursos próprios da Associação de Pais.</p>
 
     <h3>Operações Disponíveis:</h3>
 
     <h4>1. Mensalidades (Entrada)</h4>
     <p>Registro do recebimento de mensalidades recebidas por turno.</p>
     <ul>
-        <li><strong>Campos</strong>: Data, Turno, Valores, Observação.</li>
+        <li><strong>Campos</strong>: Data, Turno (Manhã/Tarde), Valores (Espécie/PIX), Observação.</li>
         <li><strong>Exemplo</strong>: Recebimento de R$ 300,00 em dinheiro dos secretários.</li>
     </ul>
 
     <h4>2. Despesa Associação (Saída)</h4>
-    <p>Pagamento direto utilizando saldo da Associação.</p>
+    <p>Pagamento direto de despesas utilizando saldo da Associação.</p>
     <ul>
-        <li><strong>Campos</strong>: Data, Meio de Pagamento, Valor, Descrição.</li>
-        <li><strong>Exemplo</strong>: Pagamento de R$ 100,00 via PIX para material de limpeza.</li>
+        <li><strong>Campos</strong>: Data, Meio de Pagamento (Espécie/PIX...), Valor, Descrição.</li>
+        <li><strong>Exemplo</strong>: Pagamento de R$ 100,00 via PIX para compra de material de limpeza.</li>
     </ul>
 
     <h4>3. Movimentar Saldo (Transferência)</h4>
-    <p>Transferência entre contas internas. Ex: Sangria (Espécie para Cofre) ou Depósito.</p>
+    <p>Transferência de valores entre contas internas. Ex: Sangria (Retirar do Espécie para Cofre) ou Depósito (Espécie
+        para Banco).</p>
+    <p><strong>Taxas</strong>: É possível registrar taxas bancárias incidentes na transferência.</p>
 
     <h4>4. Ajustar Saldo (Correção)</h4>
-    <p>Ferramenta administrativa para correção de saldos (use com cautela). O sistema exibirá uma <strong>confirmação de
-            segurança</strong> com o impacto previsto.</p>
+    <p>Ferramenta administrativa para correção de saldos em caso de divergência. <strong>Atenção</strong>: Use com
+        cautela. O sistema exibirá uma <strong>confirmação de segurança</strong> com o impacto antes da conclusão.</p>
 
     <h3>Segurança e Validação</h3>
     <p>Para garantir a integridade da auditoria, o sistema agora exige:</p>
     <ul>
-        <li><strong>Justificativas Obrigatórias</strong>: Anulações, ajustes ou movimentações exigem no mínimo <strong>5
-                caracteres</strong>.</li>
-        <li><strong>Confirmações de Ação</strong>: Operações críticas exibem um diálogo de confirmação para evitar
-            erros.</li>
+        <li><strong>Justificativas Obrigatórias</strong>: Qualquer anulação, ajuste ou movimentação exige uma descrição
+            de no mínimo <strong>5 caracteres</strong>.</li>
+        <li><strong>Confirmações de Ação</strong>: Operações clínicas (anular, ajustar, transferir) agora exibem um
+            diálogo de confirmação para evitar cliques acidentais.</li>
     </ul>
 
     <h3>Histórico</h3>
-    <p>Tabela de movimentações. Use a <strong>Lixeira</strong> para anular lançamentos (requer justificativa).</p>
+    <p>Tabela completa de todas as movimentações da Associação. Use o botão de <strong>Lixeira</strong> para anular um
+        lançamento incorreto (requer justificativa).</p>
 
     <h2 id="saldos">4. Saldos em Estabelecimentos</h2>
-    <p>Controle de contas correntes em fornecedores.</p>
+    <p>Módulo para controle de contas correntes em fornecedores (supermercados, papelarias, etc).</p>
+    <p><strong>Conceito</strong>: O sistema controla quanto crédito a instituição possui em cada local.</p>
     <ul>
-        <li><strong>Saldo Positivo (Verde)</strong>: Temos crédito. <strong>Negativo (Vermelho)</strong>: Devemos.</li>
+        <li><strong>Saldo Positivo (Verde)</strong>: Temos crédito.</li>
+        <li><strong>Saldo Negativo (Vermelho)</strong>: Devemos ao estabelecimento.</li>
     </ul>
 
     <h3>Operações Disponíveis:</h3>
 
     <h4>Aportar Saldo (Pagar ao Fornecedor)</h4>
-    <p>Envia dinheiro para o estabelecimento, gerando crédito. Origem: Associação, UE ou CX.</p>
+    <p>Envia dinheiro da instituição para o estabelecimento, gerando crédito. Origem: Associação, Unidade Executora (UE)
+        ou Caixa Escolar (CX).</p>
     <ul>
         <li><strong>Exemplo</strong>: Transferir R$ 1.000,00 da conta PDDE (UE) para o Supermercado XYZ.</li>
     </ul>
@@ -284,53 +296,70 @@
     <h4>Registrar Gasto (Consumo)</h4>
     <p>Baixa o saldo do estabelecimento quando uma compra é feita.</p>
     <ul>
-        <li><strong>Exemplo</strong>: Compra de lanche de R$ 200,00 no Supermercado XYZ (reduz o saldo).</li>
+        <li><strong>Exemplo</strong>: Compra de lanche no valor de R$ 200,00 no Supermercado XYZ (reduz o saldo).</li>
     </ul>
 
     <h4>Gerenciar Estabelecimentos</h4>
-    <p>Novo Estabelecimento, Editar e Excluir nos ícones dos cartões.</p>
+    <p>Novo Estabelecimento, Editar e Excluir nos ícones dos cartões de cada estabelecimento.</p>
 
     <h2 id="recursos">5. Recursos (UE e Caixa Escolar)</h2>
-    <p>Gestão de contas vinculadas a verbas públicas (PDDE, Merenda).</p>
+    <p>Gestão das contas bancárias vinculadas a verbas públicas (PDDE, Merenda, etc).</p>
+
+    <h3>Contas</h3>
+    <ul>
+        <li><strong>Unidade Executora (UE)</strong>: Recursos federais diretos.</li>
+        <li><strong>Caixa Escolar (CX)</strong>: Recursos estaduais/federais para alimentação/manutenção.</li>
+    </ul>
 
     <h3>Operações:</h3>
 
     <h4>Entrada de Recurso</h4>
-    <p>Registra o ingresso de verba (repasse). Ex: R$ 5.000,00 de PDDE no BB.</p>
+    <p>Registra o ingresso de verba na conta bancária (repasse). Ex: Recebimento de R$ 5.000,00 de repasse PDDE no BB.
+    </p>
 
     <h4>Gasto de Recurso (Pagamento/Aporte)</h4>
-    <p>Saída de valores da conta de recurso.</p>
+    <p>Registro de saída de valores da conta de recurso.</p>
     <ul>
-        <li><strong>Funcionalidade</strong>: Pagamentos diretos ou <strong>Aporte</strong> em estabelecimentos.</li>
-        <li><strong>Exemplo</strong>: PIX para Supermercado para criar crédito ou pagar compra específica.</li>
+        <li><strong>Funcionalidade</strong>: Pagamentos diretos ou <strong>Aporte</strong> em estabelecimentos
+            cadastrados.</li>
+        <li><strong>Exemplo</strong>: Transferência de valor para o Supermercado para criar crédito ou pagar compra
+            específica.</li>
     </ul>
 
     <h4>Gerenciar Contas</h4>
-    <p>Botão "Nova Conta", Editar e Arquivar nos cartões.</p>
+    <p>Botão <strong>"Nova Conta"</strong> para cadastrar novas contas bancárias. Ícones de lápis e lixeira nos cartões
+        para editar/arquivar contas existentes.</p>
 
     <h2 id="relatorios">6. Relatórios</h2>
+    <p>Central de prestação de contas.</p>
 
     <h3>Funcionalidades:</h3>
     <ul>
-        <li><strong>Filtro de Data</strong>: Selecione o período.</li>
-        <li><strong>Preview WhatsApp</strong>: Resumo formatado para envio em grupos.
+        <li><strong>Filtro de Data</strong>: Selecione o período desejado (Início e Fim).</li>
+        <li><strong>Preview WhatsApp</strong>: Gera um texto formatado automaticamente para envio em grupos.
             <ul>
                 <li>Opção "Incluir saldos dos Recursos".</li>
             </ul>
         </li>
-        <li><strong>Exportar PDF</strong>: Documento oficial com resumo e tabela de transações.</li>
-        <li><strong>Histórico Detalhado</strong>: Tabela pesquisável e filtrável.</li>
+        <li><strong>Exportar PDF</strong>: Gera um documento oficial contendo o resumo e a tabela detalhada de todas as
+            transações do período.</li>
+        <li><strong>Histórico Detalhado</strong>: Tabela pesquisável de todas as operações. Use os filtros para ver
+            apenas "Mensalidades" ou "Gastos".</li>
     </ul>
 
     <h2 id="admin">7. Administração e Logs</h2>
 
     <h3>Usuários (Exclusivo Admin)</h3>
-    <p>Cadastrar usuários, ativar/desativar acessos e definir permissões. Por segurança, estas rotas são restritas a
-        administradores.</p>
+    <p>Permite cadastrar novos usuários, ativar/desativar acessos e definir permissões (Admin, Usuário Comum,
+        Visitante). Por segurança, estas rotas são acessíveis apenas para administradores.</p>
 
     <h3>Logs e Auditoria (Exclusivo Admin)</h3>
-    <p>Registro imutável de <strong>Anulações</strong> e <strong>Eventos de Segurança</strong>. Agora com
-        <strong>filtros avançados</strong> por data, usuário e ação.</p>
+    <p>Exibe um registro imutável de todas as <strong>Anulações</strong> e <strong>Eventos de Segurança</strong> (como
+        mudanças de cargos).</p>
+    <ul>
+        <li><strong>Filtros</strong>: Agora você pode filtrar por data, usuário ou tipo de ação.</li>
+        <li><strong>Transparência</strong>: Garante segurança nas correções de lançamentos.</li>
+    </ul>
 
 </body>
 
