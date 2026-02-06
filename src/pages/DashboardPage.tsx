@@ -100,13 +100,8 @@ export default function DashboardPage() {
   if (error || !data) {
     return (
       <DashboardLayout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-          <p className="text-destructive font-bold">Erro ao carregar dados do resumo.</p>
-          <div className="bg-muted p-4 rounded border text-xs font-mono max-w-2xl overflow-auto">
-            <p className="font-bold mb-2">Detalhes do Erro:</p>
-            <pre>{JSON.stringify(error, null, 2)}</pre>
-          </div>
-          <Button onClick={() => refetch()}>Tentar Novamente</Button>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <p className="text-destructive">Erro ao carregar dados do resumo.</p>
         </div>
       </DashboardLayout>
     );
@@ -123,15 +118,9 @@ export default function DashboardPage() {
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
         {/* Page Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Resumo</h1>
-            <p className="text-muted-foreground">Saldos atuais do sistema</p>
-          </div>
-          {/* Diagnostic Toggle (Alt+D) */}
-          <div className="hidden">
-            <pre id="debug-data">{JSON.stringify(data, null, 2)}</pre>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Resumo</h1>
+          <p className="text-muted-foreground">Saldos atuais do sistema</p>
         </div>
 
         {/* Shortcuts Section */}

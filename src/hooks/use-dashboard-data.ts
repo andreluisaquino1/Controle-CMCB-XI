@@ -6,14 +6,19 @@ import { MerchantBalance, DashboardData, ReportData, Account } from "@/types";
 async function fetchCurrentBalances(): Promise<DashboardData> {
   const { data, error } = await supabase.rpc("get_current_balances");
 
-  console.log("RPC get_current_balances raw data:", data);
-
   if (error) {
     console.error("Error fetching current balances:", error);
     throw error;
   }
 
-  const result = data as any;
+  const result = data as {
+    especieBalance?: number;
+    cofreBalance?: number;
+    pixBalance?: number;
+    contaDigitalBalance?: number;
+    merchantBalances?: MerchantBalance[];
+    resourceBalances?: { UE: Account[]; CX: Account[] };
+  };
 
   return {
     especieBalance: Number(result?.especieBalance || 0),
