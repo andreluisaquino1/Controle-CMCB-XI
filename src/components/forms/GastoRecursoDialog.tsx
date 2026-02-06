@@ -34,8 +34,6 @@ interface GastoRecursoDialogProps {
         entityId: string;
         accountId: string;
         merchantId: string;
-        amount: number;
-        description: string;
         notes: string;
         capitalCusteio: string;
     };
@@ -44,8 +42,6 @@ interface GastoRecursoDialogProps {
         setEntityId: (v: string) => void;
         setAccountId: (v: string) => void;
         setMerchantId: (v: string) => void;
-        setAmount: (v: number) => void;
-        setDescription: (v: string) => void;
         setNotes: (v: string) => void;
         setCapitalCusteio: (v: string) => void;
     };
@@ -60,6 +56,7 @@ interface BatchExpenseItem {
     id: string;
     amount: number;
     description: string;
+    date: string;
 }
 
 export function GastoRecursoDialog({
@@ -75,7 +72,7 @@ export function GastoRecursoDialog({
 }: GastoRecursoDialogProps) {
     const [isBatchMode, setIsBatchMode] = useState(false);
     const [batchItems, setBatchItems] = useState<BatchExpenseItem[]>([
-        { id: crypto.randomUUID(), amount: 0, description: "" }
+        { id: crypto.randomUUID(), amount: 0, description: "", date: state.date }
     ]);
 
     const createTransaction = useCreateResourceTransaction();
@@ -84,11 +81,11 @@ export function GastoRecursoDialog({
     const selectedAccount = accounts.find(a => a.id === state.accountId);
 
     const calculateTotal = () => batchItems.reduce((acc, item) => acc + item.amount, 0);
-    const totalAmount = isBatchMode ? calculateTotal() : state.amount;
+    const totalAmount = calculateTotal();
     const willBeNegative = selectedAccount && (Number(selectedAccount.balance) - totalAmount < 0);
 
     const handleAddBatchItem = () => {
-        setBatchItems([...batchItems, { id: crypto.randomUUID(), amount: 0, description: "" }]);
+        setBatchItems([...batchItems, { id: crypto.randomUUID(), amount: 0, description: "", date: state.date }]);
     };
 
     const handleRemoveBatchItem = (id: string) => {
@@ -111,7 +108,7 @@ export function GastoRecursoDialog({
             for (const item of validItems) {
                 await createTransaction.mutateAsync({
                     transaction: {
-                        transaction_date: state.date,
+                        transaction_date: item.date,
                         module: "pix_direto_uecx", // Default for direct resource expense
                         entity_id: state.entityId,
                         source_account_id: state.accountId,
@@ -125,8 +122,7 @@ export function GastoRecursoDialog({
                 });
             }
             toast.success(`${validItems.length} gastos de recursos registrados.`);
-            setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "" }]);
-            setIsBatchMode(false);
+            setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }]);
             onOpenChange(false);
         } catch (error) {
             // Error managed by mutation
@@ -135,18 +131,9 @@ export function GastoRecursoDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className={`max-h-[90vh] overflow-y-auto ${isBatchMode ? 'max-w-2xl' : 'max-w-md'}`}>
+            <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
                 <DialogHeader className="flex flex-row items-center justify-between pr-8">
-                    <DialogTitle>Gasto de Recurso</DialogTitle>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className={`h-8 gap-2 ${isBatchMode ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}`}
-                        onClick={() => setIsBatchMode(!isBatchMode)}
-                    >
-                        {isBatchMode ? <User className="h-4 w-4" /> : <ListPlus className="h-4 w-4" />}
-                        {isBatchMode ? "Modo Individual" : "Modo em Lote"}
-                    </Button>
+                    <DialogTitle>Gasto de Recurso (Lote)</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 pt-4">
@@ -209,62 +196,56 @@ export function GastoRecursoDialog({
                         </Select>
                     </div>
 
-                    {!isBatchMode ? (
-                        <>
-                            <div className="space-y-2">
-                                <Label>Valor (R$) *</Label>
-                                <CurrencyInput value={state.amount} onChange={setters.setAmount} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Descrição *</Label>
-                                <Input value={state.description} onChange={(e) => setters.setDescription(e.target.value)} placeholder="Ex: Pagamento de materiais" />
-                            </div>
-                        </>
-                    ) : (
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center">
-                                <Label className="font-medium">Itens ({batchItems.length})</Label>
-                                <Button variant="outline" size="sm" onClick={handleAddBatchItem}>
-                                    <Plus className="w-4 h-4 mr-1" /> Item
-                                </Button>
-                            </div>
-                            <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
-                                {batchItems.map((item) => (
-                                    <div key={item.id} className="grid grid-cols-12 gap-2 items-end p-2 border rounded bg-muted/20">
-                                        <div className="col-span-3 space-y-1">
-                                            <Label className="text-[10px]">Valor</Label>
-                                            <CurrencyInput
-                                                value={item.amount}
-                                                onChange={(v) => updateBatchItem(item.id, 'amount', v)}
-                                            />
-                                        </div>
-                                        <div className="col-span-8 space-y-1">
-                                            <Label className="text-[10px]">Descrição *</Label>
-                                            <Input
-                                                value={item.description}
-                                                onChange={(e) => updateBatchItem(item.id, 'description', e.target.value)}
-                                                placeholder="Ex: Produto X"
-                                                className="h-10"
-                                            />
-                                        </div>
-                                        <div className="col-span-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-10 w-10 text-destructive"
-                                                onClick={() => handleRemoveBatchItem(item.id)}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="text-right font-bold text-lg">
-                                Total: <span className="text-destructive">{formatCurrencyBRL(calculateTotal())}</span>
-                            </div>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <Label className="font-medium">Itens ({batchItems.length})</Label>
+                            <Button variant="outline" size="sm" onClick={handleAddBatchItem}>
+                                <Plus className="w-4 h-4 mr-1" /> Item
+                            </Button>
                         </div>
-                    )}
+                        <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
+                            {batchItems.map((item) => (
+                                <div key={item.id} className="grid grid-cols-12 gap-2 items-end p-2 border rounded bg-muted/20">
+                                    <div className="col-span-3 space-y-1">
+                                        <Label className="text-[10px]">Data</Label>
+                                        <DateInput
+                                            value={item.date}
+                                            onChange={(v) => updateBatchItem(item.id, 'date', v)}
+                                        />
+                                    </div>
+                                    <div className="col-span-2 space-y-1">
+                                        <Label className="text-[10px]">Valor</Label>
+                                        <CurrencyInput
+                                            value={item.amount}
+                                            onChange={(v) => updateBatchItem(item.id, 'amount', v)}
+                                        />
+                                    </div>
+                                    <div className="col-span-6 space-y-1">
+                                        <Label className="text-[10px]">Descrição *</Label>
+                                        <Input
+                                            value={item.description}
+                                            onChange={(e) => updateBatchItem(item.id, 'description', e.target.value)}
+                                            placeholder="Ex: Produto X"
+                                            className="h-10"
+                                        />
+                                    </div>
+                                    <div className="col-span-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-10 w-10 text-destructive"
+                                            onClick={() => handleRemoveBatchItem(item.id)}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="text-right font-bold text-lg">
+                            Total: <span className="text-destructive">{formatCurrencyBRL(calculateTotal())}</span>
+                        </div>
+                    </div>
 
                     <div className="space-y-2">
                         <Label>Capital/Custeio (opcional)</Label>
@@ -294,17 +275,10 @@ export function GastoRecursoDialog({
 
                     <Button
                         className="w-full bg-destructive hover:bg-destructive/90"
-                        onClick={async () => {
-                            if (isBatchMode) {
-                                await handleBatchSubmit();
-                            } else {
-                                const success = await onSubmit();
-                                if (success) onOpenChange(false);
-                            }
-                        }}
-                        disabled={isLoading || createTransaction.isPending || !state.entityId || !state.accountId || !state.merchantId || (!isBatchMode && (!state.description || state.description.length < 5))}
+                        onClick={handleBatchSubmit}
+                        disabled={isLoading || createTransaction.isPending || !state.entityId || !state.accountId || !state.merchantId}
                     >
-                        {isLoading || createTransaction.isPending ? "Processando..." : (isBatchMode ? "Lançar Lote" : "Registrar Gasto")}
+                        {isLoading || createTransaction.isPending ? "Processando..." : "Lançar Lote"}
                     </Button>
                 </div>
             </DialogContent>

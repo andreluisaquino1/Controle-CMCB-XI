@@ -24,8 +24,6 @@ interface AssociacaoState {
     gasto: {
         date: string;
         meio: string;
-        valor: number;
-        descricao: string;
         obs: string;
     };
     mov: {
@@ -55,7 +53,7 @@ export function useAssociacaoActions(
 
     const [state, setState] = useState<AssociacaoState>({
         mensalidade: { date: getTodayString(), turno: "", cash: 0, pix: 0, obs: "" },
-        gasto: { date: getTodayString(), meio: "cash", valor: 0, descricao: "", obs: "" },
+        gasto: { date: getTodayString(), meio: "cash", obs: "" },
         mov: { date: getTodayString(), de: "", para: "", valor: 0, taxa: 0, descricao: "", obs: "" },
         ajuste: { date: getTodayString(), accountId: "", valor: 0, motivo: "", obs: "" },
     });
@@ -79,8 +77,6 @@ export function useAssociacaoActions(
         setMensalidadeObs: (obs: string) => setState((s) => ({ ...s, mensalidade: { ...s.mensalidade, obs } })),
         setGastoDate: (date: string) => setState((s) => ({ ...s, gasto: { ...s.gasto, date } })),
         setGastoMeio: (meio: string) => setState((s) => ({ ...s, gasto: { ...s.gasto, meio } })),
-        setGastoValor: (valor: number) => setState((s) => ({ ...s, gasto: { ...s.gasto, valor } })),
-        setGastoDescricao: (descricao: string) => setState((s) => ({ ...s, gasto: { ...s.gasto, descricao } })),
         setGastoObs: (obs: string) => setState((s) => ({ ...s, gasto: { ...s.gasto, obs } })),
         setMovDate: (date: string) => setState((s) => ({ ...s, mov: { ...s.mov, date } })),
         setMovDe: (de: string) => setState((s) => ({ ...s, mov: { ...s.mov, de } })),
@@ -103,7 +99,7 @@ export function useAssociacaoActions(
     }, []);
 
     const resetGasto = useCallback(() => {
-        setState((s) => ({ ...s, gasto: { date: getTodayString(), meio: "cash", valor: 0, descricao: "", obs: "" } }));
+        setState((s) => ({ ...s, gasto: { date: getTodayString(), meio: "cash", obs: "" } }));
     }, []);
 
     const resetMov = useCallback(() => {
@@ -192,53 +188,6 @@ export function useAssociacaoActions(
         }
     };
 
-    const handleGastoSubmit = async (strictBalance: boolean = false): Promise<boolean> => {
-        const result = gastoAssociacaoSchema.safeParse(state.gasto);
-        if (!result.success) {
-            toast.error(result.error.errors[0].message);
-            return false;
-        }
-
-        if (!associacaoEntity) {
-            toast.error("Entidade não encontrada.");
-            return false;
-        }
-
-        const sourceAccount = state.gasto.meio === "cash" ? especieAccount : pixAccount;
-        if (!sourceAccount) {
-            toast.error("Conta de origem não encontrada.");
-            return false;
-        }
-
-        if (strictBalance && state.gasto.valor > sourceAccount.balance) {
-            toast.error(`Saldo insuficiente em ${sourceAccount.name}.`);
-            return false;
-        }
-
-        try {
-            await createTransaction.mutateAsync({
-                transaction: {
-                    transaction_date: state.gasto.date,
-                    module: "gasto_associacao",
-                    entity_id: associacaoEntity.id,
-                    source_account_id: sourceAccount.id,
-                    amount: state.gasto.valor,
-                    direction: "out",
-                    payment_method: state.gasto.meio as "cash" | "pix",
-                    description: state.gasto.descricao,
-                    notes: state.gasto.obs || null,
-                },
-            });
-
-            toast.success("Gasto registrado.");
-            resetGasto();
-            if (onSuccess) onSuccess();
-            return true;
-        } catch (error) {
-            toast.error("Falha ao registrar gasto.");
-            return false;
-        }
-    };
 
     const handleMovimentarSubmit = async (): Promise<boolean> => {
         const result = movimentarSaldoSchema.safeParse(state.mov);
@@ -369,7 +318,6 @@ export function useAssociacaoActions(
         setters,
         handlers: {
             handleMensalidadeSubmit,
-            handleGastoSubmit,
             handleMovimentarSubmit,
             handleAjusteSubmit,
             resetMensalidade,

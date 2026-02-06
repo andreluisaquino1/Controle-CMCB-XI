@@ -76,8 +76,6 @@ export default function RecursosPage() {
     entityId: "",
     accountId: "",
     merchantId: "",
-    amount: 0,
-    description: "",
     notes: "",
     capitalCusteio: "",
   });
@@ -85,9 +83,7 @@ export default function RecursosPage() {
   const setGastoDate = (date: string) => setGasto(prev => ({ ...prev, date }));
   const setGastoEntityId = (entityId: string) => setGasto(prev => ({ ...prev, entityId, accountId: "" }));
   const setGastoAccountId = (accountId: string) => setGasto(prev => ({ ...prev, accountId }));
-  const setGastoAmount = (amount: number) => setGasto(prev => ({ ...prev, amount }));
   const setGastoMerchantId = (merchantId: string) => setGasto(prev => ({ ...prev, merchantId }));
-  const setGastoDescription = (description: string) => setGasto(prev => ({ ...prev, description }));
   const setGastoNotes = (notes: string) => setGasto(prev => ({ ...prev, notes }));
   const setGastoCapitalCusteio = (capitalCusteio: string) => setGasto(prev => ({ ...prev, capitalCusteio }));
 
@@ -97,8 +93,6 @@ export default function RecursosPage() {
       entityId: "",
       accountId: "",
       merchantId: "",
-      amount: 0,
-      description: "",
       notes: "",
       capitalCusteio: "",
     });
@@ -141,40 +135,6 @@ export default function RecursosPage() {
     }
   };
 
-  const handleGastoSubmit = async () => {
-    if (!gasto.merchantId) {
-      toast.error("Selecione um estabelecimento.");
-      return false;
-    }
-    setActionsLoading(true);
-    try {
-      await createTransaction.mutateAsync({
-        transaction: {
-          transaction_date: gasto.date,
-          module: "aporte_estabelecimento_recurso",
-          entity_id: gasto.entityId,
-          source_account_id: gasto.accountId,
-          destination_account_id: null,
-          merchant_id: gasto.merchantId,
-          amount: gasto.amount,
-          direction: "transfer", // Debita conta, credita merchant
-          payment_method: "pix",
-          origin_fund: entities.find(e => e.id === gasto.entityId)?.type === "ue" ? "UE" : "CX",
-          description: gasto.description,
-          notes: gasto.notes || null,
-          capital_custeio: (gasto.capitalCusteio as any) || null,
-        },
-      });
-      toast.success("Gasto de recurso registrado com sucesso.");
-      resetGasto();
-      setOpenDialog(null);
-      return true;
-    } catch (error) {
-      return false;
-    } finally {
-      setActionsLoading(false);
-    }
-  };
 
   const handleVoidTx = async () => {
     if (!voidingId || !voidReason.trim()) return;
@@ -416,15 +376,13 @@ export default function RecursosPage() {
             setEntityId: setGastoEntityId,
             setAccountId: setGastoAccountId,
             setMerchantId: setGastoMerchantId,
-            setAmount: setGastoAmount,
-            setDescription: setGastoDescription,
             setNotes: setGastoNotes,
             setCapitalCusteio: setGastoCapitalCusteio,
           }}
           entities={entities}
           accounts={accounts}
           merchants={merchantsData || []}
-          onSubmit={handleGastoSubmit}
+          onSubmit={async () => true} // Not used as dialog handles its own batch submit
           isLoading={actionsLoading}
         />
 

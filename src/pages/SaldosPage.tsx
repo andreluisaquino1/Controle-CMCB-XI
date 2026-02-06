@@ -63,11 +63,11 @@ export default function SaldosPage() {
   const { aporte, gasto, newMerchantName, editingMerchant, deletingMerchant } = state;
   const {
     setAporteDate, setAporteOrigem, setAporteAccount, setAporteMerchant, setAporteValor, setAporteDescricao, setAporteObs, setAporteCapitalCusteio,
-    setGastoDate, setGastoMerchant, setGastoValor, setGastoDescricao, setGastoObs,
+    setGastoDate, setGastoMerchant, setGastoObs,
     setNewMerchantName, setEditingMerchant, setDeletingMerchant
   } = setters;
   const {
-    handleAddMerchant, handleEditMerchant, handleDeleteMerchant, handleAporteSubmit, handleGastoSubmit, resetAporte, resetGasto
+    handleAddMerchant, handleEditMerchant, handleDeleteMerchant, handleAporteSubmit, resetAporte, resetGasto
   } = handlers;
 
   const [voidingId, setVoidingId] = useState<string | null>(null);
@@ -323,12 +323,10 @@ export default function SaldosPage() {
           setters={{
             setDate: setGastoDate,
             setMerchant: setGastoMerchant,
-            setValor: setGastoValor,
-            setDescricao: setGastoDescricao,
             setObs: setGastoObs,
           }}
           merchants={merchants || []}
-          onSubmit={handleGastoSubmit}
+          onSubmit={async () => true} // Not used as dialog handles its own batch submit
           isLoading={actionsLoading}
         />
 

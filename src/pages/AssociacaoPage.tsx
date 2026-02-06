@@ -46,7 +46,6 @@ import { AjustarSaldoDialog } from "@/components/forms/AjustarSaldoDialog";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
 import { PixFeeBatchDialog } from "@/components/forms/PixFeeBatchDialog";
 import { PixNaoIdentificadoDialog } from "@/components/forms/PixNaoIdentificadoDialog";
-import { GastoBatchDialog } from "@/components/forms/GastoBatchDialog";
 import { FileText, Ghost, ListPlus } from "lucide-react";
 
 export default function AssociacaoPage() {
@@ -54,8 +53,7 @@ export default function AssociacaoPage() {
   const voidTransaction = useVoidTransaction();
   const { data: accounts, isLoading: accountsLoading } = useAssociacaoAccounts();
   const { data: entities } = useEntities();
-  const { data: transactions, isLoading: transactionsLoading } = useAssociacaoTransactions();
-  const { shortcuts, addShortcut, removeShortcut } = useExpenseShortcuts();
+  const { data: transitions, isLoading: transactionsLoading } = useAssociacaoTransactions();
 
   const associacaoEntity = entities?.find(e => e.type === "associacao");
   const specieAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE);
@@ -74,20 +72,17 @@ export default function AssociacaoPage() {
   const { mensalidade, gasto, mov, ajuste } = state;
   const {
     setMensalidadeDate, setMensalidadeTurno, setMensalidadeCash, setMensalidadePix, setMensalidadeObs,
-    setGastoDate, setGastoMeio, setGastoValor, setGastoDescricao, setGastoObs,
+    setGastoDate, setGastoMeio, setGastoObs,
     setMovDate, setMovDe, setMovPara, setMovValor, setMovDescricao, setMovObs,
     setMovTaxa,
     setAjusteDate, setAjusteAccountId, setAjusteValor, setAjusteMotivo, setAjusteObs,
   } = setters;
   const {
-    handleMensalidadeSubmit, handleGastoSubmit, handleMovimentarSubmit,
+    handleMensalidadeSubmit, handleMovimentarSubmit,
     handleAjusteSubmit,
     resetMensalidade, resetGasto, resetMov, resetAjuste
   } = handlers;
 
-  // Shortcuts UI state (kept here as it's purely UI transition)
-  const [newShortcut, setNewShortcut] = useState("");
-  const [showShortcutInput, setShowShortcutInput] = useState(false);
 
   // Void transaction state
   const [voidingId, setVoidingId] = useState<string | null>(null);
@@ -244,14 +239,9 @@ export default function AssociacaoPage() {
             setters={{
               setDate: setGastoDate,
               setMeio: setGastoMeio,
-              setValor: setGastoValor,
-              setDescricao: setGastoDescricao,
               setObs: setGastoObs,
             }}
-            shortcuts={shortcuts}
-            addShortcut={addShortcut}
-            removeShortcut={removeShortcut}
-            onSubmit={handleGastoSubmit}
+            onSubmit={async () => true} // Not used as dialog handles its own batch submit
             isLoading={actionsLoading}
           />
 
@@ -355,7 +345,7 @@ export default function AssociacaoPage() {
           </CardHeader>
           <CardContent>
             <TransactionTable
-              transactions={transactions}
+              transactions={transitions}
               isLoading={transactionsLoading}
               onVoid={(id) => setVoidingId(id)}
             />

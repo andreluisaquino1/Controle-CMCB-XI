@@ -33,8 +33,6 @@ export function useSaldosActions(
     const [gasto, setGasto] = useState({
         date: getTodayString(),
         merchant: "",
-        valor: 0,
-        descricao: "",
         obs: ""
     });
 
@@ -64,8 +62,6 @@ export function useSaldosActions(
         setGasto({
             date: getTodayString(),
             merchant: "",
-            valor: 0,
-            descricao: "",
             obs: ""
         });
     };
@@ -162,35 +158,6 @@ export function useSaldosActions(
         }
     };
 
-    const handleGastoSubmit = async () => {
-        const validation = consumoSaldoSchema.safeParse(gasto);
-        if (!validation.success) {
-            toast.error(validation.error.errors[0].message);
-            return false;
-        }
-
-        try {
-            await createTransaction.mutateAsync({
-                transaction: {
-                    transaction_date: gasto.date,
-                    module: "consumo_saldo",
-                    merchant_id: gasto.merchant,
-                    amount: gasto.valor,
-                    direction: "out",
-                    description: gasto.descricao,
-                    notes: gasto.obs || null,
-                },
-            });
-
-            toast.success("Consumo registrado.");
-            resetGasto();
-            if (onSuccess) onSuccess();
-            return true;
-        } catch (error) {
-            toast.error("Falha ao registrar consumo.");
-            return false;
-        }
-    };
 
     return {
         state: {
@@ -212,8 +179,6 @@ export function useSaldosActions(
 
             setGastoDate: (date: string) => setGasto(p => ({ ...p, date })),
             setGastoMerchant: (merchant: string) => setGasto(p => ({ ...p, merchant })),
-            setGastoValor: (valor: number) => setGasto(p => ({ ...p, valor })),
-            setGastoDescricao: (descricao: string) => setGasto(p => ({ ...p, descricao })),
             setGastoObs: (obs: string) => setGasto(p => ({ ...p, obs })),
 
             setNewMerchantName,
@@ -225,7 +190,6 @@ export function useSaldosActions(
             handleEditMerchant,
             handleDeleteMerchant,
             handleAporteSubmit,
-            handleGastoSubmit,
             resetAporte,
             resetGasto
         },
