@@ -20,6 +20,8 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
     especie_deposito_pix: "Depósito PIX",
     especie_ajuste: "Ajuste de Saldo",
     cofre_ajuste: "Ajuste de Cofre",
+    conta_digital_ajuste: "Ajuste Conta Digital",
+    conta_digital_taxa: "Taxa Escolaweb",
 };
 
 export function useReports(

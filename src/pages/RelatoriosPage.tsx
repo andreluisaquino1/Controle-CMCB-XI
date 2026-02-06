@@ -172,9 +172,14 @@ export default function RelatoriosPage() {
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="mensalidade">Mensalidades</SelectItem>
                     <SelectItem value="gasto_associacao">Gastos Associação</SelectItem>
-                    <SelectItem value="aporte_saldo">Aportes</SelectItem>
-                    <SelectItem value="consumo_saldo">Consumos</SelectItem>
-                    <SelectItem value="pix_direto_uecx">Recursos</SelectItem>
+                    <SelectItem value="especie_transfer">Movimentações</SelectItem>
+                    <SelectItem value="conta_digital_taxa">Taxas Escolaweb</SelectItem>
+                    <SelectItem value="conta_digital_ajuste">Ajustes Conta Digital</SelectItem>
+                    <SelectItem value="especie_ajuste">Ajustes Espécie</SelectItem>
+                    <SelectItem value="cofre_ajuste">Ajustes Cofre</SelectItem>
+                    <SelectItem value="aporte_saldo">Aportes Estabelecimento</SelectItem>
+                    <SelectItem value="consumo_saldo">Consumos Estabelecimento</SelectItem>
+                    <SelectItem value="pix_direto_uecx">Gasto de Recurso (UE/CX)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

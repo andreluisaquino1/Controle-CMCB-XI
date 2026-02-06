@@ -88,7 +88,7 @@ export default function SaldosPage() {
     if (aporte.origem === "CX") return acc.entity_id === cxEntity?.id;
     return false;
   }) || []).sort((a, b) => {
-    const order = ["Espécie", "PIX", "Cofre"];
+    const order = ["Espécie", "PIX (Conta BB)", "Conta Digital (Escolaweb)", "Cofre"];
     const idxA = order.indexOf(a.name);
     const idxB = order.indexOf(b.name);
     if (idxA !== -1 && idxB !== -1) return idxA - idxB;
