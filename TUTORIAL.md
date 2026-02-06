@@ -24,7 +24,8 @@ Ao acessar o sistema, utilize seu e-mail e senha cadastrados.
 Acesse clicando em **Perfil** no menu lateral.
 - **Alterar Nome**: Atualize seu nome de exibição.
 - **Alterar Senha**: Permite trocar sua senha atual por uma nova.
-- **Status da Conta**: Exibe se seu usuário está "Ativo" ou "Pendente".
+- **Nível de Acesso**: No perfil, você pode visualizar se sua conta tem permissão de **Administrador**, **Usuário Comum** ou **Demonstração**.
+- **Status da Conta**: Caso sua conta ainda não tenha sido autorizada, você verá uma tela de bloqueio informando **"Aguardando Ativação"**. Ao entrar no sistema, sua conta já estará plenamente ativa.
 
 ---
 
@@ -70,7 +71,12 @@ Transferência de valores entre contas internas.
 
 #### **4. Ajustar Saldo (Correção)**
 Ferramenta administrativa para correção de saldos em caso de divergência.
-- **Atenção**: Use com cautela, pois altera o saldo diretamente sem contrapartida financeira comum.
+- **Atenção**: Use com cautela. O sistema exibirá uma **confirmação de segurança** mostrando o impacto antes da conclusão.
+
+### Segurança e Validação
+Para garantir a integridade da auditoria, o sistema agora exige:
+- **Justificativas Obrigatórias**: Qualquer anulação, ajuste ou movimentação exige uma descrição de no mínimo **5 caracteres**.
+- **Confirmações de Ação**: Operações críticas (anular, ajustar, transferir) agora exibem um diálogo de confirmação para evitar cliques acidentais.
 
 ### Histórico
 Tabela completa de todas as movimentações da Associação. Use o botão de **Lixeira** para anular um lançamento incorreto (requer justificativa).
@@ -142,11 +148,11 @@ Central de prestação de contas.
 
 ## 7. Administração e Logs
 
-### Usuários (Apenas Admin)
+### Usuários (Exclusivo Admin)
 - Permite cadastrar novos usuários, ativar/desativar acessos e definir permissões (Admin, Usuário Comum, Visitante).
-- **Importante**: Novos cadastros ficam como "Pendentes" até que um Admin os ative nesta tela.
+- **Importante**: Por segurança, estas rotas são acessíveis apenas para administradores.
 
-### Logs (Auditoria)
-- Exibe um registro imutável de todas as **Anulações** de transações feitas no sistema.
-- Mostra: Quem anulou, quando, qual foi a transação original e o motivo justificado.
+### Logs e Auditoria (Exclusivo Admin)
+- Exibe um registro imutável de todas as **Anulações** e **Eventos de Segurança** (como mudanças de cargos).
+- **Filtros**: Agora você pode filtrar por data, usuário ou tipo de ação.
 - Garante transparência e segurança nas correções de lançamentos.

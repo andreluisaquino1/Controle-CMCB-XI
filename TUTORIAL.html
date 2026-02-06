@@ -207,7 +207,10 @@
     <ul>
         <li><strong>Alterar Nome</strong>: Atualize seu nome de exibição.</li>
         <li><strong>Alterar Senha</strong>: Permite trocar sua senha atual.</li>
-        <li><strong>Status da Conta</strong>: Exibe se seu usuário está "Ativo" ou "Pendente".</li>
+        <li><strong>Nível de Acesso</strong>: No perfil, você visualiza se sua conta é <strong>Administrador</strong>,
+            <strong>Usuário</strong> ou <strong>Demo</strong>.</li>
+        <li><strong>Status da Conta</strong>: Se ainda não foi autorizado, você verá a tela <strong>"Aguardando
+                Ativação"</strong>. Se entrou no sistema, sua conta está 100% ativa.</li>
     </ul>
 
     <h2 id="dashboard">2. Dashboard (Visão Geral)</h2>
@@ -249,7 +252,17 @@
     <p>Transferência entre contas internas. Ex: Sangria (Espécie para Cofre) ou Depósito.</p>
 
     <h4>4. Ajustar Saldo (Correção)</h4>
-    <p>Ferramenta administrativa para correção de saldos (use com cautela).</p>
+    <p>Ferramenta administrativa para correção de saldos (use com cautela). O sistema exibirá uma <strong>confirmação de
+            segurança</strong> com o impacto previsto.</p>
+
+    <h3>Segurança e Validação</h3>
+    <p>Para garantir a integridade da auditoria, o sistema agora exige:</p>
+    <ul>
+        <li><strong>Justificativas Obrigatórias</strong>: Anulações, ajustes ou movimentações exigem no mínimo <strong>5
+                caracteres</strong>.</li>
+        <li><strong>Confirmações de Ação</strong>: Operações críticas exibem um diálogo de confirmação para evitar
+            erros.</li>
+    </ul>
 
     <h3>Histórico</h3>
     <p>Tabela de movimentações. Use a <strong>Lixeira</strong> para anular lançamentos (requer justificativa).</p>
@@ -311,11 +324,13 @@
 
     <h2 id="admin">7. Administração e Logs</h2>
 
-    <h3>Usuários (Apenas Admin)</h3>
-    <p>Cadastrar usuários, ativar/desativar acessos e definir permissões. Novos cadastros ficam como "Pendentes".</p>
+    <h3>Usuários (Exclusivo Admin)</h3>
+    <p>Cadastrar usuários, ativar/desativar acessos e definir permissões. Por segurança, estas rotas são restritas a
+        administradores.</p>
 
-    <h3>Logs (Auditoria)</h3>
-    <p>Registro imutável de <strong>Anulações</strong>. Mostra quem anulou, quando e o motivo.</p>
+    <h3>Logs e Auditoria (Exclusivo Admin)</h3>
+    <p>Registro imutável de <strong>Anulações</strong> e <strong>Eventos de Segurança</strong>. Agora com
+        <strong>filtros avançados</strong> por data, usuário e ação.</p>
 
 </body>
 

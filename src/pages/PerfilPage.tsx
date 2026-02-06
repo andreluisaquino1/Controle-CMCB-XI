@@ -155,10 +155,22 @@ export default function PerfilPage() {
                 placeholder="Seu nome"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${profile?.active ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
-                {profile?.active ? "Ativo" : "Aguardando liberação"}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Status da Conta</Label>
+                <div>
+                  <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${profile?.active ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
+                    {profile?.active ? "Ativo" : "Aguardando liberação"}
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Nível de Acesso</Label>
+                <div>
+                  <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary uppercase">
+                    {profile?.role === "admin" ? "Administrador" : profile?.role === "demo" ? "Demonstração" : "Usuário Comum"}
+                  </div>
+                </div>
               </div>
             </div>
             <Button onClick={handleUpdateName} disabled={isUpdatingName}>
