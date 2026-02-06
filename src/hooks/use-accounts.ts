@@ -294,3 +294,26 @@ export function useDeactivateAccount() {
     },
   });
 }
+export function useActivateAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("accounts")
+        .update({ active: true })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
+      toast.success("Conta reativada.");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Não foi possível reativar.");
+    },
+  });
+}

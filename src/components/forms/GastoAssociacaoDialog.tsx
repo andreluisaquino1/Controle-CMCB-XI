@@ -76,8 +76,8 @@ export function GastoAssociacaoDialog({
     const createTransaction = useCreateTransaction();
 
     const associacaoEntity = entities?.find(e => e.type === "associacao");
-    const especieAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE);
-    const pixAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.PIX);
+    const especieAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE && a.active);
+    const pixAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.PIX && a.active);
 
     const handleAddBatchItem = () => {
         setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }, ...batchItems]);
@@ -114,8 +114,7 @@ export function GastoAssociacaoDialog({
 
         const total = calculateTotal();
         if (total > sourceAccount.balance) {
-            toast.error(`Saldo insuficiente em ${sourceAccount.name}.`);
-            return;
+            toast.warning(`Saldo insuficiente em ${sourceAccount.name}. O lançamento será registrado com saldo negativo.`);
         }
 
         try {

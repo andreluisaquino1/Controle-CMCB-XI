@@ -55,7 +55,7 @@ export function EntradaRecursoDialog({
     onSubmit,
     isLoading,
 }: EntradaRecursoDialogProps) {
-    const filteredAccounts = accounts.filter(acc => acc.entity_id === state.entityId);
+    const filteredAccounts = accounts.filter(acc => acc.entity_id === state.entityId && acc.active);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

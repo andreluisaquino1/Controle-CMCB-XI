@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
-import { Building2, Loader2, ArrowUpCircle, ArrowDownCircle, ScrollText, Pencil, Trash2, Plus, XCircle } from "lucide-react";
+import { Building2, Loader2, ArrowUpCircle, ArrowDownCircle, ScrollText, Pencil, Trash2, Plus, XCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useCreateTransaction, useCreateResourceTransaction, useVoidTransaction } from "@/hooks/use-transactions";
-import { useEntitiesWithAccounts, useCreateAccount, useUpdateAccount, useDeactivateAccount } from "@/hooks/use-accounts";
+import { useEntitiesWithAccounts, useCreateAccount, useUpdateAccount, useDeactivateAccount, useActivateAccount } from "@/hooks/use-accounts";
 import { useMerchants } from "@/hooks/use-merchants";
 import { useRecursosTransactions } from "@/hooks/use-entity-transactions";
 import { getTodayString } from "@/lib/date-utils";
@@ -39,6 +39,7 @@ export default function RecursosPage() {
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
   const deactivateAccount = useDeactivateAccount();
+  const activateAccount = useActivateAccount();
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [deactivatingAccount, setDeactivatingAccount] = useState<Account | null>(null);
 
@@ -99,6 +100,18 @@ export default function RecursosPage() {
   };
 
   const [actionsLoading, setActionsLoading] = useState(false);
+
+  const handleActivateAccount = async (id: string) => {
+    setActionsLoading(true);
+    try {
+      await activateAccount.mutateAsync(id);
+      refetchEntities();
+    } catch (error) {
+      console.error("Error activating account:", error);
+    } finally {
+      setActionsLoading(false);
+    }
+  };
 
   const ueEntity = entitiesData?.entities?.find(e => e.type === "ue");
   const cxEntity = entitiesData?.entities?.find(e => e.type === "cx");
@@ -242,8 +255,12 @@ export default function RecursosPage() {
                             <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Inativo</span>
                           )}
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                            <button className="text-muted-foreground hover:text-primary transition-colors" onClick={() => setEditingAccount(acc)}><Pencil className="h-3 w-3" /></button>
-                            <button className="text-muted-foreground hover:text-destructive transition-colors" onClick={() => setDeactivatingAccount(acc)}><Trash2 className="h-3 w-3" /></button>
+                            <button className="text-muted-foreground hover:text-primary transition-colors" title="Editar" onClick={() => setEditingAccount(acc)}><Pencil className="h-3 w-3" /></button>
+                            {acc.active ? (
+                              <button className="text-muted-foreground hover:text-destructive transition-colors" title="Desativar" onClick={() => setDeactivatingAccount(acc)}><Trash2 className="h-3 w-3" /></button>
+                            ) : (
+                              <button className="text-muted-foreground hover:text-primary transition-colors" title="Reativar" onClick={() => handleActivateAccount(acc.id)}><RefreshCw className="h-3 w-3" /></button>
+                            )}
                           </div>
                         </div>
                         <p className="text-[10px] text-muted-foreground">{acc.account_number || "Sem conta"}</p>
@@ -273,8 +290,12 @@ export default function RecursosPage() {
                             <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Inativo</span>
                           )}
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                            <button className="text-muted-foreground hover:text-primary transition-colors" onClick={() => setEditingAccount(acc)}><Pencil className="h-3 w-3" /></button>
-                            <button className="text-muted-foreground hover:text-destructive transition-colors" onClick={() => setDeactivatingAccount(acc)}><Trash2 className="h-3 w-3" /></button>
+                            <button className="text-muted-foreground hover:text-primary transition-colors" title="Editar" onClick={() => setEditingAccount(acc)}><Pencil className="h-3 w-3" /></button>
+                            {acc.active ? (
+                              <button className="text-muted-foreground hover:text-destructive transition-colors" title="Desativar" onClick={() => setDeactivatingAccount(acc)}><Trash2 className="h-3 w-3" /></button>
+                            ) : (
+                              <button className="text-muted-foreground hover:text-primary transition-colors" title="Reativar" onClick={() => handleActivateAccount(acc.id)}><RefreshCw className="h-3 w-3" /></button>
+                            )}
                           </div>
                         </div>
                         <p className="text-[10px] text-muted-foreground">{acc.account_number || "Sem conta"}</p>

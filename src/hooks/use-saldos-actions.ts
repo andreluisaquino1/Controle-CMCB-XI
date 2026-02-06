@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Merchant, Entity, Account } from "@/types";
 import { toast } from "sonner";
 import { useCreateTransaction } from "@/hooks/use-transactions";
-import { useCreateMerchant, useUpdateMerchant, useDeactivateMerchant } from "@/hooks/use-merchants";
+import { useCreateMerchant, useUpdateMerchant, useDeactivateMerchant, useActivateMerchant } from "@/hooks/use-merchants";
 import { getTodayString } from "@/lib/date-utils";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { aporteSaldoSchema, consumoSaldoSchema } from "@/lib/schemas";
@@ -16,6 +16,7 @@ export function useSaldosActions(
     const createMerchant = useCreateMerchant();
     const updateMerchant = useUpdateMerchant();
     const deactivateMerchant = useDeactivateMerchant();
+    const activateMerchant = useActivateMerchant();
 
     // Aporte state
     const [aporte, setAporte] = useState({
@@ -33,6 +34,8 @@ export function useSaldosActions(
     const [gasto, setGasto] = useState({
         date: getTodayString(),
         merchant: "",
+        valor: 0,
+        descricao: "",
         obs: ""
     });
 
@@ -62,6 +65,8 @@ export function useSaldosActions(
         setGasto({
             date: getTodayString(),
             merchant: "",
+            valor: 0,
+            descricao: "",
             obs: ""
         });
     };
@@ -95,6 +100,16 @@ export function useSaldosActions(
         try {
             await deactivateMerchant.mutateAsync(id);
             setDeletingMerchant(null);
+            if (onSuccess) onSuccess();
+            return true;
+        } catch (error) {
+            return false;
+        }
+    };
+
+    const handleActivateMerchant = async (id: string) => {
+        try {
+            await activateMerchant.mutateAsync(id);
             if (onSuccess) onSuccess();
             return true;
         } catch (error) {
@@ -179,6 +194,8 @@ export function useSaldosActions(
 
             setGastoDate: (date: string) => setGasto(p => ({ ...p, date })),
             setGastoMerchant: (merchant: string) => setGasto(p => ({ ...p, merchant })),
+            setGastoValor: (valor: number) => setGasto(p => ({ ...p, valor })),
+            setGastoDescricao: (descricao: string) => setGasto(p => ({ ...p, descricao })),
             setGastoObs: (obs: string) => setGasto(p => ({ ...p, obs })),
 
             setNewMerchantName,
@@ -189,10 +206,11 @@ export function useSaldosActions(
             handleAddMerchant,
             handleEditMerchant,
             handleDeleteMerchant,
+            handleActivateMerchant,
             handleAporteSubmit,
             resetAporte,
             resetGasto
         },
-        isLoading: createTransaction.isPending || createMerchant.isPending || updateMerchant.isPending || deactivateMerchant.isPending
+        isLoading: createTransaction.isPending || createMerchant.isPending || updateMerchant.isPending || deactivateMerchant.isPending || activateMerchant.isPending
     };
 }

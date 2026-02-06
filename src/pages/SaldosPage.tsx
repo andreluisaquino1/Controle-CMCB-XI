@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useState } from "react";
-import { Wallet, Plus, Minus, Store, Pencil, Trash2, Loader2, XCircle, PlusCircle, MinusCircle, ScrollText } from "lucide-react";
+import { Wallet, Plus, Minus, Store, Pencil, Trash2, Loader2, XCircle, PlusCircle, MinusCircle, ScrollText, RefreshCw } from "lucide-react";
 import { useMerchants } from "@/hooks/use-merchants";
 import { useVoidTransaction } from "@/hooks/use-transactions";
 import { useEntitiesWithAccounts } from "@/hooks/use-accounts";
@@ -63,11 +63,11 @@ export default function SaldosPage() {
   const { aporte, gasto, newMerchantName, editingMerchant, deletingMerchant } = state;
   const {
     setAporteDate, setAporteOrigem, setAporteAccount, setAporteMerchant, setAporteValor, setAporteDescricao, setAporteObs, setAporteCapitalCusteio,
-    setGastoDate, setGastoMerchant, setGastoObs,
+    setGastoDate, setGastoMerchant, setGastoValor, setGastoDescricao, setGastoObs,
     setNewMerchantName, setEditingMerchant, setDeletingMerchant
   } = setters;
   const {
-    handleAddMerchant, handleEditMerchant, handleDeleteMerchant, handleAporteSubmit, resetAporte, resetGasto
+    handleAddMerchant, handleEditMerchant, handleDeleteMerchant, handleActivateMerchant, handleAporteSubmit, resetAporte, resetGasto
   } = handlers;
 
   const [voidingId, setVoidingId] = useState<string | null>(null);
@@ -186,17 +186,33 @@ export default function SaldosPage() {
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletingMerchant({ id: merchant.id, name: merchant.name });
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        {merchant.active ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingMerchant({ id: merchant.id, name: merchant.name });
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-primary"
+                            title="Reativar"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const success = await handleActivateMerchant(merchant.id);
+                              if (success) refetchMerchants();
+                            }}
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </CardTitle>
                   </CardHeader>
@@ -323,6 +339,8 @@ export default function SaldosPage() {
           setters={{
             setDate: setGastoDate,
             setMerchant: setGastoMerchant,
+            setValor: setGastoValor,
+            setDescricao: setGastoDescricao,
             setObs: setGastoObs,
           }}
           merchants={merchants || []}

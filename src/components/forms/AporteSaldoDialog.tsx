@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
+import { formatCurrencyBRL } from "@/lib/currency";
 import { cleanAccountDisplayName } from "@/lib/account-display";
 import { sortByAccountOrder } from "@/lib/constants";
 import { Account, Merchant, Entity } from "@/types";
@@ -70,7 +71,7 @@ export function AporteSaldoDialog({
         return false;
     });
 
-    const sortedMerchants = [...(merchants || [])].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedMerchants = [...(merchants || [])].filter(m => m.active).sort((a, b) => a.name.localeCompare(b.name));
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
@@ -118,7 +119,9 @@ export function AporteSaldoDialog({
                             </SelectTrigger>
                             <SelectContent>
                                 {sortedMerchants?.map((m) => (
-                                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                                    <SelectItem key={m.id} value={m.id}>
+                                        {m.name} ({formatCurrencyBRL(Number(m.balance))})
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

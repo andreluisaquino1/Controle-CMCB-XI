@@ -40,7 +40,7 @@ interface ConsumoSaldoDialogProps {
         setDescricao: (v: string) => void;
         setObs: (v: string) => void;
     };
-    merchants: { id: string; name: string; balance: number; }[];
+    merchants: { id: string; name: string; balance: number; active: boolean; }[];
     onSubmit: () => Promise<boolean>;
     isLoading: boolean;
 }
@@ -104,9 +104,8 @@ export function ConsumoSaldoDialog({
         }
 
         const total = calculateTotal();
-        if (total > selectedMerchant.balance) {
-            toast.error(`Saldo insuficiente no estabelecimento ${selectedMerchant.name}.`);
-            return;
+        if (total > Number(selectedMerchant.balance)) {
+            toast.warning(`Saldo insuficiente no estabelecimento ${selectedMerchant.name}. Disponível: ${formatCurrencyBRL(Number(selectedMerchant.balance))}. O lançamento será registrado com saldo negativo.`);
         }
 
         try {
@@ -151,7 +150,7 @@ export function ConsumoSaldoDialog({
                                 <SelectValue placeholder="Selecione" />
                             </SelectTrigger>
                             <SelectContent>
-                                {merchants?.map((m) => (
+                                {merchants?.filter(m => m.active).map((m) => (
                                     <SelectItem key={m.id} value={m.id}>
                                         {m.name} ({formatCurrencyBRL(Number(m.balance))})
                                     </SelectItem>

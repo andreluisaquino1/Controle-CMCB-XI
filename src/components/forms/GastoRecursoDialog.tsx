@@ -77,7 +77,7 @@ export function GastoRecursoDialog({
 
     const createTransaction = useCreateResourceTransaction();
 
-    const filteredAccounts = accounts.filter(acc => acc.entity_id === state.entityId);
+    const filteredAccounts = accounts.filter(acc => acc.entity_id === state.entityId && acc.active);
     const selectedAccount = accounts.find(a => a.id === state.accountId);
 
     const calculateTotal = () => batchItems.reduce((acc, item) => acc + item.amount, 0);
@@ -184,7 +184,7 @@ export function GastoRecursoDialog({
                                 <SelectValue placeholder="Selecione o estabelecimento" />
                             </SelectTrigger>
                             <SelectContent>
-                                {merchants.map(m => (
+                                {merchants.filter(m => (m as any).active !== false).map(m => (
                                     <SelectItem key={m.id} value={m.id}>
                                         {m.name}
                                     </SelectItem>

@@ -111,3 +111,25 @@ export function useDeactivateMerchant() {
     },
   });
 }
+export function useActivateMerchant() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("merchants")
+        .update({ active: true })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["merchants"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
+      toast.success("Estabelecimento reativado.");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Não foi possível reativar.");
+    },
+  });
+}
