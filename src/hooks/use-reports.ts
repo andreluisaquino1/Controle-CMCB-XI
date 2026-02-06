@@ -19,6 +19,7 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
     especie_transfer: "Movimentação",
     especie_deposito_pix: "Depósito PIX",
     especie_ajuste: "Ajuste de Saldo",
+    pix_ajuste: "Ajuste de Saldo (PIX)",
     cofre_ajuste: "Ajuste de Cofre",
     conta_digital_ajuste: "Ajuste Conta Digital",
     conta_digital_taxa: "Taxa Escolaweb",

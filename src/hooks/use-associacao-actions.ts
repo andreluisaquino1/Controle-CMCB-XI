@@ -37,21 +37,10 @@ interface AssociacaoState {
         descricao: string;
         obs: string;
     };
-    ajusteEspecie: {
+    ajuste: {
         date: string;
-        valor: number;
-        motivo: string;
-        obs: string;
-    };
-    ajusteCofre: {
-        date: string;
-        valor: number;
-        motivo: string;
-        obs: string;
-    };
-    ajusteContaDigital: {
-        date: string;
-        valor: number;
+        accountId: string;
+        valor: number; // The difference to add/subtract
         motivo: string;
         obs: string;
     };
@@ -68,10 +57,14 @@ export function useAssociacaoActions(
         mensalidade: { date: getTodayString(), turno: "", cash: 0, pix: 0, obs: "" },
         gasto: { date: getTodayString(), meio: "cash", valor: 0, descricao: "", obs: "" },
         mov: { date: getTodayString(), de: "", para: "", valor: 0, taxa: 0, descricao: "", obs: "" },
-        ajusteEspecie: { date: getTodayString(), valor: 0, motivo: "", obs: "" },
-        ajusteCofre: { date: getTodayString(), valor: 0, motivo: "", obs: "" },
-        ajusteContaDigital: { date: getTodayString(), valor: 0, motivo: "", obs: "" },
+        ajuste: { date: getTodayString(), accountId: "", valor: 0, motivo: "", obs: "" },
     });
+
+    const accountsMap = useMemo(() => {
+        const map = new Map<string, Account>();
+        accounts?.forEach(acc => map.set(acc.id, acc));
+        return map;
+    }, [accounts]);
 
     const especieAccount = useMemo(() => accounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE), [accounts]);
     const pixAccount = useMemo(() => accounts?.find(a => a.name === ACCOUNT_NAMES.PIX), [accounts]);
@@ -96,18 +89,13 @@ export function useAssociacaoActions(
         setMovTaxa: (taxa: number) => setState((s) => ({ ...s, mov: { ...s.mov, taxa } })),
         setMovDescricao: (descricao: string) => setState((s) => ({ ...s, mov: { ...s.mov, descricao } })),
         setMovObs: (obs: string) => setState((s) => ({ ...s, mov: { ...s.mov, obs } })),
-        setAjusteEspecieDate: (date: string) => setState((s) => ({ ...s, ajusteEspecie: { ...s.ajusteEspecie, date } })),
-        setAjusteEspecieValor: (valor: number) => setState((s) => ({ ...s, ajusteEspecie: { ...s.ajusteEspecie, valor } })),
-        setAjusteEspecieMotivo: (motivo: string) => setState((s) => ({ ...s, ajusteEspecie: { ...s.ajusteEspecie, motivo } })),
-        setAjusteEspecieObs: (obs: string) => setState((s) => ({ ...s, ajusteEspecie: { ...s.ajusteEspecie, obs } })),
-        setAjusteCofreDate: (date: string) => setState((s) => ({ ...s, ajusteCofre: { ...s.ajusteCofre, date } })),
-        setAjusteCofreValor: (valor: number) => setState((s) => ({ ...s, ajusteCofre: { ...s.ajusteCofre, valor } })),
-        setAjusteCofreMotivo: (motivo: string) => setState((s) => ({ ...s, ajusteCofre: { ...s.ajusteCofre, motivo } })),
-        setAjusteCofreObs: (obs: string) => setState((s) => ({ ...s, ajusteCofre: { ...s.ajusteCofre, obs } })),
-        setAjusteContaDigitalDate: (date: string) => setState((s) => ({ ...s, ajusteContaDigital: { ...s.ajusteContaDigital, date } })),
-        setAjusteContaDigitalValor: (valor: number) => setState((s) => ({ ...s, ajusteContaDigital: { ...s.ajusteContaDigital, valor } })),
-        setAjusteContaDigitalMotivo: (motivo: string) => setState((s) => ({ ...s, ajusteContaDigital: { ...s.ajusteContaDigital, motivo } })),
-        setAjusteContaDigitalObs: (obs: string) => setState((s) => ({ ...s, ajusteContaDigital: { ...s.ajusteContaDigital, obs } })),
+
+        // Unified Adjustment Setters
+        setAjusteDate: (date: string) => setState((s) => ({ ...s, ajuste: { ...s.ajuste, date } })),
+        setAjusteAccountId: (accountId: string) => setState((s) => ({ ...s, ajuste: { ...s.ajuste, accountId, valor: 0 } })),
+        setAjusteValor: (valor: number) => setState((s) => ({ ...s, ajuste: { ...s.ajuste, valor } })),
+        setAjusteMotivo: (motivo: string) => setState((s) => ({ ...s, ajuste: { ...s.ajuste, motivo } })),
+        setAjusteObs: (obs: string) => setState((s) => ({ ...s, ajuste: { ...s.ajuste, obs } })),
     };
 
     const resetMensalidade = useCallback(() => {
@@ -120,6 +108,10 @@ export function useAssociacaoActions(
 
     const resetMov = useCallback(() => {
         setState((s) => ({ ...s, mov: { date: getTodayString(), de: "", para: "", valor: 0, taxa: 0, descricao: "", obs: "" } }));
+    }, []);
+
+    const resetAjuste = useCallback(() => {
+        setState((s) => ({ ...s, ajuste: { date: getTodayString(), accountId: "", valor: 0, motivo: "", obs: "" } }));
     }, []);
 
     const handleMensalidadeSubmit = async (): Promise<boolean> => {
@@ -318,109 +310,45 @@ export function useAssociacaoActions(
         }
     };
 
-    const handleAjusteEspecieSubmit = async (): Promise<boolean> => {
-        const result = ajusteSchema.safeParse(state.ajusteEspecie);
+    const handleAjusteSubmit = async (): Promise<boolean> => {
+        const result = ajusteSchema.safeParse(state.ajuste);
         if (!result.success) {
             toast.error(result.error.errors[0].message);
             return false;
         }
 
-        if (!especieAccount || !associacaoEntity) return false;
+        const account = accountsMap.get(state.ajuste.accountId);
+        if (!account || !associacaoEntity) {
+            toast.error("Conta ou entidade não encontrada.");
+            return false;
+        }
 
-        const direction = state.ajusteEspecie.valor > 0 ? "in" : "out";
-        const absAmount = Math.abs(state.ajusteEspecie.valor);
+        let module: any = "especie_ajuste";
+        if (account.name === ACCOUNT_NAMES.ESPECIE) module = "especie_ajuste";
+        else if (account.name === ACCOUNT_NAMES.COFRE) module = "cofre_ajuste";
+        else if (account.name === ACCOUNT_NAMES.CONTA_DIGITAL) module = "conta_digital_ajuste";
+        else if (account.name === ACCOUNT_NAMES.PIX) module = "pix_ajuste";
+
+        const direction = state.ajuste.valor > 0 ? "in" : "out";
+        const absAmount = Math.abs(state.ajuste.valor);
 
         try {
             await createTransaction.mutateAsync({
                 transaction: {
-                    transaction_date: state.ajusteEspecie.date,
-                    module: "especie_ajuste",
+                    transaction_date: state.ajuste.date,
+                    module,
                     entity_id: associacaoEntity.id,
-                    source_account_id: direction === "out" ? especieAccount.id : null,
-                    destination_account_id: direction === "in" ? especieAccount.id : null,
+                    source_account_id: direction === "out" ? account.id : null,
+                    destination_account_id: direction === "in" ? account.id : null,
                     amount: absAmount,
                     direction,
-                    description: `Ajuste: ${state.ajusteEspecie.motivo}`,
-                    notes: state.ajusteEspecie.obs || null,
+                    description: `Ajuste: ${state.ajuste.motivo}`,
+                    notes: state.ajuste.obs || null,
                 },
             });
 
-            toast.success("Ajuste de espécie registrado.");
-            setState(s => ({ ...s, ajusteEspecie: { ...s.ajusteEspecie, valor: 0, motivo: "", obs: "" } }));
-            if (onSuccess) onSuccess();
-            return true;
-        } catch (error) {
-            toast.error("Falha ao registrar ajuste.");
-            return false;
-        }
-    };
-
-    const handleAjusteCofreSubmit = async (): Promise<boolean> => {
-        const result = ajusteSchema.safeParse(state.ajusteCofre);
-        if (!result.success) {
-            toast.error(result.error.errors[0].message);
-            return false;
-        }
-
-        if (!cofreAccount || !associacaoEntity) return false;
-
-        const direction = state.ajusteCofre.valor > 0 ? "in" : "out";
-        const absAmount = Math.abs(state.ajusteCofre.valor);
-
-        try {
-            await createTransaction.mutateAsync({
-                transaction: {
-                    transaction_date: state.ajusteCofre.date,
-                    module: "cofre_ajuste",
-                    entity_id: associacaoEntity.id,
-                    source_account_id: direction === "out" ? cofreAccount.id : null,
-                    destination_account_id: direction === "in" ? cofreAccount.id : null,
-                    amount: absAmount,
-                    direction,
-                    description: `Ajuste: ${state.ajusteCofre.motivo}`,
-                    notes: state.ajusteCofre.obs || null,
-                },
-            });
-
-            toast.success("Ajuste de cofre registrado.");
-            setState(s => ({ ...s, ajusteCofre: { ...s.ajusteCofre, valor: 0, motivo: "", obs: "" } }));
-            if (onSuccess) onSuccess();
-            return true;
-        } catch (error) {
-            toast.error("Falha ao registrar ajuste.");
-            return false;
-        }
-    };
-
-    const handleAjusteContaDigitalSubmit = async (): Promise<boolean> => {
-        const result = ajusteSchema.safeParse(state.ajusteContaDigital);
-        if (!result.success) {
-            toast.error(result.error.errors[0].message);
-            return false;
-        }
-
-        if (!contaDigitalAccount || !associacaoEntity) return false;
-
-        const direction = state.ajusteContaDigital.valor > 0 ? "in" : "out";
-        const absAmount = Math.abs(state.ajusteContaDigital.valor);
-
-        try {
-            await createTransaction.mutateAsync({
-                transaction: {
-                    transaction_date: state.ajusteContaDigital.date,
-                    module: "conta_digital_ajuste",
-                    entity_id: associacaoEntity.id,
-                    source_account_id: direction === "out" ? contaDigitalAccount.id : null,
-                    destination_account_id: direction === "in" ? contaDigitalAccount.id : null,
-                    amount: absAmount,
-                    direction,
-                    description: `Ajuste: ${state.ajusteContaDigital.motivo}`,
-                    notes: state.ajusteContaDigital.obs || null,
-                },
-            });
-
-            toast.success("Ajuste de conta digital registrado.");
-            setState(s => ({ ...s, ajusteContaDigital: { ...s.ajusteContaDigital, valor: 0, motivo: "", obs: "" } }));
+            toast.success(`Ajuste de ${account.name} registrado.`);
+            resetAjuste();
             if (onSuccess) onSuccess();
             return true;
         } catch (error) {
@@ -436,12 +364,11 @@ export function useAssociacaoActions(
             handleMensalidadeSubmit,
             handleGastoSubmit,
             handleMovimentarSubmit,
-            handleAjusteEspecieSubmit,
-            handleAjusteCofreSubmit,
-            handleAjusteContaDigitalSubmit,
+            handleAjusteSubmit,
             resetMensalidade,
             resetGasto,
-            resetMov
+            resetMov,
+            resetAjuste
         },
         isLoading: createTransaction.isPending,
     };

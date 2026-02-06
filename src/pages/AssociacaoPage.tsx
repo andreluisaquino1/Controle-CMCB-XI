@@ -42,6 +42,7 @@ import { ActionCard } from "@/components/ActionCard";
 import { MensalidadeDialog } from "@/components/forms/MensalidadeDialog";
 import { GastoAssociacaoDialog } from "@/components/forms/GastoAssociacaoDialog";
 import { MovimentarSaldoDialog } from "@/components/forms/MovimentarSaldoDialog";
+import { AjustarSaldoDialog } from "@/components/forms/AjustarSaldoDialog";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
 
 export default function AssociacaoPage() {
@@ -66,20 +67,18 @@ export default function AssociacaoPage() {
 
   const contaDigitalAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.CONTA_DIGITAL);
 
-  const { mensalidade, gasto, mov, ajusteEspecie, ajusteCofre } = state;
+  const { mensalidade, gasto, mov, ajuste } = state;
   const {
     setMensalidadeDate, setMensalidadeTurno, setMensalidadeCash, setMensalidadePix, setMensalidadeObs,
     setGastoDate, setGastoMeio, setGastoValor, setGastoDescricao, setGastoObs,
     setMovDate, setMovDe, setMovPara, setMovValor, setMovDescricao, setMovObs,
-    setAjusteEspecieDate, setAjusteEspecieValor, setAjusteEspecieMotivo, setAjusteEspecieObs,
-    setAjusteCofreDate, setAjusteCofreValor, setAjusteCofreMotivo, setAjusteCofreObs,
     setMovTaxa,
-    setAjusteContaDigitalDate, setAjusteContaDigitalValor, setAjusteContaDigitalMotivo, setAjusteContaDigitalObs,
+    setAjusteDate, setAjusteAccountId, setAjusteValor, setAjusteMotivo, setAjusteObs,
   } = setters;
   const {
     handleMensalidadeSubmit, handleGastoSubmit, handleMovimentarSubmit,
-    handleAjusteEspecieSubmit, handleAjusteCofreSubmit, handleAjusteContaDigitalSubmit,
-    resetMensalidade, resetGasto, resetMov
+    handleAjusteSubmit,
+    resetMensalidade, resetGasto, resetMov, resetAjuste
   } = handlers;
 
   // Shortcuts UI state (kept here as it's purely UI transition)
@@ -281,35 +280,36 @@ export default function AssociacaoPage() {
             onSubmit={handleMovimentarSubmit}
             isLoading={actionsLoading}
           />
+
+          {/* Ajustar Saldo */}
+          <ActionCard
+            title="Ajustar Saldo"
+            description="Correção ou valor inicial"
+            icon={Settings}
+            variant="warning"
+            onClick={() => setOpenDialog("ajuste")}
+          />
+
+          <AjustarSaldoDialog
+            open={openDialog === "ajuste"}
+            onOpenChange={(o) => {
+              setOpenDialog(o ? "ajuste" : null);
+              if (!o) handlers.resetAjuste();
+            }}
+            state={state.ajuste}
+            setters={{
+              setDate: setters.setAjusteDate,
+              setAccountId: setters.setAjusteAccountId,
+              setValor: setters.setAjusteValor,
+              setMotivo: setters.setAjusteMotivo,
+              setObs: setters.setAjusteObs,
+            }}
+            accounts={accounts || []}
+            onSubmit={handlers.handleAjusteSubmit}
+            isLoading={actionsLoading}
+          />
         </div>
 
-        {/* Ajustes Section */}
-        <div>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Ajustes</h2>
-          <div className="grid gap-4 lg:grid-cols-3">
-            <ActionCard
-              title="Ajustar Espécie"
-              description="Correção ou valor inicial"
-              icon={Settings}
-              variant="warning"
-              onClick={() => setOpenDialog("ajuste-especie")}
-            />
-            <ActionCard
-              title="Ajustar Conta Digital"
-              description="Correção ou valor inicial"
-              icon={Settings}
-              variant="warning"
-              onClick={() => setOpenDialog("ajuste-conta-digital")}
-            />
-            <ActionCard
-              title="Ajustar Cofre"
-              description="Correção ou valor inicial"
-              icon={Settings}
-              variant="warning"
-              onClick={() => setOpenDialog("ajuste-cofre")}
-            />
-          </div>
-        </div>
 
         {/* Transactions Table */}
         <Card>
@@ -377,107 +377,6 @@ export default function AssociacaoPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Ajuste Espécie Dialog */}
-        <Dialog open={openDialog === "ajuste-especie"} onOpenChange={(o) => setOpenDialog(o ? "ajuste-especie" : null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Ajustar Saldo em Espécie</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label>Data *</Label>
-                <DateInput value={ajusteEspecie.date} onChange={setAjusteEspecieDate} />
-              </div>
-              <div className="space-y-2">
-                <Label>Valor do Ajuste (R$) *</Label>
-                <CurrencyInput value={ajusteEspecie.valor} onChange={setAjusteEspecieValor} />
-                <p className="text-xs text-muted-foreground">Positivo para somar, negativo para subtrair.</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Motivo *</Label>
-                <Input value={ajusteEspecie.motivo} onChange={(e) => setAjusteEspecieMotivo(e.target.value)} placeholder="Ex: Saldo inicial" />
-              </div>
-              <div className="space-y-2">
-                <Label>Observação</Label>
-                <Input value={ajusteEspecie.obs} onChange={(e) => setAjusteEspecieObs(e.target.value)} placeholder="Opcional" />
-              </div>
-              <Button className="w-full" onClick={async () => {
-                const success = await handleAjusteEspecieSubmit();
-                if (success) setOpenDialog(null);
-              }} disabled={actionsLoading}>
-                {actionsLoading ? "Salvando..." : "Salvar Ajuste"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Ajuste Cofre Dialog */}
-        <Dialog open={openDialog === "ajuste-cofre"} onOpenChange={(o) => setOpenDialog(o ? "ajuste-cofre" : null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Ajustar Saldo do Cofre</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label>Data *</Label>
-                <DateInput value={ajusteCofre.date} onChange={setAjusteCofreDate} />
-              </div>
-              <div className="space-y-2">
-                <Label>Valor do Ajuste (R$) *</Label>
-                <CurrencyInput value={ajusteCofre.valor} onChange={setAjusteCofreValor} />
-                <p className="text-xs text-muted-foreground">Positivo para somar, negativo para subtrair.</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Motivo *</Label>
-                <Input value={ajusteCofre.motivo} onChange={(e) => setAjusteCofreMotivo(e.target.value)} placeholder="Ex: Saldo inicial" />
-              </div>
-              <div className="space-y-2">
-                <Label>Observação</Label>
-                <Input value={ajusteCofre.obs} onChange={(e) => setAjusteCofreObs(e.target.value)} placeholder="Opcional" />
-              </div>
-              <Button className="w-full" onClick={async () => {
-                const success = await handleAjusteCofreSubmit();
-                if (success) setOpenDialog(null);
-              }} disabled={actionsLoading}>
-                {actionsLoading ? "Salvando..." : "Salvar Ajuste"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Ajuste Conta Digital Dialog */}
-        <Dialog open={openDialog === "ajuste-conta-digital"} onOpenChange={(o) => setOpenDialog(o ? "ajuste-conta-digital" : null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Ajustar Conta Digital (Escolaweb)</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label>Data *</Label>
-                <DateInput value={state.ajusteContaDigital.date} onChange={setAjusteContaDigitalDate} />
-              </div>
-              <div className="space-y-2">
-                <Label>Valor do Ajuste (R$) *</Label>
-                <CurrencyInput value={state.ajusteContaDigital.valor} onChange={setAjusteContaDigitalValor} />
-                <p className="text-xs text-muted-foreground">Positivo para somar, negativo para subtrair.</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Motivo *</Label>
-                <Input value={state.ajusteContaDigital.motivo} onChange={(e) => setAjusteContaDigitalMotivo(e.target.value)} placeholder="Ex: Saldo inicial" />
-              </div>
-              <div className="space-y-2">
-                <Label>Observação</Label>
-                <Input value={state.ajusteContaDigital.obs} onChange={(e) => setAjusteContaDigitalObs(e.target.value)} placeholder="Opcional" />
-              </div>
-              <Button className="w-full" onClick={async () => {
-                const success = await handleAjusteContaDigitalSubmit();
-                if (success) setOpenDialog(null);
-              }} disabled={actionsLoading}>
-                {actionsLoading ? "Salvando..." : "Salvar Ajuste"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </DashboardLayout>
   );

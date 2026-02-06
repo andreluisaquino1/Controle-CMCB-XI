@@ -26,6 +26,7 @@ export const MODULE_LABELS: Record<string, string> = {
   especie_transfer: "Movimentação entre Contas",
   especie_deposito_pix: "Depósito PIX",
   especie_ajuste: "Ajuste de Saldo (Espécie)",
+  pix_ajuste: "Ajuste de Saldo (PIX)",
   cofre_ajuste: "Ajuste de Saldo (Cofre)",
   conta_digital_ajuste: "Ajuste Conta Digital",
   conta_digital_taxa: "Taxa Escolaweb",
