@@ -75,7 +75,10 @@ export function MovimentarSaldoDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogContent
+                className="max-h-[90vh] overflow-y-auto"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+            >
                 <DialogHeader>
                     <DialogTitle>Movimentar Saldo</DialogTitle>
                 </DialogHeader>
@@ -137,7 +140,6 @@ export function MovimentarSaldoDialog({
                             <CurrencyInput
                                 value={state.taxa}
                                 onChange={setters.setTaxa}
-                                disabled={!isContaDigital}
                             />
                         </div>
                     </div>
@@ -158,24 +160,52 @@ export function MovimentarSaldoDialog({
                         />
                     </div>
 
-                    {sourceAccount && (
-                        <div className="bg-muted/30 p-3 rounded-md space-y-2 border border-muted-foreground/10">
-                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Prévia de Impacto</h4>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Saldo atual:</span>
-                                <span className="font-medium">{formatCurrencyBRL(sourceAccount.balance)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Movimentação (+taxa):</span>
-                                <span className="font-medium text-destructive">
-                                    -{formatCurrencyBRL(state.valor + state.taxa)}
-                                </span>
-                            </div>
-                            <div className="border-t border-muted pt-1 flex justify-between text-sm font-bold">
-                                <span>Saldo projetado:</span>
-                                <span className={sourceAccount.balance - (state.valor + state.taxa) < 0 ? "text-destructive" : "text-primary"}>
-                                    {formatCurrencyBRL(sourceAccount.balance - (state.valor + state.taxa))}
-                                </span>
+                    {(sourceAccount || destinationAccount) && (
+                        <div className="bg-muted/30 p-4 rounded-lg space-y-4 border border-muted-foreground/10 animate-fade-in">
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center border-b border-muted pb-2">
+                                Prévia de Impacto nos Saldos
+                            </h4>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {sourceAccount && (
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Origem: {cleanAccountDisplayName(sourceAccount.name)}</p>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Saldo atual:</span>
+                                            <span>{formatCurrencyBRL(sourceAccount.balance)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Saída (+taxa):</span>
+                                            <span className="text-destructive">-{formatCurrencyBRL(state.valor + state.taxa)}</span>
+                                        </div>
+                                        <div className="pt-1 border-t border-muted/50 flex justify-between text-sm font-bold">
+                                            <span>Projetado:</span>
+                                            <span className={sourceAccount.balance - (state.valor + state.taxa) < 0 ? "text-destructive" : "text-primary"}>
+                                                {formatCurrencyBRL(sourceAccount.balance - (state.valor + state.taxa))}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {destinationAccount && (
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Destino: {cleanAccountDisplayName(destinationAccount.name)}</p>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Saldo atual:</span>
+                                            <span>{formatCurrencyBRL(destinationAccount.balance)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Entrada:</span>
+                                            <span className="text-success">+{formatCurrencyBRL(state.valor)}</span>
+                                        </div>
+                                        <div className="pt-1 border-t border-muted/50 flex justify-between text-sm font-bold">
+                                            <span>Projetado:</span>
+                                            <span className="text-primary">
+                                                {formatCurrencyBRL(destinationAccount.balance + state.valor)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

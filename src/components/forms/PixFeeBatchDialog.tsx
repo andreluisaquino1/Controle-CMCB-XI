@@ -51,7 +51,7 @@ export function PixFeeBatchDialog({ open, onOpenChange }: PixFeeBatchDialogProps
         setItems(items.filter(item => item.id !== id));
     };
 
-    const updateItem = (id: string, field: keyof BatchItemState, value: any) => {
+    const updateItem = (id: string, field: keyof BatchItemState, value: string | number) => {
         setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item));
     };
 

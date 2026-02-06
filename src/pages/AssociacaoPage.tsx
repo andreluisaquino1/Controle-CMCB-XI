@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useState } from "react";
-import { Building2, Banknote, CreditCard, ArrowRightLeft, Settings, Wallet, Loader2, XCircle, X, PlusCircle } from "lucide-react";
+import { Building2, Banknote, CreditCard, ArrowRightLeft, Settings, Wallet, Loader2, XCircle, X, PlusCircle, MinusCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { useVoidTransaction } from "@/hooks/use-transactions";
@@ -50,6 +50,7 @@ import { FileText, Ghost, ListPlus } from "lucide-react";
 
 export default function AssociacaoPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
   const voidTransaction = useVoidTransaction();
   const { data: accounts, isLoading: accountsLoading } = useAssociacaoAccounts();
   const { data: entities } = useEntities();
@@ -192,149 +193,62 @@ export default function AssociacaoPage() {
           </Card>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Mensalidades */}
+        {/* Quick Actions Consolidated with Visual Hierarchy */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Row 1 - Stronger Colors */}
           <ActionCard
             title="Mensalidades"
             description="Registrar entrada de alunos"
             icon={Banknote}
             variant="success"
             onClick={() => setOpenDialog("mensalidade")}
+            className="bg-success/15 border-l-success shadow-sm"
           />
 
-          <MensalidadeDialog
-            open={openDialog === "mensalidade"}
-            onOpenChange={(o) => {
-              setOpenDialog(o ? "mensalidade" : null);
-              if (!o) resetMensalidade();
-            }}
-            state={mensalidade}
-            setters={{
-              setDate: setMensalidadeDate,
-              setTurno: setMensalidadeTurno,
-              setCash: setMensalidadeCash,
-              setPix: setMensalidadePix,
-              setObs: setMensalidadeObs,
-            }}
-            onSubmit={handleMensalidadeSubmit}
-            isLoading={actionsLoading}
-          />
-
-          {/* Gastos */}
           <ActionCard
             title="Despesa Associação"
             description="Registrar pagamento direto"
             icon={CreditCard}
             variant="destructive"
             onClick={() => setOpenDialog("gasto")}
+            className="bg-destructive/15 border-l-destructive shadow-sm"
           />
 
-          <GastoAssociacaoDialog
-            open={openDialog === "gasto"}
-            onOpenChange={(o) => {
-              setOpenDialog(o ? "gasto" : null);
-              if (!o) resetGasto();
-            }}
-            state={gasto}
-            setters={{
-              setDate: setGastoDate,
-              setMeio: setGastoMeio,
-              setObs: setGastoObs,
-            }}
-            shortcuts={expenseShortcuts}
-            addShortcut={addShortcut}
-            removeShortcut={removeShortcut}
-            onSubmit={async () => true} // Not used as dialog handles its own batch submit
-            isLoading={actionsLoading}
-          />
-
-          {/* Movimentar Saldo */}
           <ActionCard
             title="Movimentar Saldo"
             description="Transferência ou Depósito"
             icon={ArrowRightLeft}
             variant="secondary"
             onClick={() => setOpenDialog("movimentar")}
+            className="bg-secondary/15 border-l-secondary shadow-sm"
           />
 
-          <MovimentarSaldoDialog
-            open={openDialog === "movimentar"}
-            onOpenChange={(o) => {
-              setOpenDialog(o ? "movimentar" : null);
-              if (!o) resetMov();
-            }}
-            state={mov}
-            setters={{
-              setDate: setMovDate,
-              setDe: setMovDe,
-              setPara: setMovPara,
-              setValor: setMovValor,
-              setTaxa: setMovTaxa,
-              setDescricao: setMovDescricao,
-              setObs: setMovObs,
-            }}
-            accounts={accounts || []}
-            onSubmit={handleMovimentarSubmit}
-            isLoading={actionsLoading}
+          {/* Row 2 - Subtle Colors */}
+          <ActionCard
+            title="PIX Fantasma"
+            description="Registrar PIX não identificado"
+            icon={Ghost}
+            variant="warning"
+            onClick={() => setOpenDialog("pix_nao_id")}
+            className="opacity-80 border-l-amber-500/50"
           />
 
-          {/* Ajustar Saldo */}
+          <ActionCard
+            title="Taxas PIX"
+            description="Lançar tarifas em lote"
+            icon={FileText}
+            variant="info"
+            onClick={() => setOpenDialog("pix_batch")}
+            className="opacity-80 border-l-blue-600/50"
+          />
+
           <ActionCard
             title="Ajustar Saldo"
             description="Correção ou valor inicial"
             icon={Settings}
             variant="warning"
             onClick={() => setOpenDialog("ajuste")}
-          />
-
-          <AjustarSaldoDialog
-            open={openDialog === "ajuste"}
-            onOpenChange={(o) => {
-              setOpenDialog(o ? "ajuste" : null);
-              if (!o) handlers.resetAjuste();
-            }}
-            state={state.ajuste}
-            setters={{
-              setDate: setters.setAjusteDate,
-              setAccountId: setters.setAjusteAccountId,
-              setValor: setters.setAjusteValor,
-              setMotivo: setters.setAjusteMotivo,
-              setObs: setters.setAjusteObs,
-            }}
-            accounts={accounts || []}
-            onSubmit={handlers.handleAjusteSubmit}
-            isLoading={actionsLoading}
-          />
-
-          {/* Taxas PIX (Lote) */}
-          <ActionCard
-            title="Taxas PIX"
-            description="Lançar tarifas em lote"
-            icon={FileText}
-            variant="info"
-            className="border-l-4 border-l-blue-600"
-            onClick={() => setOpenDialog("pix_batch")}
-          />
-
-          <PixFeeBatchDialog
-            open={openDialog === "pix_batch"}
-            onOpenChange={(o) => setOpenDialog(o ? "pix_batch" : null)}
-          />
-
-          {/* PIX Não Identificado */}
-          <ActionCard
-            title="PIX Fantasma"
-            description="Registrar PIX não identificado"
-            icon={Ghost}
-            variant="warning"
-            className="border-l-4 border-l-amber-500"
-            onClick={() => setOpenDialog("pix_nao_id")}
-          />
-
-          <PixNaoIdentificadoDialog
-            open={openDialog === "pix_nao_id"}
-            onOpenChange={(o) => setOpenDialog(o ? "pix_nao_id" : null)}
+            className="opacity-80 border-l-warning/50"
           />
         </div>
 
@@ -356,52 +270,48 @@ export default function AssociacaoPage() {
           </CardContent>
         </Card>
 
-        {/* Footer Info Section */}
-        <Card className="bg-muted/30 border-dashed">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Building2 className="h-5 w-5 text-primary" />
-              Sobre a Associação CMCB-XI
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <h4 className="font-bold text-foreground">Informações Institucionais:</h4>
-                  <p className="text-sm text-muted-foreground"><strong>CNPJ:</strong> 37.812.756/0001-45</p>
-                  <p className="text-sm text-muted-foreground text-balance">
-                    Responsável pela gestão das mensalidades voluntárias e custeio das despesas operacionais do cotidiano escolar.
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <h4 className="font-bold text-foreground">Gestão de Recursos:</h4>
-                  <ul className="space-y-1 text-sm text-muted-foreground">
-                    <li>• Arrecadação mensal de sócios contribuintes</li>
-                    <li>• Gestão de materiais e serviços da associação</li>
-                    <li>• Suporte financeiro imediato via contas locais</li>
-                  </ul>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-bold text-foreground mb-2">Contas Gerenciadas:</h4>
-                <div className="grid grid-cols-1 gap-2">
-                  <div className="bg-background/50 p-2 rounded border border-border/50">
-                    <p className="text-xs font-semibold text-foreground">Espécie & Cofre</p>
-                    <p className="text-[10px] text-muted-foreground">Controle físico de valores no local (Bolsinha e Reserva).</p>
-                  </div>
-                  <div className="bg-background/50 p-2 rounded border border-border/50">
-                    <p className="text-xs font-semibold text-foreground">PIX (Banco do Brasil)</p>
-                    <p className="text-[10px] text-muted-foreground">Agência: 0782-0 | Conta: 36500-9</p>
-                  </div>
-                  <div className="bg-background/50 p-2 rounded border border-border/50">
-                    <p className="text-xs font-semibold text-foreground">Conta Digital (Escolaweb)</p>
-                    <p className="text-[10px] text-muted-foreground">Integração com sistema de taxas e mensalidades recorrentes.</p>
-                  </div>
-                </div>
-              </div>
+        {/* Footer Info Section - Collapsible */}
+        <Card className="bg-muted/30 border-dashed overflow-hidden">
+          <CardHeader
+            className="py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => setShowInfo(!showInfo)}
+          >
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-md font-semibold text-muted-foreground">
+                <Building2 className="h-4 w-4" />
+                Informações da Associação CMCB-XI
+              </CardTitle>
+              {showInfo ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </div>
-          </CardContent>
+          </CardHeader>
+          {showInfo && (
+            <CardContent className="pt-2 pb-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-foreground">Institucional:</h4>
+                    <p className="text-sm text-muted-foreground"><strong>CNPJ:</strong> 37.812.756/0001-45</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Responsável pela gestão das mensalidades voluntárias e custeio das despesas operacionais.
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground mb-2">Canais de Recebimento:</h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="bg-background/50 p-2 rounded border border-border/50 text-[11px]">
+                      <span className="font-semibold block">PIX (Banco do Brasil)</span>
+                      Ag: 0782-0 | CC: 36500-9
+                    </div>
+                    <div className="bg-background/50 p-2 rounded border border-border/50 text-[11px]">
+                      <span className="font-semibold block">Escolaweb</span>
+                      Mensalidades recorrentes e sistema de taxas.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         {/* Void Transaction Dialog */}
@@ -446,8 +356,95 @@ export default function AssociacaoPage() {
             </div>
           </DialogContent>
         </Dialog>
-
       </div>
+
+      {/* Dialogs shifted outside the main content for better organization */}
+      <MensalidadeDialog
+        open={openDialog === "mensalidade"}
+        onOpenChange={(o) => {
+          setOpenDialog(o ? "mensalidade" : null);
+          if (!o) resetMensalidade();
+        }}
+        state={mensalidade}
+        setters={{
+          setDate: setMensalidadeDate,
+          setTurno: setMensalidadeTurno,
+          setCash: setMensalidadeCash,
+          setPix: setMensalidadePix,
+          setObs: setMensalidadeObs,
+        }}
+        onSubmit={handleMensalidadeSubmit}
+        isLoading={actionsLoading}
+      />
+
+      <GastoAssociacaoDialog
+        open={openDialog === "gasto"}
+        onOpenChange={(o) => {
+          setOpenDialog(o ? "gasto" : null);
+          if (!o) resetGasto();
+        }}
+        state={gasto}
+        setters={{
+          setDate: setGastoDate,
+          setMeio: setGastoMeio,
+          setObs: setGastoObs,
+        }}
+        shortcuts={expenseShortcuts}
+        addShortcut={addShortcut}
+        removeShortcut={removeShortcut}
+        onSubmit={async () => true}
+        isLoading={actionsLoading}
+      />
+
+      <MovimentarSaldoDialog
+        open={openDialog === "movimentar"}
+        onOpenChange={(o) => {
+          setOpenDialog(o ? "movimentar" : null);
+          if (!o) resetMov();
+        }}
+        state={mov}
+        setters={{
+          setDate: setMovDate,
+          setDe: setMovDe,
+          setPara: setMovPara,
+          setValor: setMovValor,
+          setTaxa: setMovTaxa,
+          setDescricao: setMovDescricao,
+          setObs: setMovObs,
+        }}
+        accounts={accounts || []}
+        onSubmit={handleMovimentarSubmit}
+        isLoading={actionsLoading}
+      />
+
+      <AjustarSaldoDialog
+        open={openDialog === "ajuste"}
+        onOpenChange={(o) => {
+          setOpenDialog(o ? "ajuste" : null);
+          if (!o) handlers.resetAjuste();
+        }}
+        state={ajuste}
+        setters={{
+          setDate: setters.setAjusteDate,
+          setAccountId: setters.setAjusteAccountId,
+          setValor: setters.setAjusteValor,
+          setMotivo: setters.setAjusteMotivo,
+          setObs: setters.setAjusteObs,
+        }}
+        accounts={accounts || []}
+        onSubmit={handlers.handleAjusteSubmit}
+        isLoading={actionsLoading}
+      />
+
+      <PixFeeBatchDialog
+        open={openDialog === "pix_batch"}
+        onOpenChange={(o) => setOpenDialog(o ? "pix_batch" : null)}
+      />
+
+      <PixNaoIdentificadoDialog
+        open={openDialog === "pix_nao_id"}
+        onOpenChange={(o) => setOpenDialog(o ? "pix_nao_id" : null)}
+      />
     </DashboardLayout>
   );
 }

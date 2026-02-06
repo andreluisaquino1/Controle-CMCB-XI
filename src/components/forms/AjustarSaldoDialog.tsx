@@ -77,14 +77,14 @@ export function AjustarSaldoDialog({
     // Update finalBalance when account changes
     useEffect(() => {
         setFinalBalance(currentBalance + state.valor);
-    }, [state.accountId, currentBalance]);
+    }, [state.accountId, currentBalance, state.valor]);
 
     // Reset active field when account changes
     useEffect(() => {
         setActiveField(null);
         setters.setValor(0);
         setFinalBalance(currentBalance);
-    }, [state.accountId]);
+    }, [state.accountId, currentBalance, setters]);
 
     const handleAdjustmentChange = (val: number) => {
         if (val === 0) {
@@ -120,7 +120,10 @@ export function AjustarSaldoDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md w-[95vw]">
+            <DialogContent
+                className="max-w-md w-[95vw]"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+            >
                 <DialogHeader>
                     <DialogTitle>Ajustar Saldo da Conta</DialogTitle>
                 </DialogHeader>

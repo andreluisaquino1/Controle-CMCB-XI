@@ -23,7 +23,30 @@ export interface DemoTransaction {
     destination_account_id?: string;
     module: string;
     created_by_name?: string;
+    status?: 'posted' | 'voided';
+    parent_transaction_id?: string;
     created_at?: string;
+}
+
+export interface DemoAuditLog {
+    id: string;
+    created_at: string;
+    action: string;
+    reason: string | null;
+    profiles: { name: string | null } | null;
+    transactions: {
+        description: string | null;
+        amount: number;
+        module: string;
+        transaction_date: string;
+        direction: string;
+        origin_fund: string | null;
+        notes: string | null;
+        source: { name: string | null } | null;
+        destination: { name: string | null } | null;
+        merchant: { name: string | null } | null;
+        entity: { name: string | null; type: string } | null;
+    } | null;
 }
 
 // Initial Balances (Fictitious)

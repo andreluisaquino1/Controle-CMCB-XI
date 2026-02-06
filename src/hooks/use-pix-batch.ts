@@ -34,10 +34,10 @@ export function useCreatePixFeeBatch() {
             entityId: string;
             payload: PixFeeBatchPayload;
         }) => {
-            // @ts-ignore - RPC not typed
+            // @ts-expect-error - RPC not typed
             const { data, error } = await supabase.rpc("process_pix_fee_batch", {
                 p_entity_id: entityId,
-                p_payload: payload as any,
+                p_payload: payload as unknown as Record<string, unknown>,
             });
 
             if (error) throw error;
@@ -64,13 +64,13 @@ export function useTransactionItems(parentTransactionId: string | null) {
         queryKey: ["transaction-items", parentTransactionId],
         queryFn: async () => {
             if (!parentTransactionId) return [];
-            // @ts-ignore - RPC not typed
+            // @ts-expect-error - RPC not typed
             const { data, error } = await supabase.rpc("get_transaction_items", {
                 p_parent_transaction_id: parentTransactionId,
             });
 
             if (error) throw error;
-            return data as TransactionItem[];
+            return data as unknown as TransactionItem[];
         },
         enabled: !!parentTransactionId && !!user,
     });

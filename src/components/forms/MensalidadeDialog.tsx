@@ -48,7 +48,10 @@ export function MensalidadeDialog({
 }: MensalidadeDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogContent
+                className="max-h-[90vh] overflow-y-auto"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+            >
                 <DialogHeader>
                     <DialogTitle>Registrar Mensalidade</DialogTitle>
                 </DialogHeader>

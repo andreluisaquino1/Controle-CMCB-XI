@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDateBR } from "@/lib/date-utils";
 import { MODULE_LABELS } from "@/lib/constants";
+import { Database } from "@/integrations/supabase/types";
 import {
     Pagination,
     PaginationContent,
@@ -116,7 +117,9 @@ export default function LogPage() {
             if (startDate) query = query.gte("created_at", `${startDate}T00:00:00`);
             if (endDate) query = query.lte("created_at", `${endDate}T23:59:59`);
             if (selectedUser !== "all") query = query.eq("user_id", selectedUser);
-            if (selectedAction !== "all") query = query.eq("action", selectedAction as any);
+            if (selectedAction !== "all") {
+                query = query.eq("action", selectedAction as Database["public"]["Enums"]["audit_action"]);
+            }
 
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;

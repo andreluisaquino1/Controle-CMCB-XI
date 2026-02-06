@@ -1,4 +1,4 @@
-import { DemoAccount, DemoTransaction, INITIAL_ACCOUNTS, INITIAL_MERCHANTS, INITIAL_TRANSACTIONS, MOCK_LOGS } from "./demoSeed";
+import { DemoAccount, DemoTransaction, DemoAuditLog, INITIAL_ACCOUNTS, INITIAL_MERCHANTS, INITIAL_TRANSACTIONS, MOCK_LOGS } from "./demoSeed";
 
 const STORAGE_KEY = "demo_state";
 const DEMO_schema_VERSION = "1.7"; // Increment this to force reset
@@ -8,7 +8,7 @@ interface DemoState {
     accounts: DemoAccount[];
     merchants: DemoAccount[];
     transactions: DemoTransaction[];
-    logs: any[]; // Using any for simplicity or define AuditLog interface
+    logs: DemoAuditLog[];
 }
 
 const getStoredState = (): DemoState | null => {
@@ -62,7 +62,7 @@ export const demoStore = {
         return getStoredState()?.transactions || [];
     },
 
-    getLogs: (): any[] => {
+    getLogs: (): DemoAuditLog[] => {
         demoStore.init();
         return getStoredState()?.logs || [];
     },
@@ -160,6 +160,44 @@ export const demoStore = {
         setStoredState(state);
     },
 
+    voidTransaction: (id: string) => {
+        const state = getStoredState();
+        if (!state) return;
+
+        const tx = state.transactions.find(t => t.id === id);
+        if (tx && tx.status !== 'voided') {
+            tx.status = 'voided';
+
+            // Reverse the balance effect
+            const amount = Number(tx.amount);
+
+            if (tx.source_account_id) {
+                const acc = state.accounts.find(a => a.id === tx.source_account_id);
+                if (acc) acc.balance += amount;
+            }
+            if (tx.destination_account_id) {
+                const acc = state.accounts.find(a => a.id === tx.destination_account_id);
+                if (acc) acc.balance -= amount;
+            }
+            if (tx.account_id && !tx.source_account_id && !tx.destination_account_id) {
+                const acc = state.accounts.find(a => a.id === tx.account_id);
+                if (acc) {
+                    if (tx.type === 'income') acc.balance -= amount;
+                    else acc.balance += amount;
+                }
+            }
+
+            // Void children
+            state.transactions.forEach(child => {
+                if (child.parent_transaction_id === id) {
+                    demoStore.voidTransaction(child.id); // Potential recursion issue if state not updated, but state is shared object here
+                }
+            });
+
+            setStoredState(state);
+        }
+    },
+
     // Specific Helpers for Complex Logic
     updateAccountBalance: (accountId: string, newBalance: number) => {
         const state = getStoredState();
@@ -197,7 +235,7 @@ export const demoStore = {
         });
 
         // Helper to sum
-        const sum = (txs: any[]) => txs.reduce((acc, t) => acc + Number(t.amount), 0);
+        const sum = (txs: DemoTransaction[]) => txs.reduce((acc, t) => acc + Number(t.amount), 0);
 
         // Logic based on inference of how the real RPC works
         // weeklyExpensesCash: Expenses from Especie

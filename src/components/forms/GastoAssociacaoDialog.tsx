@@ -80,7 +80,7 @@ export function GastoAssociacaoDialog({
     const pixAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.PIX);
 
     const handleAddBatchItem = () => {
-        setBatchItems([...batchItems, { id: crypto.randomUUID(), amount: 0, description: "", date: state.date }]);
+        setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }, ...batchItems]);
     };
 
     const handleRemoveBatchItem = (id: string) => {
@@ -88,7 +88,7 @@ export function GastoAssociacaoDialog({
         setBatchItems(batchItems.filter(item => item.id !== id));
     };
 
-    const updateBatchItem = (id: string, field: keyof BatchExpenseItem, value: any) => {
+    const updateBatchItem = (id: string, field: keyof BatchExpenseItem, value: string | number) => {
         setBatchItems(batchItems.map(item => item.id === id ? { ...item, [field]: value } : item));
     };
 
@@ -130,7 +130,7 @@ export function GastoAssociacaoDialog({
                         direction: "out",
                         payment_method: state.meio as "cash" | "pix",
                         description: item.description,
-                        notes: state.obs || "Lançamento em lote",
+                        notes: state.obs || "",
                     },
                 });
             }
@@ -139,13 +139,16 @@ export function GastoAssociacaoDialog({
             onOpenChange(false);
             setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }]);
         } catch (error) {
-            // Error managed by mutation
+            console.error("Error submitting batch expenses:", error);
         }
     };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
+            <DialogContent
+                className="max-h-[90vh] overflow-y-auto max-w-2xl"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+            >
                 <DialogHeader className="flex flex-row items-center justify-between pr-8">
                     <DialogTitle>Registrar Gasto (Lote)</DialogTitle>
                 </DialogHeader>
@@ -229,7 +232,7 @@ export function GastoAssociacaoDialog({
                         onClick={handleBatchSubmit}
                         disabled={isLoading || createTransaction.isPending}
                     >
-                        {isLoading || createTransaction.isPending ? "Processando..." : "Lançar Lote"}
+                        {isLoading || createTransaction.isPending ? "Processando..." : "Lançar Gastos"}
                     </Button>
                 </div>
             </DialogContent>

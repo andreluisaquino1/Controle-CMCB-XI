@@ -129,6 +129,7 @@ export default function RecursosPage() {
       setOpenDialog(null);
       return true;
     } catch (error) {
+      console.error("Error creating resource transaction:", error);
       return false;
     } finally {
       setActionsLoading(false);
@@ -144,7 +145,7 @@ export default function RecursosPage() {
       setVoidingId(null);
       setVoidReason("");
     } catch (error) {
-      // Handled in hook
+      console.error("Error voiding transaction:", error);
     }
   };
 
@@ -155,6 +156,7 @@ export default function RecursosPage() {
       refetchEntities();
       return true;
     } catch (error) {
+      console.error("Error creating account:", error);
       return false;
     } finally {
       setActionsLoading(false);
@@ -174,6 +176,7 @@ export default function RecursosPage() {
       setEditingAccount(null);
       return true;
     } catch (error) {
+      console.error("Error updating account:", error);
       return false;
     } finally {
       setActionsLoading(false);
@@ -188,6 +191,7 @@ export default function RecursosPage() {
       refetchEntities();
       setDeactivatingAccount(null);
     } catch (error) {
+      console.error("Error deactivating account:", error);
     } finally {
       setActionsLoading(false);
     }

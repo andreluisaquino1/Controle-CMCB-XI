@@ -71,7 +71,7 @@ export function ConsumoSaldoDialog({
     const associacaoEntity = entities?.find(e => e.type === "associacao");
 
     const handleAddBatchItem = () => {
-        setBatchItems([...batchItems, { id: crypto.randomUUID(), amount: 0, description: "", date: state.date }]);
+        setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }, ...batchItems]);
     };
 
     const handleRemoveBatchItem = (id: string) => {
@@ -79,7 +79,7 @@ export function ConsumoSaldoDialog({
         setBatchItems(batchItems.filter(item => item.id !== id));
     };
 
-    const updateBatchItem = (id: string, field: keyof BatchExpenseItem, value: any) => {
+    const updateBatchItem = (id: string, field: keyof BatchExpenseItem, value: string | number) => {
         setBatchItems(batchItems.map(item => item.id === id ? { ...item, [field]: value } : item));
     };
 
@@ -120,7 +120,7 @@ export function ConsumoSaldoDialog({
                         amount: item.amount,
                         direction: "out",
                         description: item.description,
-                        notes: state.obs || "Lançamento em lote",
+                        notes: state.obs || "",
                     },
                 });
             }
@@ -129,15 +129,18 @@ export function ConsumoSaldoDialog({
             setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }]);
             onOpenChange(false);
         } catch (error) {
-            // Error managed by mutation
+            console.error("Error submitting batch consumption:", error);
         }
     };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
+            <DialogContent
+                className="max-h-[90vh] overflow-y-auto max-w-2xl"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+            >
                 <DialogHeader className="flex flex-row items-center justify-between pr-8">
-                    <DialogTitle>Registrar Gasto (Lote)</DialogTitle>
+                    <DialogTitle>Registrar Gastos</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 pt-4">
@@ -222,7 +225,7 @@ export function ConsumoSaldoDialog({
                         onClick={handleBatchSubmit}
                         disabled={isLoading || createTransaction.isPending || !state.merchant}
                     >
-                        {isLoading || createTransaction.isPending ? "Processando..." : "Lançar Lote"}
+                        {isLoading || createTransaction.isPending ? "Processando..." : "Lançar Gastos"}
                     </Button>
                 </div>
             </DialogContent>

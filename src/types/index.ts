@@ -41,6 +41,7 @@ export interface Transaction {
     merchant_id: string | null;
     origin_fund: string | null;
     entity_id: string | null;
+    parent_transaction_id: string | null;
     created_at: string;
 }
 

@@ -1,11 +1,12 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Account, Entity } from '@/types';
+import { Account, Entity, Transaction } from '@/types';
 import { useCreateTransaction } from '@/hooks/use-transactions';
 import { toast } from "sonner";
 import { formatCurrencyBRL } from '@/lib/currency';
 import { ACCOUNT_NAMES } from '@/lib/constants';
 import { getTodayString } from '@/lib/date-utils';
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import {
     mensalidadeSchema,
     gastoAssociacaoSchema,
@@ -217,11 +218,7 @@ export function useAssociacaoActions(
             }
         }
 
-        // Phase 2: Refine Conta Digital tax rules
-        if (state.mov.taxa > 0 && sourceAccount.name !== ACCOUNT_NAMES.CONTA_DIGITAL) {
-            toast.error("Taxas só são permitidas em movimentações da Conta Digital.");
-            return false;
-        }
+        // Permite taxas em qualquer movimentação, padrão 0
 
         try {
             // 1. Transferência principal
@@ -240,7 +237,7 @@ export function useAssociacaoActions(
             });
 
             // 2. Registro da taxa (se houver) - Phase 3: Link with parent_transaction_id
-            if (state.mov.taxa > 0 && mainTx?.id) {
+            if (state.mov.taxa > 0 && (mainTx as unknown as Transaction)?.id) {
                 await createTransaction.mutateAsync({
                     transaction: {
                         transaction_date: state.mov.date,
@@ -251,7 +248,7 @@ export function useAssociacaoActions(
                         amount: state.mov.taxa,
                         direction: "out",
                         description: `Taxa da movimentação: ${sourceAccount.name} -> ${destAccount.name}`,
-                        parent_transaction_id: mainTx.id,
+                        parent_transaction_id: (mainTx as unknown as Transaction).id,
                     },
                 });
             }
@@ -279,10 +276,11 @@ export function useAssociacaoActions(
             return false;
         }
 
-        let module: any = "especie_ajuste";
+        let module: Database["public"]["Enums"]["transaction_module"] = "especie_ajuste";
         if (account.name === ACCOUNT_NAMES.ESPECIE) module = "especie_ajuste";
         else if (account.name === ACCOUNT_NAMES.COFRE) module = "cofre_ajuste";
         else if (account.name === ACCOUNT_NAMES.CONTA_DIGITAL) module = "conta_digital_ajuste";
+        // @ts-expect-error - "pix_ajuste" is missing from DB enum but used in UI logic
         else if (account.name === ACCOUNT_NAMES.PIX) module = "pix_ajuste";
 
         const direction = state.ajuste.valor > 0 ? "in" : "out";

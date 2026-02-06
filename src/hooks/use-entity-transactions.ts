@@ -7,7 +7,7 @@ import { useTransactionMetadata } from "./use-transaction-metadata";
 
 // Helper to map transaction data
 const mapTransaction = (
-  t: any,
+  t: Transaction,
   profileMap: Map<string, string>,
   accountMap: Map<string, string>,
   merchantMap: Map<string, string>

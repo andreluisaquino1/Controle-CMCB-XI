@@ -54,9 +54,9 @@ export function useCreateTransaction() {
           destination_account_id: transaction.destination_account_id || undefined,
           module: transaction.module
         };
-        // @ts-ignore
+        // @ts-expect-error - mockTx is compatible for demo purposes
         addTransaction(mockTx);
-        return mockTx as any;
+        return mockTx as Record<string, unknown>;
       }
 
       const { data: txn, error: txnError } = await supabase
@@ -197,10 +197,11 @@ export function useCreateResourceTransaction() {
     mutationFn: async ({
       transaction,
     }: {
-      transaction: any;
+      transaction: Record<string, unknown>;
     }) => {
       const { data: txn, error: txnError } = await supabase
         .rpc("process_resource_transaction", {
+          // @ts-expect-error - RPC expects Json, but we use Record for type safety in TS
           p_tx: transaction
         })
         .single();
@@ -226,8 +227,9 @@ export function useCreateResourceTransaction() {
 }
 
 export function useVoidTransaction() {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const queryClient = useQueryClient();
+  const { voidTransaction } = useDemoData();
 
   return useMutation({
     mutationFn: async ({
@@ -237,6 +239,11 @@ export function useVoidTransaction() {
       transactionId: string;
       reason: string;
     }) => {
+      if (isDemo) {
+        voidTransaction(transactionId);
+        return { success: true };
+      }
+
       const { data, error } = await supabase.rpc("void_transaction", {
         p_id: transactionId,
         p_reason: reason,

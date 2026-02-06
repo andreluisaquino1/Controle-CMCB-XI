@@ -85,7 +85,7 @@ export function GastoRecursoDialog({
     const willBeNegative = selectedAccount && (Number(selectedAccount.balance) - totalAmount < 0);
 
     const handleAddBatchItem = () => {
-        setBatchItems([...batchItems, { id: crypto.randomUUID(), amount: 0, description: "", date: state.date }]);
+        setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }, ...batchItems]);
     };
 
     const handleRemoveBatchItem = (id: string) => {
@@ -93,7 +93,7 @@ export function GastoRecursoDialog({
         setBatchItems(batchItems.filter(item => item.id !== id));
     };
 
-    const updateBatchItem = (id: string, field: keyof BatchExpenseItem, value: any) => {
+    const updateBatchItem = (id: string, field: keyof BatchExpenseItem, value: string | number) => {
         setBatchItems(batchItems.map(item => item.id === id ? { ...item, [field]: value } : item));
     };
 
@@ -115,7 +115,7 @@ export function GastoRecursoDialog({
                         amount: item.amount,
                         direction: "out",
                         description: item.description,
-                        notes: state.notes || "Lançamento em lote de recurso",
+                        notes: state.notes || "",
                         merchant_id: state.merchantId,
                         capital_custeio: state.capitalCusteio || null,
                     },
@@ -131,9 +131,12 @@ export function GastoRecursoDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
+            <DialogContent
+                className="max-h-[90vh] overflow-y-auto max-w-2xl"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+            >
                 <DialogHeader className="flex flex-row items-center justify-between pr-8">
-                    <DialogTitle>Gasto de Recurso (Lote)</DialogTitle>
+                    <DialogTitle>Registrar Gastos de Recurso</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 pt-4">
@@ -272,7 +275,7 @@ export function GastoRecursoDialog({
                         onClick={handleBatchSubmit}
                         disabled={isLoading || createTransaction.isPending || !state.entityId || !state.accountId || !state.merchantId}
                     >
-                        {isLoading || createTransaction.isPending ? "Processando..." : "Lançar Lote"}
+                        {isLoading || createTransaction.isPending ? "Processando..." : "Lançar Gastos"}
                     </Button>
                 </div>
             </DialogContent>
