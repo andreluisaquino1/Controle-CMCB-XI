@@ -7,6 +7,7 @@ export interface DemoAccount {
     balance: number;
     type: 'association' | 'resource' | 'merchant';
     entity_id?: string;
+    active: boolean;
 }
 
 export interface DemoTransaction {
@@ -28,19 +29,19 @@ export interface DemoTransaction {
 // Initial Balances (Fictitious)
 export const INITIAL_ACCOUNTS: DemoAccount[] = [
     // Associação
-    { id: 'acc_especie', name: 'Espécie', description: 'Caixa físico da associação', balance: 1540.50, type: 'association', entity_id: 'ent_associacao' },
-    { id: 'acc_pix', name: 'PIX (Conta BB)', description: 'Conta corrente Banco do Brasil', balance: 12500.00, type: 'association', entity_id: 'ent_associacao' },
-    { id: 'acc_digital', name: 'Conta Digital (Escolaweb)', description: 'Recebimento de boletos', balance: 3200.75, type: 'association', entity_id: 'ent_associacao' },
-    { id: 'acc_cofre', name: 'Cofre', description: 'Reserva de segurança', balance: 5000.00, type: 'association', entity_id: 'ent_associacao' },
+    { id: 'acc_especie', name: 'Espécie', description: 'Caixa físico da associação', balance: 1540.50, type: 'association', entity_id: 'ent_associacao', active: true },
+    { id: 'acc_pix', name: 'PIX (Conta BB)', description: 'Conta corrente Banco do Brasil', balance: 12500.00, type: 'association', entity_id: 'ent_associacao', active: true },
+    { id: 'acc_digital', name: 'Conta Digital (Escolaweb)', description: 'Recebimento de boletos', balance: 3200.75, type: 'association', entity_id: 'ent_associacao', active: true },
+    { id: 'acc_cofre', name: 'Cofre', description: 'Reserva de segurança', balance: 5000.00, type: 'association', entity_id: 'ent_associacao', active: true },
 
     // Recursos (Unidade Executora - PDDE)
-    { id: 'res_ue_basico', name: 'PDDE Básico', description: 'Custeio e Capital', balance: 15500.00, type: 'resource', entity_id: 'ent_ue' },
-    { id: 'res_ue_qualidade', name: 'PDDE Qualidade', description: 'Mais Educação / Atleta na Escola', balance: 12300.50, type: 'resource', entity_id: 'ent_ue' },
-    { id: 'res_ue_estrutura', name: 'PDDE Estrutura', description: 'Acessibilidade / Escola do Campo', balance: 17200.00, type: 'resource', entity_id: 'ent_ue' },
+    { id: 'res_ue_basico', name: 'PDDE Básico', description: 'Custeio e Capital', balance: 15500.00, type: 'resource', entity_id: 'ent_ue', active: true },
+    { id: 'res_ue_qualidade', name: 'PDDE Qualidade', description: 'Mais Educação / Atleta na Escola', balance: 12300.50, type: 'resource', entity_id: 'ent_ue', active: true },
+    { id: 'res_ue_estrutura', name: 'PDDE Estrutura', description: 'Acessibilidade / Escola do Campo', balance: 17200.00, type: 'resource', entity_id: 'ent_ue', active: true },
 
     // Recursos (Caixa Escolar - PNAE/FEE)
-    { id: 'res_cx_pnae', name: 'PNAE (Alimentação)', description: 'Merenda Escolar', balance: 18450.75, type: 'resource', entity_id: 'ent_cx' },
-    { id: 'res_cx_fee', name: 'FEE (Manutenção)', description: 'Manutenção e Pequenos Reparos', balance: 9549.25, type: 'resource', entity_id: 'ent_cx' },
+    { id: 'res_cx_pnae', name: 'PNAE (Alimentação)', description: 'Merenda Escolar', balance: 18450.75, type: 'resource', entity_id: 'ent_cx', active: true },
+    { id: 'res_cx_fee', name: 'FEE (Manutenção)', description: 'Manutenção e Pequenos Reparos', balance: 9549.25, type: 'resource', entity_id: 'ent_cx', active: true },
 ];
 
 
@@ -51,10 +52,10 @@ export const MOCK_ENTITIES = [
 ];
 
 export const INITIAL_MERCHANTS: DemoAccount[] = [
-    { id: 'merc_atacadia', name: 'Atacadão Dia a Dia', description: 'Fornecedor de Alimentos', balance: 1250.00, type: 'merchant', entity_id: 'ent_associacao' },
-    { id: 'merc_kalunga', name: 'Kalunga', description: 'Material de Escritório', balance: 450.00, type: 'merchant', entity_id: 'ent_associacao' },
-    { id: 'merc_amazon', name: 'Amazon', description: 'Livros e Eletrônicos', balance: 0.00, type: 'merchant', entity_id: 'ent_associacao' },
-    { id: 'merc_posto', name: 'Posto Ipiranga', description: 'Combustível', balance: 0.00, type: 'merchant', entity_id: 'ent_associacao' },
+    { id: 'merc_atacadia', name: 'Atacadão Dia a Dia', description: 'Fornecedor de Alimentos', balance: 1250.00, type: 'merchant', entity_id: 'ent_associacao', active: true },
+    { id: 'merc_kalunga', name: 'Kalunga', description: 'Material de Escritório', balance: 450.00, type: 'merchant', entity_id: 'ent_associacao', active: true },
+    { id: 'merc_amazon', name: 'Amazon', description: 'Livros e Eletrônicos', balance: 0.00, type: 'merchant', entity_id: 'ent_associacao', active: true },
+    { id: 'merc_posto', name: 'Posto Ipiranga', description: 'Combustível', balance: 0.00, type: 'merchant', entity_id: 'ent_associacao', active: true },
 ];
 
 const today = new Date();

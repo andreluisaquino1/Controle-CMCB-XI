@@ -190,6 +190,41 @@ export function useCreateTransaction() {
   });
 }
 
+export function useCreateResourceTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      transaction,
+    }: {
+      transaction: any;
+    }) => {
+      const { data: txn, error: txnError } = await supabase
+        .rpc("process_resource_transaction", {
+          p_tx: transaction
+        })
+        .single();
+
+      if (txnError) throw txnError;
+      return txn;
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["merchants"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["all-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["saldos-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["recursos-transactions"] });
+    },
+    onError: (error: Error) => {
+      console.error("Resource Transaction error:", error);
+      toast.error(error.message || "Não foi possível registrar a operação de recurso.");
+    },
+  });
+}
+
 export function useVoidTransaction() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -202,38 +237,13 @@ export function useVoidTransaction() {
       transactionId: string;
       reason: string;
     }) => {
-      if (!user) throw new Error("Usuário não autenticado");
-
-      const { data: originalTxn, error: fetchError } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("id", transactionId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      const { error: updateError } = await supabase
-        .from("transactions")
-        .update({
-          status: "voided",
-          edited_reason: reason,
-        })
-        .eq("id", transactionId);
-
-      if (updateError) throw updateError;
-
-      const { error: auditError } = await supabase.from("audit_logs").insert({
-        transaction_id: transactionId,
-        action: "void",
-        before_json: originalTxn,
-        after_json: { ...originalTxn, status: "voided", edited_reason: reason },
-        reason,
-        user_id: user.id,
+      const { data, error } = await supabase.rpc("void_transaction", {
+        p_id: transactionId,
+        p_reason: reason,
       });
 
-      if (auditError) throw auditError;
-
-      return originalTxn;
+      if (error) throw error;
+      return data;
     },
     onError: (error: Error) => {
       console.error("Void error:", error);

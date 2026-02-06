@@ -201,6 +201,30 @@ export type Database = {
           },
         ]
       }
+      transaction_modules_config: {
+        Row: {
+          category: string
+          created_at: string
+          is_active: boolean
+          label: string
+          module_key: Database["public"]["Enums"]["transaction_module"]
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          is_active?: boolean
+          label: string
+          module_key: Database["public"]["Enums"]["transaction_module"]
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          is_active?: boolean
+          label?: string
+          module_key?: Database["public"]["Enums"]["transaction_module"]
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -371,6 +395,19 @@ export type Database = {
       process_transaction: {
         Args: {
           p_tx: Json
+        }
+        Returns: Json
+      }
+      process_resource_transaction: {
+        Args: {
+          p_tx: Json
+        }
+        Returns: Json
+      }
+      void_transaction: {
+        Args: {
+          p_id: string
+          p_reason: string
         }
         Returns: Json
       }

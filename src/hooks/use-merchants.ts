@@ -5,18 +5,23 @@ import { Merchant } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDemoData } from "@/demo/useDemoData";
 
-export function useMerchants() {
+export function useMerchants(includeInactive = false) {
   const { isDemo } = useAuth();
   const { merchants } = useDemoData();
 
   const query = useQuery({
-    queryKey: ["merchants"],
+    queryKey: ["merchants", includeInactive],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let baseQuery = supabase
         .from("merchants")
         .select("*")
-        .eq("active", true)
         .order("name");
+
+      if (!includeInactive) {
+        baseQuery = baseQuery.eq("active", true);
+      }
+
+      const { data, error } = await baseQuery;
 
       if (error) throw error;
       return data as Merchant[];
@@ -25,7 +30,8 @@ export function useMerchants() {
   });
 
   if (isDemo) {
-    return { ...query, data: merchants as unknown as Merchant[], isLoading: false, isError: false, error: null };
+    const data = includeInactive ? merchants : merchants.filter(m => m.active);
+    return { ...query, data: data as unknown as Merchant[], isLoading: false, isError: false, error: null };
   }
 
   return query;

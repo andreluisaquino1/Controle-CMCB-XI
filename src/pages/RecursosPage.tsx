@@ -1,9 +1,9 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
-import { Building2, Loader2, ArrowUpCircle, ArrowDownCircle, ScrollText, Pencil, Trash2, Plus } from "lucide-react";
+import { Building2, Loader2, ArrowUpCircle, ArrowDownCircle, ScrollText, Pencil, Trash2, Plus, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { useCreateTransaction, useVoidTransaction } from "@/hooks/use-transactions";
+import { useCreateTransaction, useCreateResourceTransaction, useVoidTransaction } from "@/hooks/use-transactions";
 import { useEntitiesWithAccounts, useCreateAccount, useUpdateAccount, useDeactivateAccount } from "@/hooks/use-accounts";
 import { useMerchants } from "@/hooks/use-merchants";
 import { useRecursosTransactions } from "@/hooks/use-entity-transactions";
@@ -19,16 +19,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Account } from "@/types";
 
 export default function RecursosPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
-  const createTransaction = useCreateTransaction();
+  const createTransaction = useCreateResourceTransaction();
   const voidTransaction = useVoidTransaction();
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
 
-  const { data: entitiesData, isLoading: entitiesLoading, refetch: refetchEntities } = useEntitiesWithAccounts();
+  const { data: entitiesData, isLoading: entitiesLoading, refetch: refetchEntities } = useEntitiesWithAccounts(showInactive);
   const { data: transactions, isLoading: transactionsLoading } = useRecursosTransactions();
   const { data: merchantsData } = useMerchants();
 
@@ -238,10 +240,20 @@ export default function RecursosPage() {
             <h1 className="text-2xl font-bold text-foreground">Recursos (UE e CX)</h1>
             <p className="text-muted-foreground">Entradas e gastos diretos das contas da Unidade Executora e Caixa Escolar</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setOpenDialog("nova-conta")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Conta
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2 bg-muted/50 px-3 py-1.5 rounded-full border">
+              <Switch
+                id="show-inactive-recursos"
+                checked={showInactive}
+                onCheckedChange={setShowInactive}
+              />
+              <Label htmlFor="show-inactive-recursos" className="text-xs cursor-pointer">Inativos</Label>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setOpenDialog("nova-conta")}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Conta
+            </Button>
+          </div>
         </div>
 
         {/* Saldos por Conta Block */}
@@ -256,11 +268,14 @@ export default function RecursosPage() {
                 {entitiesLoading ? (
                   <div className="h-20 flex items-center justify-center bg-muted/20 rounded-lg"><Loader2 className="h-5 w-5 animate-spin" /></div>
                 ) : accounts.filter(a => a.entity_id === ueEntity?.id).map(acc => (
-                  <Card key={acc.id} className="bg-card border-none shadow-sm relative group">
+                  <Card key={acc.id} className={`bg-card border-none shadow-sm relative group ${!acc.active ? "opacity-60" : ""}`}>
                     <CardContent className="p-4 flex justify-between items-center">
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-foreground">{cleanAccountDisplayName(acc.name)}</p>
+                          {!acc.active && (
+                            <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Inativo</span>
+                          )}
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                             <button className="text-muted-foreground hover:text-primary transition-colors" onClick={() => setEditingAccount(acc)}><Pencil className="h-3 w-3" /></button>
                             <button className="text-muted-foreground hover:text-destructive transition-colors" onClick={() => setDeactivatingAccount(acc)}><Trash2 className="h-3 w-3" /></button>
@@ -284,11 +299,14 @@ export default function RecursosPage() {
                 {entitiesLoading ? (
                   <div className="h-20 flex items-center justify-center bg-muted/20 rounded-lg"><Loader2 className="h-5 w-5 animate-spin" /></div>
                 ) : accounts.filter(a => a.entity_id === cxEntity?.id).map(acc => (
-                  <Card key={acc.id} className="bg-card border-none shadow-sm relative group">
+                  <Card key={acc.id} className={`bg-card border-none shadow-sm relative group ${!acc.active ? "opacity-60" : ""}`}>
                     <CardContent className="p-4 flex justify-between items-center">
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-foreground">{cleanAccountDisplayName(acc.name)}</p>
+                          {!acc.active && (
+                            <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Inativo</span>
+                          )}
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                             <button className="text-muted-foreground hover:text-primary transition-colors" onClick={() => setEditingAccount(acc)}><Pencil className="h-3 w-3" /></button>
                             <button className="text-muted-foreground hover:text-destructive transition-colors" onClick={() => setDeactivatingAccount(acc)}><Trash2 className="h-3 w-3" /></button>
@@ -431,30 +449,43 @@ export default function RecursosPage() {
 
         {/* Void Transaction Dialog */}
         <Dialog open={!!voidingId} onOpenChange={(open) => !open && setVoidingId(null)}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] max-w-md border-destructive/20">
             <DialogHeader>
-              <DialogTitle>Anular Lançamento</DialogTitle>
+              <DialogTitle className="text-destructive flex items-center gap-2">
+                <XCircle className="h-5 w-5" />
+                Anular Lançamento
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label>Motivo da Anulação *</Label>
+                <Label htmlFor="void-reason-recursos">Motivo da Anulação <span className="text-destructive">*</span></Label>
                 <Input
+                  id="void-reason-recursos"
                   value={voidReason}
                   onChange={(e) => setVoidReason(e.target.value)}
                   placeholder="Ex: Valor digitado errado"
+                  autoFocus
                 />
+                <p className="text-[10px] text-muted-foreground italic">Mínimo de 3 caracteres para confirmar.</p>
               </div>
-              <p className="text-xs text-muted-foreground bg-destructive/5 p-2 rounded border border-destructive/20">
-                <strong>Atenção:</strong> Esta ação reverterá o impacto financeiro no saldo das contas envolvidas.
-              </p>
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={handleVoidTx}
-                disabled={voidTransaction.isPending || !voidReason.trim()}
-              >
-                {voidTransaction.isPending ? "Anulando..." : "Confirmar Anulação"}
-              </Button>
+              <div className="p-3 bg-destructive/5 border border-destructive/20 rounded-md">
+                <p className="text-xs text-destructive-foreground font-medium">
+                  <strong>Atenção:</strong> Esta ação é irreversível e reverterá o impacto financeiro no saldo das contas envolvidas imediatamente.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setVoidingId(null)}>
+                  Voltar
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={handleVoidTx}
+                  disabled={voidTransaction.isPending || voidReason.trim().length < 3}
+                >
+                  {voidTransaction.isPending ? "Anulando..." : "Confirmar Anulação"}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

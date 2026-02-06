@@ -4,6 +4,17 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -55,6 +66,7 @@ export function AjustarSaldoDialog({
 }: AjustarSaldoDialogProps) {
     const selectedAccount = accounts.find(a => a.id === state.accountId);
     const currentBalance = selectedAccount?.balance || 0;
+    const [confirmOpen, setConfirmOpen] = useState(false);
 
     // Local state for the "Final Balance" input to allow interactive calculation
     const [finalBalance, setFinalBalance] = useState(currentBalance + state.valor);
@@ -204,16 +216,37 @@ export function AjustarSaldoDialog({
                         </p>
                     </div>
 
-                    <Button
-                        className="w-full"
-                        onClick={async () => {
-                            const success = await onSubmit();
-                            if (success) onOpenChange(false);
-                        }}
-                        disabled={isLoading || !state.accountId || !state.motivo}
-                    >
-                        {isLoading ? "Salvando..." : "Confirmar Ajuste"}
-                    </Button>
+                    <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                className="w-full"
+                                disabled={isLoading || !state.accountId || !state.motivo}
+                            >
+                                {isLoading ? "Salvando..." : "Registrar Ajuste"}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="w-[95vw] max-w-md">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Ajuste de Saldo?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Esta ação alterará o saldo de <strong>{selectedAccount ? cleanAccountDisplayName(selectedAccount.name) : ""}</strong> de {formatCurrencyBRL(currentBalance)} para <strong>{formatCurrencyBRL(finalBalance)}</strong>.
+                                    Esta operação será registrada na trilha de auditoria.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={async () => {
+                                        const success = await onSubmit();
+                                        if (success) onOpenChange(false);
+                                    }}
+                                    className="bg-warning text-warning-foreground hover:bg-warning/90"
+                                >
+                                    Confirmar Ajuste
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </DialogContent>
         </Dialog>

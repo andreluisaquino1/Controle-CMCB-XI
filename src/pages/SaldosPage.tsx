@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -46,7 +47,8 @@ import { TransactionTable } from "@/components/transactions/TransactionTable";
 
 export default function SaldosPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
-  const { data: merchants, refetch: refetchMerchants } = useMerchants();
+  const [showInactive, setShowInactive] = useState(false);
+  const { data: merchants, refetch: refetchMerchants } = useMerchants(showInactive);
   const { data: entitiesData } = useEntitiesWithAccounts();
   const { data: transactions, isLoading: transactionsLoading } = useSaldosTransactions();
   const voidTransaction = useVoidTransaction();
@@ -102,42 +104,52 @@ export default function SaldosPage() {
               Gestão de saldos em supermercados e fornecedores
             </p>
           </div>
-          <Dialog open={openDialog === "novo"} onOpenChange={(open) => setOpenDialog(open ? "novo" : null)}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Store className="h-4 w-4 mr-2" />
-                Novo Estabelecimento
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Novo Estabelecimento</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label>Nome do Estabelecimento</Label>
-                  <Input
-                    placeholder="Ex: Supermercado XYZ"
-                    value={newMerchantName}
-                    onChange={(e) => setNewMerchantName(e.target.value)}
-                  />
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={async () => {
-                    const success = await handleAddMerchant(newMerchantName);
-                    if (success) {
-                      setOpenDialog(null);
-                      refetchMerchants();
-                    }
-                  }}
-                  disabled={actionsLoading}
-                >
-                  {actionsLoading ? "Adicionando..." : "Adicionar"}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2 bg-muted/50 px-3 py-1.5 rounded-full border">
+              <Switch
+                id="show-inactive"
+                checked={showInactive}
+                onCheckedChange={setShowInactive}
+              />
+              <Label htmlFor="show-inactive" className="text-xs cursor-pointer">Inativos</Label>
+            </div>
+            <Dialog open={openDialog === "novo"} onOpenChange={(open) => setOpenDialog(open ? "novo" : null)}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Store className="h-4 w-4 mr-2" />
+                  Novo Estabelecimento
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Novo Estabelecimento</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label>Nome do Estabelecimento</Label>
+                    <Input
+                      placeholder="Ex: Supermercado XYZ"
+                      value={newMerchantName}
+                      onChange={(e) => setNewMerchantName(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={async () => {
+                      const success = await handleAddMerchant(newMerchantName);
+                      if (success) {
+                        setOpenDialog(null);
+                        refetchMerchants();
+                      }
+                    }}
+                    disabled={actionsLoading}
+                  >
+                    {actionsLoading ? "Adicionando..." : "Adicionar"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Merchant Balances */}
@@ -158,6 +170,9 @@ export default function SaldosPage() {
                       <div className="flex items-center gap-2">
                         <Wallet className="h-4 w-4" />
                         {merchant.name}
+                        {!merchant.active && (
+                          <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Inativo</span>
+                        )}
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                         <Button
@@ -339,30 +354,43 @@ export default function SaldosPage() {
 
         {/* Void Transaction Dialog */}
         <Dialog open={!!voidingId} onOpenChange={(open) => !open && setVoidingId(null)}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] max-w-md border-destructive/20">
             <DialogHeader>
-              <DialogTitle>Anular Lançamento</DialogTitle>
+              <DialogTitle className="text-destructive flex items-center gap-2">
+                <XCircle className="h-5 w-5" />
+                Anular Lançamento
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label>Motivo da Anulação *</Label>
+                <Label htmlFor="void-reason">Motivo da Anulação <span className="text-destructive">*</span></Label>
                 <Input
+                  id="void-reason"
                   value={voidReason}
                   onChange={(e) => setVoidReason(e.target.value)}
                   placeholder="Ex: Lançado em estabelecimento errado"
+                  autoFocus
                 />
+                <p className="text-[10px] text-muted-foreground italic">Mínimo de 3 caracteres para confirmar.</p>
               </div>
-              <p className="text-xs text-muted-foreground bg-destructive/5 p-2 rounded border border-destructive/20">
-                <strong>Atenção:</strong> Esta ação reverterá o impacto financeiro no saldo do estabelecimento e da conta de origem.
-              </p>
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={handleVoidTx}
-                disabled={voidTransaction.isPending || !voidReason.trim()}
-              >
-                {voidTransaction.isPending ? "Anulando..." : "Confirmar Anulação"}
-              </Button>
+              <div className="p-3 bg-destructive/5 border border-destructive/20 rounded-md">
+                <p className="text-xs text-destructive-foreground font-medium">
+                  <strong>Atenção:</strong> Esta ação é irreversível e reverterá o impacto financeiro no saldo do estabelecimento e da conta envolvida imediatamente.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setVoidingId(null)}>
+                  Voltar
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={handleVoidTx}
+                  disabled={voidTransaction.isPending || voidReason.trim().length < 3}
+                >
+                  {voidTransaction.isPending ? "Anulando..." : "Confirmar Anulação"}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

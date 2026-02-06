@@ -378,30 +378,43 @@ export default function AssociacaoPage() {
 
         {/* Void Transaction Dialog */}
         <Dialog open={!!voidingId} onOpenChange={(open) => !open && setVoidingId(null)}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] max-w-md border-destructive/20">
             <DialogHeader>
-              <DialogTitle>Anular Lançamento</DialogTitle>
+              <DialogTitle className="text-destructive flex items-center gap-2">
+                <XCircle className="h-5 w-5" />
+                Anular Lançamento
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label>Motivo da Anulação *</Label>
+                <Label htmlFor="void-reason-assoc">Motivo da Anulação <span className="text-destructive">*</span></Label>
                 <Input
+                  id="void-reason-assoc"
                   value={voidReason}
                   onChange={(e) => setVoidReason(e.target.value)}
                   placeholder="Ex: Valor digitado errado"
+                  autoFocus
                 />
+                <p className="text-[10px] text-muted-foreground italic">Mínimo de 3 caracteres para confirmar.</p>
               </div>
-              <p className="text-xs text-muted-foreground bg-destructive/5 p-2 rounded border border-destructive/20">
-                <strong>Atenção:</strong> Esta ação reverterá o impacto financeiro no saldo das contas envolvidas.
-              </p>
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={handleVoidTx}
-                disabled={voidTransaction.isPending || !voidReason.trim()}
-              >
-                {voidTransaction.isPending ? "Anulando..." : "Confirmar Anulação"}
-              </Button>
+              <div className="p-3 bg-destructive/5 border border-destructive/20 rounded-md">
+                <p className="text-xs text-destructive-foreground font-medium">
+                  <strong>Atenção:</strong> Esta ação é irreversível e reverterá o impacto financeiro no saldo das contas envolvidas imediatamente.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setVoidingId(null)}>
+                  Voltar
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={handleVoidTx}
+                  disabled={voidTransaction.isPending || voidReason.trim().length < 3}
+                >
+                  {voidTransaction.isPending ? "Anulando..." : "Confirmar Anulação"}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

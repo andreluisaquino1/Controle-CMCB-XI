@@ -6,18 +6,23 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useDemoData } from "@/demo/useDemoData";
 import { MOCK_ENTITIES } from "@/demo/demoSeed";
 
-export function useAccounts() {
+export function useAccounts(includeInactive = false) {
   const { isDemo } = useAuth();
   const { accounts } = useDemoData();
 
   const query = useQuery({
-    queryKey: ["accounts"],
+    queryKey: ["accounts", includeInactive],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let baseQuery = supabase
         .from("accounts")
         .select("*")
-        .eq("active", true)
         .order("name");
+
+      if (!includeInactive) {
+        baseQuery = baseQuery.eq("active", true);
+      }
+
+      const { data, error } = await baseQuery;
 
       if (error) throw error;
       return data as Account[];
@@ -26,18 +31,19 @@ export function useAccounts() {
   });
 
   if (isDemo) {
-    return { ...query, data: accounts as unknown as Account[], isLoading: false, isError: false, error: null };
+    const data = includeInactive ? accounts : accounts.filter(a => a.active);
+    return { ...query, data: data as unknown as Account[], isLoading: false, isError: false, error: null };
   }
 
   return query;
 }
 
-export function useAccountsByEntityType(entityType: "associacao" | "ue" | "cx" | null) {
+export function useAccountsByEntityType(entityType: "associacao" | "ue" | "cx" | null, includeInactive = false) {
   const { isDemo } = useAuth();
   const { accounts } = useDemoData();
 
   const query = useQuery({
-    queryKey: ["accounts", "by-entity-type", entityType],
+    queryKey: ["accounts", "by-entity-type", entityType, includeInactive],
     queryFn: async () => {
       if (!entityType) return [];
 
@@ -51,12 +57,17 @@ export function useAccountsByEntityType(entityType: "associacao" | "ue" | "cx" |
 
       const entityIds = entities.map(e => e.id);
 
-      const { data, error } = await supabase
+      let baseQuery = supabase
         .from("accounts")
         .select("*")
         .in("entity_id", entityIds)
-        .eq("active", true)
         .order("name");
+
+      if (!includeInactive) {
+        baseQuery = baseQuery.eq("active", true);
+      }
+
+      const { data, error } = await baseQuery;
 
       if (error) throw error;
       return data as Account[];
@@ -66,7 +77,8 @@ export function useAccountsByEntityType(entityType: "associacao" | "ue" | "cx" |
 
   if (isDemo) {
     const entity = MOCK_ENTITIES.find(e => e.type === entityType);
-    const filtered = entity ? accounts.filter(a => a.entity_id === entity.id) : [];
+    let filtered = entity ? accounts.filter(a => a.entity_id === entity.id) : [];
+    if (!includeInactive) filtered = filtered.filter(a => a.active);
     return { ...query, data: filtered as unknown as Account[], isLoading: false, isError: false };
   }
 
@@ -97,12 +109,12 @@ export function useEntities() {
   return query;
 }
 
-export function useEntitiesWithAccounts() {
+export function useEntitiesWithAccounts(includeInactive = false) {
   const { isDemo } = useAuth();
   const { accounts: demoAccounts } = useDemoData();
 
   const query = useQuery({
-    queryKey: ["entities-with-accounts"],
+    queryKey: ["entities-with-accounts", includeInactive],
     queryFn: async () => {
       const { data: entities, error: entitiesError } = await supabase
         .from("entities")
@@ -111,11 +123,16 @@ export function useEntitiesWithAccounts() {
 
       if (entitiesError) throw entitiesError;
 
-      const { data: accounts, error: accountsError } = await supabase
+      let accQuery = supabase
         .from("accounts")
         .select("*")
-        .eq("active", true)
         .order("name");
+
+      if (!includeInactive) {
+        accQuery = accQuery.eq("active", true);
+      }
+
+      const { data: accounts, error: accountsError } = await accQuery;
 
       if (accountsError) throw accountsError;
 
@@ -128,9 +145,10 @@ export function useEntitiesWithAccounts() {
   });
 
   if (isDemo) {
+    const accounts = includeInactive ? demoAccounts : demoAccounts.filter(a => a.active);
     return {
       ...query,
-      data: { entities: MOCK_ENTITIES as unknown as Entity[], accounts: demoAccounts as unknown as Account[] },
+      data: { entities: MOCK_ENTITIES as unknown as Entity[], accounts: accounts as unknown as Account[] },
       isLoading: false
     };
   }
