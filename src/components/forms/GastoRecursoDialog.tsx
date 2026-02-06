@@ -137,26 +137,20 @@ export function GastoRecursoDialog({
                 </DialogHeader>
 
                 <div className="space-y-4 pt-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Data *</Label>
-                            <DateInput value={state.date} onChange={setters.setDate} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Entidade *</Label>
-                            <Select value={state.entityId} onValueChange={setters.setEntityId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {entities.filter(e => e.type !== "associacao").map(e => (
-                                        <SelectItem key={e.id} value={e.id}>
-                                            {e.type === "ue" ? "Unidade Executora" : "Caixa Escolar"}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                    <div className="space-y-2">
+                        <Label>Entidade *</Label>
+                        <Select value={state.entityId} onValueChange={setters.setEntityId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {entities.filter(e => e.type !== "associacao").map(e => (
+                                    <SelectItem key={e.id} value={e.id}>
+                                        {e.type === "ue" ? "Unidade Executora" : "Caixa Escolar"}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="space-y-2">

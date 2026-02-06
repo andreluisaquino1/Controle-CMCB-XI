@@ -38,6 +38,9 @@ interface GastoAssociacaoDialogProps {
     };
     onSubmit: (strictBalance?: boolean) => Promise<boolean>;
     isLoading: boolean;
+    shortcuts: string[];
+    addShortcut: (shortcut: string) => void;
+    removeShortcut: (shortcut: string) => void;
     strictBalance?: boolean;
 }
 
@@ -148,23 +151,17 @@ export function GastoAssociacaoDialog({
                 </DialogHeader>
 
                 <div className="space-y-4 pt-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Data *</Label>
-                            <DateInput value={state.date} onChange={setters.setDate} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Meio de Pagamento *</Label>
-                            <Select value={state.meio} onValueChange={setters.setMeio}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="cash">Espécie</SelectItem>
-                                    <SelectItem value="pix">PIX</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                    <div className="space-y-2">
+                        <Label>Meio de Pagamento *</Label>
+                        <Select value={state.meio} onValueChange={setters.setMeio}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="cash">Espécie</SelectItem>
+                                <SelectItem value="pix">PIX</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="space-y-4">

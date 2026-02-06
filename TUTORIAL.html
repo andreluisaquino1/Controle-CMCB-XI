@@ -208,7 +208,8 @@
         <li><strong>Alterar Nome</strong>: Atualize seu nome de exibição.</li>
         <li><strong>Alterar Senha</strong>: Permite trocar sua senha atual por uma nova.</li>
         <li><strong>Nível de Acesso</strong>: No perfil, você pode visualizar se sua conta tem permissão de
-            <strong>Administrador</strong>, <strong>Usuário Comum</strong> ou <strong>Demonstração</strong>.</li>
+            <strong>Administrador</strong>, <strong>Usuário Comum</strong> ou <strong>Demonstração</strong>.
+        </li>
         <li><strong>Status da Conta</strong>: Caso sua conta ainda não tenha sido autorizada, você verá uma tela de
             bloqueio informando <strong>"Aguardando Ativação"</strong>. Ao entrar no sistema, sua conta já estará
             plenamente ativa.</li>
@@ -250,8 +251,12 @@
     <h4>2. Despesa Associação (Saída)</h4>
     <p>Pagamento direto de despesas utilizando saldo da Associação.</p>
     <ul>
-        <li><strong>Campos</strong>: Data, Meio de Pagamento (Espécie/PIX...), Valor, Descrição.</li>
-        <li><strong>Exemplo</strong>: Pagamento de R$ 100,00 via PIX para compra de material de limpeza.</li>
+        <li><strong>Forma de Registro</strong>: O sistema funciona agora exclusivamente em modo de
+            <strong>Lote</strong>, permitindo registrar um ou múltiplos itens no mesmo lançamento.</li>
+        <li><strong>Campos</strong>: Meio de Pagamento (Espécie/PIX) no cabeçalho. Para cada item: Data individual,
+            Valor e Descrição.</li>
+        <li><strong>Exemplo</strong>: Pagamento de material de limpeza e escritório no mesmo diálogo, cada um com sua
+            data.</li>
     </ul>
 
     <h4>3. Movimentar Saldo (Transferência)</h4>
@@ -294,9 +299,13 @@
     </ul>
 
     <h4>Registrar Gasto (Consumo)</h4>
-    <p>Baixa o saldo do estabelecimento quando uma compra é feita.</p>
+    <p>Baixa o saldo do estabelecimento quando uma compra é feita. Realizado via lançamento em <strong>Lote</strong>.
+    </p>
     <ul>
-        <li><strong>Exemplo</strong>: Compra de lanche no valor de R$ 200,00 no Supermercado XYZ (reduz o saldo).</li>
+        <li><strong>Uso</strong>: Permite registrar vários itens comprados no mesmo local com descrições e valores
+            individuais.</li>
+        <li><strong>Exemplo</strong>: Compra de diversos itens no Supermercado XYZ (reduz o saldo total do
+            estabelecimento).</li>
     </ul>
 
     <h4>Gerenciar Estabelecimentos</h4>
@@ -318,12 +327,13 @@
     </p>
 
     <h4>Gasto de Recurso (Pagamento/Aporte)</h4>
-    <p>Registro de saída de valores da conta de recurso.</p>
+    <p>Registro de saída de valores da conta de recurso. O lançamento é feito obrigatoriamente em <strong>Lote</strong>.
+    </p>
     <ul>
         <li><strong>Funcionalidade</strong>: Pagamentos diretos ou <strong>Aporte</strong> em estabelecimentos
             cadastrados.</li>
-        <li><strong>Exemplo</strong>: Transferência de valor para o Supermercado para criar crédito ou pagar compra
-            específica.</li>
+        <li><strong>Exemplo</strong>: Transferência de vários valores para o Supermercado para pagar notas fiscais
+            distintas.</li>
     </ul>
 
     <h4>Gerenciar Contas</h4>

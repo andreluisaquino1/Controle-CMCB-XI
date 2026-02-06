@@ -63,9 +63,10 @@ Registro do recebimento de mensalidades recebidas por turno.
 
 #### **2. Despesa Associação (Saída)**
 Pagamento direto de despesas utilizando saldo da Associação.
-- **Campos**: Data, Meio de Pagamento (Espécie/PIX...), Valor, Descrição.
-- **Modo em Lote** ✨ *Novo*: Dentro do diálogo de despesa, clique no botão **"Modo em Lote"** para registrar múltiplos itens de uma só vez (ex: vários recibos pagos com o mesmo meio de pagamento e mesma data).
-- **Exemplo**: Pagamento de R$ 100,00 via PIX para compra de material de limpeza.
+- **Forma de Registro**: O sistema funciona agora exclusivamente em modo de **Lote**, permitindo registrar um ou múltiplos itens no mesmo lançamento.
+- **Campos**: Meio de Pagamento (Espécie/PIX) no cabeçalho.
+- **Tabela de Itens**: Clique em **"+ Item"** para adicionar linhas. Cada item possui sua própria **Data**, **Valor** e **Descrição**.
+- **Exemplo**: Pagamento de material de limpeza e material de escritório no mesmo diálogo, cada um com sua data específica.
 
 #### **3. Movimentar Saldo (Transferência)**
 Transferência de valores entre contas internas.
@@ -118,8 +119,9 @@ Envia dinheiro da instituição para o estabelecimento, gerando crédito.
 
 #### **Registrar Gasto (Consumo)**
 Baixa o saldo do estabelecimento quando uma compra é feita.
-- **Modo em Lote** ✨ *Novo*: Permite registrar vários itens comprados no mesmo estabelecimento e data. Útil para compras grandes com diversos itens que precisam de descrição individual.
-- **Exemplo**: Compra de lanche no valor de R$ 200,00 no Supermercado XYZ. O saldo do mercado diminuirá.
+- **Forma de Registro**: Realizado via lançamento em **Lote**. Permite registrar vários itens comprados no mesmo estabelecimento, com descrições e datas específicas por item.
+- **Uso**: Útil para compras grandes com diversos itens que precisam de descrição individual.
+- **Exemplo**: Compra de lanches e materiais de copa no Supermercado XYZ. Cada item é lançado com seu valor, descrição e data.
 
 #### **Gerenciar Estabelecimentos**
 - **Novo Estabelecimento**: Cadastra um novo fornecedor.
@@ -144,8 +146,8 @@ Registra o ingresso de verba na conta bancária (repasse).
 #### **Gasto de Recurso (Pagamento/Aporte)**
 Registro de saída de valores da conta de recurso.
 - **Funcionalidade**: Esta operação serve tanto para pagamentos diretos quanto para **Aportar Saldo** em estabelecimentos cadastrados.
-- **Modo em Lote** ✨ *Novo*: Agora integrado no diálogo principal, permite lançar vários gastos de recurso de uma só vez.
-- **Exemplo**: Transferência de valor para o Supermercado para criar crédito futuro ou pagar uma compra específica.
+- **Lançamento em Lote**: Permite lançar vários gastos de recurso de uma só vez, informando a data individual para cada item.
+- **Exemplo**: Transferência de valores para o Supermercado para pagar diversas notas fiscais de datas distintas de uma só vez.
 
 #### **Gerenciar Contas**
 Botão **"Nova Conta"** para cadastrar novas contas bancárias. Ícones de lápis e lixeira nos cartões para editar/arquivar contas existentes.

@@ -141,26 +141,20 @@ export function ConsumoSaldoDialog({
                 </DialogHeader>
 
                 <div className="space-y-4 pt-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Data *</Label>
-                            <DateInput value={state.date} onChange={setters.setDate} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Estabelecimento *</Label>
-                            <Select value={state.merchant} onValueChange={setters.setMerchant}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {merchants?.map((m) => (
-                                        <SelectItem key={m.id} value={m.id}>
-                                            {m.name} ({formatCurrencyBRL(Number(m.balance))})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                    <div className="space-y-2">
+                        <Label>Estabelecimento *</Label>
+                        <Select value={state.merchant} onValueChange={setters.setMerchant}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {merchants?.map((m) => (
+                                    <SelectItem key={m.id} value={m.id}>
+                                        {m.name} ({formatCurrencyBRL(Number(m.balance))})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="space-y-4">
