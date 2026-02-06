@@ -34,6 +34,9 @@ export const MODULE_LABELS: Record<string, string> = {
   consumo_saldo: "Gasto Estabelecimento",
   pix_direto_uecx: "Gasto de Recurso",
   aporte_estabelecimento_recurso: "Aporte em Estabelecimento (Recurso)",
+  mensalidade_pix: "Mensalidade (PIX)",
+  pix_nao_identificado: "PIX Não Identificado",
+  taxa_pix_bb: "Taxas PIX BB",
 } as const;
 
 /**

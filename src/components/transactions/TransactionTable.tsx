@@ -7,11 +7,13 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, XCircle } from "lucide-react";
+import { Loader2, XCircle, FileText } from "lucide-react";
 import { formatDateBR } from "@/lib/date-utils";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { MODULE_LABELS } from "@/lib/constants";
 import { TransactionWithCreator } from "@/types";
+import { useState } from "react";
+import { TransactionItemsDialog } from "./TransactionItemsDialog";
 
 interface TransactionTableProps {
     transactions: TransactionWithCreator[] | undefined;
@@ -30,6 +32,8 @@ export function TransactionTable({
     showOrigin = false,
     showAccount = false,
 }: TransactionTableProps) {
+    const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+
     if (isLoading) {
         return (
             <div className="py-8 text-center">
@@ -60,7 +64,7 @@ export function TransactionTable({
                         <TableHead>Descrição</TableHead>
                         <TableHead>Registrado por</TableHead>
                         <TableHead>Observação</TableHead>
-                        {onVoid && <TableHead className="w-[80px]">Ações</TableHead>}
+                        {(onVoid || transactions.some(t => t.module === 'taxa_pix_bb')) && <TableHead className="w-[100px] text-right">Ações</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -104,24 +108,44 @@ export function TransactionTable({
                             <TableCell className="max-w-xs truncate text-muted-foreground text-xs italic">
                                 {t.notes || "-"}
                             </TableCell>
-                            {onVoid && (
-                                <TableCell>
-                                    {t.status === 'posted' && (
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                            onClick={() => onVoid(t.id)}
-                                        >
-                                            <XCircle className="h-4 w-4" />
-                                        </Button>
-                                    )}
+                            {(onVoid || t.module === 'taxa_pix_bb') && (
+                                <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-1">
+                                        {t.module === 'taxa_pix_bb' && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                                onClick={() => setSelectedBatchId(t.id)}
+                                                title="Ver Itens do Lote"
+                                            >
+                                                <FileText className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                        {onVoid && t.status === 'posted' && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                onClick={() => onVoid(t.id)}
+                                                title="Anular Transação"
+                                            >
+                                                <XCircle className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
                                 </TableCell>
                             )}
                         </TableRow>
                     ))}
                 </TableBody>
             </Table>
+
+            <TransactionItemsDialog
+                transactionId={selectedBatchId}
+                open={!!selectedBatchId}
+                onOpenChange={(open) => !open && setSelectedBatchId(null)}
+            />
         </div>
     );
 }

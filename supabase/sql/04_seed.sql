@@ -79,7 +79,8 @@ VALUES
     ('consumo_saldo', 'Gasto Estabelecimento', 'expense'),
     ('pix_direto_uecx', 'Gasto de Recurso', 'expense'),
     ('aporte_saldo', 'Depósito em Estabelecimento', 'transfer'),
-    ('aporte_estabelecimento_recurso', 'Aporte em Estabelecimento (Recurso)', 'transfer')
+    ('aporte_estabelecimento_recurso', 'Aporte em Estabelecimento (Recurso)', 'transfer'),
+    ('taxa_pix_bb', 'Taxas PIX BB (Lote)', 'expense')
 ON CONFLICT (module_key) DO UPDATE 
 SET label = EXCLUDED.label, category = EXCLUDED.category;
 

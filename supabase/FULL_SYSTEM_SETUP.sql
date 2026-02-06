@@ -35,7 +35,8 @@ DO $$ BEGIN
         'mensalidade', 'gasto_associacao', 'assoc_transfer', 'especie_transfer',
         'especie_deposito_pix', 'especie_ajuste', 'pix_ajuste', 'cofre_ajuste',
         'conta_digital_transfer', 'conta_digital_taxa', 'conta_digital_ajuste',
-        'aporte_saldo', 'consumo_saldo', 'pix_direto_uecx', 'recurso_transfer', 'aporte_estabelecimento_recurso'
+        'aporte_saldo', 'consumo_saldo', 'pix_direto_uecx', 'recurso_transfer', 'aporte_estabelecimento_recurso',
+        'taxa_pix_bb'
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
@@ -153,6 +154,20 @@ CREATE TABLE IF NOT EXISTS public.user_roles (
   UNIQUE (user_id, role)
 );
 
+CREATE TABLE IF NOT EXISTS public.transaction_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    parent_transaction_id UUID NOT NULL REFERENCES public.transactions(id) ON DELETE CASCADE,
+    amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+    occurred_at TIMESTAMPTZ,
+    description TEXT,
+    created_by UUID NOT NULL REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Indexes for Items
+CREATE INDEX IF NOT EXISTS idx_transaction_items_parent ON public.transaction_items(parent_transaction_id);
+CREATE INDEX IF NOT EXISTS idx_transaction_items_created_at ON public.transaction_items(created_at);
+
 -- Ensure nullable columns for manual SQL execution (SQL Editor)
 ALTER TABLE public.transactions ALTER COLUMN created_by DROP NOT NULL;
 ALTER TABLE public.audit_logs ALTER COLUMN user_id DROP NOT NULL;
@@ -168,7 +183,9 @@ ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.merchants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.transaction_items ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Profiles: Admins/Own view" ON public.profiles;
 CREATE POLICY "Profiles: Admins/Own view" ON public.profiles FOR SELECT TO authenticated USING (public.is_admin_user(auth.uid()) OR auth.uid() = user_id);
@@ -191,6 +208,13 @@ CREATE POLICY "Active users view entities" ON public.entities FOR SELECT TO auth
 
 DROP POLICY IF EXISTS "Active users view transactions" ON public.transactions;
 CREATE POLICY "Active users view transactions" ON public.transactions FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
+
+-- Transaction Items Policies (Phase 2)
+DROP POLICY IF EXISTS "Active users view items" ON public.transaction_items;
+CREATE POLICY "Active users view items" ON public.transaction_items FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
+
+DROP POLICY IF EXISTS "Active users create items" ON public.transaction_items;
+CREATE POLICY "Active users create items" ON public.transaction_items FOR INSERT TO authenticated WITH CHECK (public.is_active_user(auth.uid()) AND auth.uid() = created_by);
 
 CREATE OR REPLACE FUNCTION public.update_updated_at_column() RETURNS TRIGGER AS 'BEGIN NEW.updated_at = now(); RETURN NEW; END;' LANGUAGE plpgsql SET search_path = public;
 DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
@@ -246,6 +270,39 @@ DECLARE v_acc uuid; v_type text; BEGIN
   IF v_type NOT IN ('ue', 'cx') THEN RAISE EXCEPTION 'Access Denied: Resource entities (UE/CX) only'; END IF;
   RETURN public.process_transaction(p_tx);
 END; $$;
+
+CREATE OR REPLACE FUNCTION public.process_pix_fee_batch(p_entity_id uuid, p_payload jsonb) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+DECLARE v_user_id uuid; v_source_account_id uuid; v_total numeric := 0; v_item jsonb; v_txn_id uuid; v_txn public.transactions; v_items_count int := 0; v_occurred_at timestamptz;
+BEGIN
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL OR NOT public.is_active_user(v_user_id) THEN RAISE EXCEPTION 'Unauthorized'; END IF;
+  SELECT id INTO v_source_account_id FROM public.accounts WHERE entity_id = p_entity_id AND name = 'PIX (Conta BB)' AND active = true;
+  IF v_source_account_id IS NULL THEN RAISE EXCEPTION 'Conta "PIX (Conta BB)" não encontrada ou inativa para esta entidade.'; END IF;
+  FOR v_item IN SELECT * FROM jsonb_array_elements(p_payload->'items') LOOP
+    IF (v_item->>'amount')::numeric <= 0 THEN RAISE EXCEPTION 'Item amount must be positive'; END IF;
+    v_total := v_total + (v_item->>'amount')::numeric;
+    v_items_count := v_items_count + 1;
+  END LOOP;
+  IF v_total <= 0 THEN RAISE EXCEPTION 'Total amount must be positive'; END IF;
+  v_occurred_at := COALESCE((p_payload->>'occurred_at')::timestamptz, now());
+  
+  INSERT INTO public.transactions (transaction_date, module, entity_id, source_account_id, destination_account_id, amount, direction, payment_method, origin_fund, description, notes, created_by, status) 
+  VALUES (v_occurred_at::date, 'taxa_pix_bb', p_entity_id, v_source_account_id, NULL, v_total, 'out', 'cash', NULL, 'Taxas PIX (Lote)', 'Referência: ' || COALESCE(p_payload->>'reference', 'N/A') || ' | Itens: ' || v_items_count, v_user_id, 'posted') RETURNING * INTO v_txn;
+  v_txn_id := v_txn.id;
+  
+  UPDATE public.accounts SET balance = balance - v_total WHERE id = v_source_account_id;
+  
+  INSERT INTO public.transaction_items (parent_transaction_id, amount, occurred_at, description, created_by)
+  SELECT v_txn_id, (item->>'amount')::numeric, COALESCE((item->>'occurred_at')::timestamptz, v_occurred_at), item->>'description', v_user_id FROM jsonb_array_elements(p_payload->'items') AS item;
+  
+  INSERT INTO public.audit_logs (transaction_id, action, before_json, after_json, reason, user_id) 
+  VALUES (v_txn_id, 'create', '{}'::jsonb, jsonb_build_object('total', v_total, 'items', v_items_count, 'reference', p_payload->>'reference'), 'PIX Fee Batch Creation', v_user_id);
+  RETURN v_txn_id;
+END; $$;
+
+CREATE OR REPLACE FUNCTION public.get_transaction_items(p_parent_transaction_id uuid) RETURNS SETOF public.transaction_items LANGUAGE sql SECURITY DEFINER SET search_path TO 'public' STABLE AS $$
+  SELECT * FROM public.transaction_items WHERE parent_transaction_id = p_parent_transaction_id AND public.is_active_user(auth.uid()) ORDER BY occurred_at DESC NULLS LAST, created_at ASC;
+$$;
 
 CREATE OR REPLACE FUNCTION public.void_transaction(p_id uuid, p_reason text) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE v_before jsonb; v_txn record; v_user_id uuid; BEGIN
@@ -320,7 +377,7 @@ END $$;
 INSERT INTO public.merchants (name, mode) VALUES ('Bom Preço', 'saldo'), ('2 Irmãos', 'saldo'), ('Sacolão Brasil', 'saldo'), ('Fort.com', 'saldo'), ('Mercadinho Sampaio', 'saldo'), ('Fename', 'saldo') ON CONFLICT DO NOTHING;
 
 INSERT INTO public.transaction_modules_config (module_key, label, category)
-VALUES ('mensalidade', 'Mensalidade', 'entry'), ('gasto_associacao', 'Despesa Associação', 'expense'), ('assoc_transfer', 'Movimentação Associação', 'transfer'), ('especie_transfer', 'Movimentação entre Contas', 'transfer'), ('especie_deposito_pix', 'Depósito PIX', 'transfer'), ('especie_ajuste', 'Ajuste de Saldo (Espécie)', 'adjustment'), ('pix_ajuste', 'Ajuste de Saldo (PIX)', 'adjustment'), ('cofre_ajuste', 'Ajuste de Saldo (Cofre)', 'adjustment'), ('conta_digital_ajuste', 'Ajuste Conta Digital', 'adjustment'), ('conta_digital_taxa', 'Taxa Escolaweb', 'expense'), ('consumo_saldo', 'Gasto Estabelecimento', 'expense'), ('pix_direto_uecx', 'Gasto de Recurso', 'expense'), ('aporte_saldo', 'Depósito em Estabelecimento', 'transfer'), ('aporte_estabelecimento_recurso', 'Aporte em Estabelecimento (Recurso)', 'transfer')
+VALUES ('mensalidade', 'Mensalidade', 'entry'), ('gasto_associacao', 'Despesa Associação', 'expense'), ('assoc_transfer', 'Movimentação Associação', 'transfer'), ('especie_transfer', 'Movimentação entre Contas', 'transfer'), ('especie_deposito_pix', 'Depósito PIX', 'transfer'), ('especie_ajuste', 'Ajuste de Saldo (Espécie)', 'adjustment'), ('pix_ajuste', 'Ajuste de Saldo (PIX)', 'adjustment'), ('cofre_ajuste', 'Ajuste de Saldo (Cofre)', 'adjustment'), ('conta_digital_ajuste', 'Ajuste Conta Digital', 'adjustment'), ('conta_digital_taxa', 'Taxa Escolaweb', 'expense'), ('consumo_saldo', 'Gasto Estabelecimento', 'expense'), ('pix_direto_uecx', 'Gasto de Recurso', 'expense'), ('aporte_saldo', 'Depósito em Estabelecimento', 'transfer'), ('aporte_estabelecimento_recurso', 'Aporte em Estabelecimento (Recurso)', 'transfer'), ('taxa_pix_bb', 'Taxas PIX BB (Lote)', 'expense')
 ON CONFLICT (module_key) DO UPDATE SET label = EXCLUDED.label, category = EXCLUDED.category;
 
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;

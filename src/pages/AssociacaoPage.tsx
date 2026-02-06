@@ -44,6 +44,9 @@ import { GastoAssociacaoDialog } from "@/components/forms/GastoAssociacaoDialog"
 import { MovimentarSaldoDialog } from "@/components/forms/MovimentarSaldoDialog";
 import { AjustarSaldoDialog } from "@/components/forms/AjustarSaldoDialog";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
+import { PixFeeBatchDialog } from "@/components/forms/PixFeeBatchDialog";
+import { PixNaoIdentificadoDialog } from "@/components/forms/PixNaoIdentificadoDialog";
+import { FileText, Ghost } from "lucide-react";
 
 export default function AssociacaoPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
@@ -307,6 +310,36 @@ export default function AssociacaoPage() {
             accounts={accounts || []}
             onSubmit={handlers.handleAjusteSubmit}
             isLoading={actionsLoading}
+          />
+
+          {/* Taxas PIX (Lote) */}
+          <ActionCard
+            title="Taxas PIX (Lote)"
+            description="Lançar tarifas em lote"
+            icon={FileText}
+            variant="info"
+            className="border-l-4 border-l-blue-600"
+            onClick={() => setOpenDialog("pix_batch")}
+          />
+
+          <PixFeeBatchDialog
+            open={openDialog === "pix_batch"}
+            onOpenChange={(o) => setOpenDialog(o ? "pix_batch" : null)}
+          />
+
+          {/* PIX Não Identificado */}
+          <ActionCard
+            title="PIX Fantasma"
+            description="Registrar PIX não identificado"
+            icon={Ghost}
+            variant="warning"
+            className="border-l-4 border-l-amber-500"
+            onClick={() => setOpenDialog("pix_nao_id")}
+          />
+
+          <PixNaoIdentificadoDialog
+            open={openDialog === "pix_nao_id"}
+            onOpenChange={(o) => setOpenDialog(o ? "pix_nao_id" : null)}
           />
         </div>
 

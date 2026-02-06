@@ -70,6 +70,13 @@ CREATE POLICY "Global: Active users can view merchants"
 CREATE POLICY "Global: Active users can view transactions"
   ON public.transactions FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
 
+-- Transaction Items (Phase 2)
+CREATE POLICY "Global: Active users can view transaction items"
+  ON public.transaction_items FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
+
+CREATE POLICY "Global: Active users can create transaction items"
+  ON public.transaction_items FOR INSERT TO authenticated WITH CHECK (public.is_active_user(auth.uid()) AND auth.uid() = created_by);
+
 -- User Roles & Audit Logs (Admin Only)
 CREATE POLICY "Admins only: manage roles"
   ON public.user_roles FOR ALL

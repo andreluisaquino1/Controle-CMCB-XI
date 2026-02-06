@@ -437,6 +437,9 @@ export type Database = {
       | "consumo_saldo"
       | "pix_direto_uecx"
       | "aporte_estabelecimento_recurso"
+      | "mensalidade_pix"
+      | "pix_nao_identificado"
+      | "taxa_pix_bb"
       transaction_status: "posted" | "voided"
     }
     CompositeTypes: {

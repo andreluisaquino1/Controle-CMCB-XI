@@ -82,8 +82,10 @@ export interface ReportData {
     weeklyExpensesCash: number;
     weeklyExpensesPix: number;
     weeklyExpensesDigital: number;
+    weeklyPixFees: number;
     weeklyEntriesCash: number;
     weeklyEntriesPix: number;
+    weeklyEntriesPixNaoIdentificado: number;
     weeklyDeposits: number;
     weeklyConsumption: number;
     weeklyDirectPix: number;

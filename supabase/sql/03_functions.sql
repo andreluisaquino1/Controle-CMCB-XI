@@ -133,6 +133,119 @@ BEGIN
 END;
 $$;
 
+-- PIX Fee Batch Processor (Taxas PIX BB)
+CREATE OR REPLACE FUNCTION public.process_pix_fee_batch(p_entity_id uuid, p_payload jsonb)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_user_id uuid;
+  v_source_account_id uuid;
+  v_total numeric := 0;
+  v_item jsonb;
+  v_txn_id uuid;
+  v_txn public.transactions;
+  v_items_count int := 0;
+  v_occurred_at timestamptz;
+BEGIN
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL OR NOT public.is_active_user(v_user_id) THEN 
+    RAISE EXCEPTION 'Unauthorized'; 
+  END IF;
+
+  -- 1. Find PIX Account for Entity
+  SELECT id INTO v_source_account_id 
+  FROM public.accounts 
+  WHERE entity_id = p_entity_id AND name = 'PIX (Conta BB)' AND active = true;
+
+  IF v_source_account_id IS NULL THEN
+    RAISE EXCEPTION 'Conta "PIX (Conta BB)" não encontrada ou inativa para esta entidade.';
+  END IF;
+
+  -- 2. Calculate Total
+  FOR v_item IN SELECT * FROM jsonb_array_elements(p_payload->'items')
+  LOOP
+    IF (v_item->>'amount')::numeric <= 0 THEN RAISE EXCEPTION 'Item amount must be positive'; END IF;
+    v_total := v_total + (v_item->>'amount')::numeric;
+    v_items_count := v_items_count + 1;
+  END LOOP;
+
+  IF v_total <= 0 THEN RAISE EXCEPTION 'Total amount must be positive'; END IF;
+
+  -- 3. Create Parent Transaction
+  v_occurred_at := COALESCE((p_payload->>'occurred_at')::timestamptz, now());
+  
+  INSERT INTO public.transactions (
+    transaction_date, module, entity_id, source_account_id, 
+    destination_account_id, amount, direction, 
+    payment_method, origin_fund, description, notes, 
+    created_by, status
+  ) VALUES (
+    v_occurred_at::date,
+    'taxa_pix_bb',
+    p_entity_id,
+    v_source_account_id,
+    NULL,
+    v_total,
+    'out',
+    'cash', -- Implicit for fees
+    NULL,
+    'Taxas PIX (Lote)',
+    'Referência: ' || COALESCE(p_payload->>'reference', 'N/A') || ' | Itens: ' || v_items_count,
+    v_user_id,
+    'posted'
+  ) RETURNING * INTO v_txn;
+  v_txn_id := v_txn.id;
+
+  -- 4. Update Balance
+  UPDATE public.accounts SET balance = balance - v_total WHERE id = v_source_account_id;
+
+  -- 5. Insert Items
+  INSERT INTO public.transaction_items (parent_transaction_id, amount, occurred_at, description, created_by)
+  SELECT 
+    v_txn_id,
+    (item->>'amount')::numeric,
+    COALESCE((item->>'occurred_at')::timestamptz, v_occurred_at),
+    item->>'description',
+    v_user_id
+  FROM jsonb_array_elements(p_payload->'items') AS item;
+
+  -- 6. Audit
+  INSERT INTO public.audit_logs (transaction_id, action, before_json, after_json, reason, user_id)
+  VALUES (
+    v_txn_id, 
+    'create', 
+    '{}'::jsonb, 
+    jsonb_build_object('total', v_total, 'items', v_items_count, 'reference', p_payload->>'reference'), 
+    'PIX Fee Batch Creation', 
+    v_user_id
+  );
+
+  RETURN v_txn_id;
+END;
+$$;
+
+-- Get Batch Items
+CREATE OR REPLACE FUNCTION public.get_transaction_items(p_parent_transaction_id uuid)
+RETURNS SETOF public.transaction_items
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path TO 'public'
+STABLE
+AS $$
+  SELECT * 
+  FROM public.transaction_items 
+  WHERE parent_transaction_id = p_parent_transaction_id
+    AND public.is_active_user(auth.uid())
+  ORDER BY occurred_at DESC NULLS LAST, created_at ASC;
+$$;
+
+-- Permissions
+GRANT EXECUTE ON FUNCTION public.process_pix_fee_batch(uuid, jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_transaction_items(uuid) TO authenticated;
+
 -- Atomic Void Processor
 CREATE OR REPLACE FUNCTION public.void_transaction(p_id uuid, p_reason text)
 RETURNS jsonb

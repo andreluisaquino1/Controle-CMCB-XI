@@ -43,9 +43,30 @@ DO $$ BEGIN
         'consumo_saldo',
         'pix_direto_uecx',
         'recurso_transfer',
-        'aporte_estabelecimento_recurso'
+        'aporte_estabelecimento_recurso',
+        'taxa_pix_bb'
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ... (existing types)
+
+-- Transaction Items (Batches)
+CREATE TABLE IF NOT EXISTS public.transaction_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    parent_transaction_id UUID NOT NULL REFERENCES public.transactions(id) ON DELETE CASCADE,
+    amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+    occurred_at TIMESTAMPTZ,
+    description TEXT,
+    created_by UUID NOT NULL REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Indexes for Items
+CREATE INDEX IF NOT EXISTS idx_transaction_items_parent ON public.transaction_items(parent_transaction_id);
+CREATE INDEX IF NOT EXISTS idx_transaction_items_created_at ON public.transaction_items(created_at);
+
+-- RLS
+ALTER TABLE public.transaction_items ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
     CREATE TYPE public.transaction_direction AS ENUM ('in', 'out', 'transfer');

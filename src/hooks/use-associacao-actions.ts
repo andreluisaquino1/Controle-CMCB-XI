@@ -128,14 +128,14 @@ export function useAssociacaoActions(
 
         const { data: existing } = await supabase
             .from("transactions")
-            .select("payment_method")
-            .eq("module", "mensalidade")
+            .select("module, payment_method")
+            .in("module", ["mensalidade", "mensalidade_pix"])
             .eq("transaction_date", state.mensalidade.date)
             .eq("shift", state.mensalidade.turno as "matutino" | "vespertino")
             .eq("status", "posted");
 
-        const hasCash = existing?.some(e => e.payment_method === 'cash');
-        const hasPix = existing?.some(e => e.payment_method === 'pix');
+        const hasCash = existing?.some(e => e.module === 'mensalidade' && e.payment_method === 'cash');
+        const hasPix = existing?.some(e => e.module === 'mensalidade_pix' || (e.module === 'mensalidade' && e.payment_method === 'pix'));
 
         if (state.mensalidade.cash > 0 && hasCash) {
             toast.error(`Já existe um registro em ESPÉCIE para o turno ${state.mensalidade.turno} nesta data.`);
@@ -169,14 +169,14 @@ export function useAssociacaoActions(
                 await createTransaction.mutateAsync({
                     transaction: {
                         transaction_date: state.mensalidade.date,
-                        module: "mensalidade",
+                        module: "mensalidade_pix",
                         entity_id: associacaoEntity.id,
                         destination_account_id: pixAccount.id,
                         amount: state.mensalidade.pix,
                         direction: "in",
                         payment_method: "pix",
                         shift: state.mensalidade.turno as "matutino" | "vespertino",
-                        description: `Mensalidade ${state.mensalidade.turno}`,
+                        description: `Mensalidade ${state.mensalidade.turno} (PIX)`,
                         notes: state.mensalidade.obs || null,
                     },
                 });
