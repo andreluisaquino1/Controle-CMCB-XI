@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual do Oficial - CMCB-XI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --secondary: #3b82f6;
+            --accent: #f59e0b;
+            --text-main: #334155;
+            --text-dark: #0f172a;
+            --border: #e2e8f0;
+            --bg-light: #f8fafc;
+        }
+
+        @media print {
+            @page {
+                size: portrait;
+                margin: 0.8cm;
+            }
+
+            body {
+                background: white;
+                padding: 0;
+                font-size: 9.5pt;
+                color: black;
+            }
+
+            .container {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                border: none;
+                padding: 0;
+            }
+
+            .no-print {
+                display: none;
+            }
+
+            header {
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+            }
+
+            h1 {
+                font-size: 18pt;
+                margin-bottom: 5px;
+            }
+
+            .subtitle {
+                font-size: 10pt;
+                margin-bottom: 0;
+            }
+
+            h2 {
+                page-break-before: auto;
+                page-break-after: avoid;
+                margin-top: 20px;
+                margin-bottom: 10px;
+                font-size: 14pt;
+                padding: 5px 10px;
+                background: #f1f5f9 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            h3 {
+                font-size: 11pt;
+                margin-top: 15px;
+                margin-bottom: 5px;
+            }
+
+            p,
+            li {
+                margin: 4px 0;
+                line-height: 1.3;
+            }
+
+            .card,
+            .note {
+                break-inside: avoid;
+                padding: 10px;
+                margin: 10px 0;
+                font-size: 9pt;
+                background: #f8fafc !important;
+                border: 1px solid #e2e8f0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            footer {
+                margin-top: 20px !important;
+                font-size: 8pt;
+            }
+
+            /* Duas colunas para FAQ e Seções curtas no print para economizar espaço */
+            .faq {
+                column-count: 2;
+                column-gap: 20px;
+            }
+
+            .faq-item {
+                break-inside: avoid;
+            }
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 50px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border: 1px solid var(--border);
+        }
+
+        header {
+            border-bottom: 2px solid var(--primary);
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin: 0 0 10px 0;
+            letter-spacing: -0.05em;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #64748b;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+
+        h2 {
+            color: var(--primary);
+            border-left: 5px solid var(--secondary);
+            padding-left: 15px;
+            margin-top: 50px;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #f8fafc, transparent);
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+
+        h3 {
+            color: var(--primary-light);
+            margin-top: 30px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
+
+        p {
+            margin: 15px 0;
+            text-align: justify;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        strong {
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+
+        .note {
+            background-color: #fffbeb;
+            border-left: 4px solid var(--accent);
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background: #f1f5f9;
+            border-left: 4px solid #94a3b8;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-positive {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-negative {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .toc {
+            background: var(--bg-light);
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 50px;
+            border: 1px solid var(--border);
+        }
+
+        .toc h2 {
+            border: none;
+            margin-top: 0;
+            font-size: 1.2rem;
+            background: none;
+            padding-left: 0;
+        }
+
+        .toc ol {
+            padding-left: 20px;
+        }
+
+        .toc li {
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .toc a {
+            text-decoration: none;
+            color: var(--secondary);
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .faq {
+            margin-top: 30px;
+        }
+
+        .faq-item {
+            margin-bottom: 25px;
+        }
+
+        .question {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .answer {
+            padding-left: 15px;
+            border-left: 2px solid #e2e8f0;
+            color: #475569;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Manual do Usuário (Versão Oficial)</h1>
+            <p class="subtitle">Sistema Financeiro CMCB-XI - Documentação Técnica e Operacional</p>
+        </header>
+
+        <section class="toc no-print">
+            <h2>Sumário Executivo</h2>
+            <ol>
+                <li><a href="#conceitos">Conceitos Fundamentais</a></li>
+                <li><a href="#dashboard">Visão Geral (Dashboard)</a></li>
+                <li><a href="#associacao">Módulo: Associação de Pais</a></li>
+                <li><a href="#saldos">Módulo: Saldos e Fornecedores</a></li>
+                <li><a href="#recursos">Módulo: Recursos Públicos (UE/CX)</a></li>
+                <li><a href="#relatorios">Relatórios e Prestação de Contas</a></li>
+                <li><a href="#auditoria">Auditoria e Segurança</a></li>
+                <li><a href="#faq">FAQ e Solução de Problemas</a></li>
+            </ol>
+        </section>
+
+        <section id="conceitos">
+            <h2>1. Conceitos Fundamentais</h2>
+            <p>O sistema gerencia três entidades fiscais distintas, garantindo a separação estrita dos recursos:</p>
+            <ul>
+                <li><strong>Associação de Pais (APM):</strong> Recursos privados (Recebimento de Mensalidades). Gerencia
+                    despesas livres e manutenção rápida.</li>
+                <li><strong>Unidade Executora (UE):</strong> Recursos Federais (PDDE). Verba carimbada com regras
+                    rígidas de aplicação.</li>
+                <li><strong>Caixa Escolar (CX):</strong> Recursos Estaduais/Merenda. Também possui regras estritas.</li>
+            </ul>
+
+            <div class="card">
+                <h3>Tipos de Contas</h3>
+                <ul>
+                    <li><strong>Espécie (Caixa Físico):</strong> Dinheiro vivo mantido com os Oficiais.</li>
+                    <li><strong>Bancária (Banco do Brasil):</strong> Conta corrente principal para movimentação PIX e
+                        transferências.</li>
+                    <li><strong>Conta Digital (Escolaweb):</strong> Apenas conta de <em>passagem</em>. O dinheiro entra
+                        via boleto e deve ser transferido para o BB. O sistema bloqueia pagamentos diretos desta conta.
+                    </li>
+                    <li><strong>Cofre (Reserva):</strong> Dinheiro físico separado do caixa diário para segurança.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="dashboard">
+            <h2>2. Visão Geral (Dashboard)</h2>
+            <p>O painel inicial é um raio-x financeiro instantâneo.</p>
+            <ul>
+                <li><strong>Ações Rápidas:</strong> Botões de atalho para as operações mais frequentes (Receber
+                    mensalidade, registrar pagamento rápido da associação e gastos nos estabelecimentos).</li>
+                <li><strong>Cards de Saldo:</strong> Cada um dos saldos são segregados. O saldo da "Associação" jamais
+                    se mistura com o da "UE" ou "CX".</li>
+                <li><strong>Saldos em Estabelecimentos:</strong> Mostra a posição consolidada de crédito ou dívida junto
+                    aos fornecedores.
+                    <ul>
+                        <li><span class="status-badge status-positive">Verde</span> A instituição tem crédito
+                            antecipado.</li>
+                        <li><span class="status-badge status-negative">Vermelho</span> A instituição consumiu e precisa
+                            pagar.</li>
+                    </ul>
+                </li>
+            </ul>
+        </section>
+
+        <section id="associacao">
+            <h2>3. Módulo: Associação de Pais</h2>
+            <p>Módulo de uso diário intenso para gerir recursos próprios.</p>
+
+            <h3>3.1. Mensalidades (Entradas & Arrecadação)</h3>
+            <p>Entrada padrão de recursos.</p>
+            <ul>
+                <li><strong>Fluxo:</strong> Selecione a Data, o Turno (Manhã/Tarde) e os valores repassados pelos
+                    secretários.</li>
+                <li><strong>Validação:</strong> O sistema impede lançar dois registros para o mesmo Turno + Data para
+                    evitar duplicidade. Caso precise corrigir, anule o lançamento anterior primeiro.</li>
+            </ul>
+
+            <h3>3.2. Despesas (Fluxo Padronizado)</h3>
+            <p>O sistema utiliza um método padronizado de <strong>lançamento múltiplo</strong> para agilizar a
+                digitação.</p>
+            <ul>
+                <li><strong>Como funciona:</strong> Você define a origem do pagamento (ex: Conta BB via PIX) no
+                    cabeçalho. Em seguida, adiciona linha por linha cada compra da mesma origem.</li>
+            </ul>
+
+            <h3>3.3. Movimentações Internas (Transferências)</h3>
+            <ul>
+                <li><strong>Sangria:</strong> Transferir do Espécie para o Cofre (Segurança).</li>
+                <li><strong>Depósito Bancário:</strong> Transferir do Espécie para Banco do Brasil.</li>
+                <li><strong>Baixa de Escolaweb:</strong> Transferir da Conta Digital para Banco do Brasil.</li>
+            </ul>
+
+            <div class="note">
+                <strong>3.4. PIX Fantasma (Reconciliação)</strong><br>
+                Se o extrato mostra um PIX recebido de R$ 150,00 sem identificação do aluno, lance como "PIX Fantasma".
+                Isso permite fechar o caixa do dia. Futuramente, ao identificar a origem, anule este lançamento e faça o
+                correto.
+            </div>
+
+            <h3>3.5. Taxas PIX em Lote</h3>
+            <p>O Banco do Brasil cobra tarifas PIX a cada transação. O sistema permite lançar o valor total de tarifas
+                do extrato e detalhar a referência, garantindo precisão de centavos no saldo.</p>
+        </section>
+
+        <section id="saldos">
+            <h2>4. Módulo: Saldos e Fornecedores</h2>
+            <p>Gerencia a "Conta Corrente" com terceiros (Mercados, Papelarias).</p>
+
+            <h3>4.1. Lógica de Operação</h3>
+            <ol>
+                <li><strong>Aporte (Depósito):</strong> Envio de dinheiro (Recursos) para o fornecedor. Gera
+                    <strong>Crédito</strong>.
+                </li>
+                <li><strong>Consumo (Gasto):</strong> Retirada de produtos. Consome o saldo.</li>
+            </ol>
+
+            <h3>4.2. Saldo Negativo e Avisos</h3>
+            <p>Se consumir mais do que tem de crédito, o saldo fica <span
+                    class="status-badge status-negative">Negativo</span>. O sistema emitirá um alerta amarelo
+                ("Atenção"), mas <strong>permitirá</strong> a operação, refletindo a realidade de contas "penduradas".
+            </p>
+
+            <h3>4.3. Gestão de Inativos</h3>
+            <p>Fornecedores antigos devem ser desativados (ícone lixeira) para limpar a visualização. Eles podem ser
+                consultados e reativados a qualquer momento pelo filtro "Mostrar Inativos".</p>
+        </section>
+
+        <section id="recursos">
+            <h2>5. Módulo: Recursos Públicos (UE e CX)</h2>
+            <p>Designado para contas PDDE, Merenda e Manutenção.</p>
+            <div class="note">
+                <strong>Rigidez Fiscal:</strong> Diferente da Associação, aqui não existem caixas "Físicos" ou "Cofre".
+                Toda movimentação é estritamente bancária para atender às normas da prestação de contas governamental.
+            </div>
+            <ul>
+                <li><strong>Pagamento Direto:</strong> Pagar uma nota fiscal à vista via transferência.</li>
+                <li><strong>Aporte em Estabelecimento:</strong> Transferir um valor global para um fornecedor para
+                    consumo futuro (ex: Merenda).</li>
+            </ul>
+        </section>
+
+        <section id="relatorios">
+            <h2>6. Relatórios e Prestação de Contas</h2>
+            <h3>6.1. Relatório PDF Oficial</h3>
+            <p>Gera documento A4 formatado com <strong>Resumo Executivo</strong> (totais por categoria) e
+                <strong>Extrato Analítico</strong> (linha a linha). Ideal para processos físicos.
+            </p>
+
+            <h3>6.2. Resumo para WhatsApp</h3>
+            <p>Gera um texto pré-formatado para ser enviado no grupo dos Oficiais.</p>
+
+            <h3>6.3. Auditoria de Saldos</h3>
+            <p>O saldo final do relatório <strong>DEVE</strong> bater com o extrato bancário. Use a função de
+                Reconciliação (PIX Fantasma ou Ajuste) para corrigir diferenças de centavos.</p>
+        </section>
+
+        <section id="auditoria">
+            <h2>7. Auditoria e Segurança</h2>
+            <p>O sistema garante a integridade dos dados.</p>
+            <ul>
+                <li><strong>Imutabilidade:</strong> Transações não são editadas, apenas Anuladas (Void) e refeitas.</li>
+                <li><strong>Rastro (Logs):</strong> Toda anulação exige justificativa (> 5 caracteres). O sistema grava:
+                    Quem, Quando, O que mudou e Por que.</li>
+                <li><strong>Acesso Técnico:</strong> Todos os Oficiais podem visualizar a <strong>Trilha de
+                        Auditoria</strong> (Logs de Segurança). Apenas perfis <strong>Admin</strong> podem gerenciar
+                    usuários.</li>
+            </ul>
+        </section>
+
+        <section id="faq">
+            <h2>8. FAQ e Solução de Problemas</h2>
+            <div class="faq">
+                <div class="faq-item">
+                    <span class="question">P: Lancei uma mensalidade no dia errado. Como corrigir?</span>
+                    <div class="answer">R: Vá em Associação > Histórico. Localize o lançamento, clique na Lixeira,
+                        justifique ("Erro de data") e confirme. Depois, faça o lançamento correto.</div>
+                </div>
+                <div class="faq-item">
+                    <span class="question">P: O saldo do banco não bate com o sistema.</span>
+                    <div class="answer">R: Verifique se todas as Taxas PIX foram lançadas. Verifique se algum PIX
+                        recebido não foi lançado (use o PIX Fantasma).</div>
+                </div>
+                <div class="faq-item">
+                    <span class="question">P: Não consigo selecionar uma conta antiga para transferência.</span>
+                    <div class="answer">R: Verifique se ela foi desativada. Marque "Mostrar Inativos" e reative a conta.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <span class="question">P: O sistema travou ao tentar salvar um gasto.</span>
+                    <div class="answer">R: Verifique se todos os campos obrigatórios (especialmente as datas dos itens
+                        individuais no lançamento em lote) estão preenchidos.</div>
+                </div>
+            </div>
+        </section>
+
+        <footer
+            style="margin-top: 80px; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px; color: #94a3b8; font-size: 0.9rem;">
+            Sistema Financeiro CMCB-XI - Desenvolvido pela Equipe de Tecnologia.<br>
+            Documento atualizado em 06/02/2026.
+        </footer>
+    </div>
+</body>
+
+</html>

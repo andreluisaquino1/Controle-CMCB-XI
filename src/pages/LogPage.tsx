@@ -83,7 +83,7 @@ export default function LogPage() {
             if (error) throw error;
             return data;
         },
-        enabled: !isDemo && isAdmin,
+        enabled: !isDemo,
     });
 
     const { data: logsData, isLoading } = useQuery({
