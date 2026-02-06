@@ -17,7 +17,11 @@ import {
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { formatCurrencyBRL } from "@/lib/currency";
-import { Merchant } from "@/types";
+import { ListPlus, User, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useCreateTransaction } from "@/hooks/use-transactions";
+import { useEntities } from "@/hooks/use-accounts";
 
 interface ConsumoSaldoDialogProps {
     open: boolean;
@@ -41,6 +45,12 @@ interface ConsumoSaldoDialogProps {
     isLoading: boolean;
 }
 
+interface BatchExpenseItem {
+    id: string;
+    amount: number;
+    description: string;
+}
+
 export function ConsumoSaldoDialog({
     open,
     onOpenChange,
@@ -50,56 +60,197 @@ export function ConsumoSaldoDialog({
     onSubmit,
     isLoading,
 }: ConsumoSaldoDialogProps) {
+    const [isBatchMode, setIsBatchMode] = useState(false);
+    const [batchItems, setBatchItems] = useState<BatchExpenseItem[]>([
+        { id: crypto.randomUUID(), amount: 0, description: "" }
+    ]);
+
+    const { data: entities } = useEntities();
+    const createTransaction = useCreateTransaction();
+    const associacaoEntity = entities?.find(e => e.type === "associacao");
+
+    const handleAddBatchItem = () => {
+        setBatchItems([...batchItems, { id: crypto.randomUUID(), amount: 0, description: "" }]);
+    };
+
+    const handleRemoveBatchItem = (id: string) => {
+        if (batchItems.length === 1) return;
+        setBatchItems(batchItems.filter(item => item.id !== id));
+    };
+
+    const updateBatchItem = (id: string, field: keyof BatchExpenseItem, value: any) => {
+        setBatchItems(batchItems.map(item => item.id === id ? { ...item, [field]: value } : item));
+    };
+
+    const calculateTotal = () => batchItems.reduce((acc, item) => acc + item.amount, 0);
+
+    const handleBatchSubmit = async () => {
+        if (!associacaoEntity) {
+            toast.error("Entidade Associação não encontrada.");
+            return;
+        }
+
+        const selectedMerchant = merchants.find(m => m.id === state.merchant);
+        if (!selectedMerchant) {
+            toast.error("Selecione um estabelecimento.");
+            return;
+        }
+
+        const validItems = batchItems.filter(i => i.amount > 0 && i.description.trim().length >= 3);
+        if (validItems.length === 0) {
+            toast.error("Adicione pelo menos um item válido.");
+            return;
+        }
+
+        const total = calculateTotal();
+        if (total > selectedMerchant.balance) {
+            toast.error(`Saldo insuficiente no estabelecimento ${selectedMerchant.name}.`);
+            return;
+        }
+
+        try {
+            for (const item of validItems) {
+                await createTransaction.mutateAsync({
+                    transaction: {
+                        transaction_date: state.date,
+                        module: "consumo_saldo",
+                        entity_id: associacaoEntity.id,
+                        merchant_id: state.merchant,
+                        amount: item.amount,
+                        direction: "out",
+                        description: item.description,
+                        notes: state.obs || "Lançamento em lote",
+                    },
+                });
+            }
+
+            toast.success(`${validItems.length} consumos registrados.`);
+            setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "" }]);
+            setIsBatchMode(false);
+            onOpenChange(false);
+        } catch (error) {
+            // Error managed by mutation
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
+            <DialogContent className={`max-h-[90vh] overflow-y-auto ${isBatchMode ? 'max-w-2xl' : 'max-w-md'}`}>
+                <DialogHeader className="flex flex-row items-center justify-between pr-8">
                     <DialogTitle>Registrar Gasto</DialogTitle>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className={`h-8 gap-2 ${isBatchMode ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}`}
+                        onClick={() => setIsBatchMode(!isBatchMode)}
+                    >
+                        {isBatchMode ? <User className="h-4 w-4" /> : <ListPlus className="h-4 w-4" />}
+                        {isBatchMode ? "Modo Individual" : "Modo em Lote"}
+                    </Button>
                 </DialogHeader>
+
                 <div className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                        <Label>Data *</Label>
-                        <DateInput value={state.date} onChange={setters.setDate} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Data *</Label>
+                            <DateInput value={state.date} onChange={setters.setDate} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Estabelecimento *</Label>
+                            <Select value={state.merchant} onValueChange={setters.setMerchant}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {merchants?.map((m) => (
+                                        <SelectItem key={m.id} value={m.id}>
+                                            {m.name} ({formatCurrencyBRL(Number(m.balance))})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
-                    <div className="space-y-2">
-                        <Label>Estabelecimento *</Label>
-                        <Select value={state.merchant} onValueChange={setters.setMerchant}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {merchants?.map((m) => (
-                                    <SelectItem key={m.id} value={m.id}>
-                                        {m.name} ({formatCurrencyBRL(Number(m.balance))})
-                                    </SelectItem>
+
+                    {!isBatchMode ? (
+                        <>
+                            <div className="space-y-2">
+                                <Label>Valor (R$) *</Label>
+                                <CurrencyInput value={state.valor} onChange={setters.setValor} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Descrição *</Label>
+                                <Input value={state.descricao} onChange={(e) => setters.setDescricao(e.target.value)} placeholder="Ex: Gêneros alimentícios" />
+                            </div>
+                        </>
+                    ) : (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <Label className="font-medium">Itens ({batchItems.length})</Label>
+                                <Button variant="outline" size="sm" onClick={handleAddBatchItem}>
+                                    <Plus className="w-4 h-4 mr-1" /> Item
+                                </Button>
+                            </div>
+                            <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
+                                {batchItems.map((item) => (
+                                    <div key={item.id} className="grid grid-cols-12 gap-2 items-end p-2 border rounded bg-muted/20">
+                                        <div className="col-span-3 space-y-1">
+                                            <Label className="text-[10px]">Valor</Label>
+                                            <CurrencyInput
+                                                value={item.amount}
+                                                onChange={(v) => updateBatchItem(item.id, 'amount', v)}
+                                            />
+                                        </div>
+                                        <div className="col-span-8 space-y-1">
+                                            <Label className="text-[10px]">Descrição *</Label>
+                                            <Input
+                                                value={item.description}
+                                                onChange={(e) => updateBatchItem(item.id, 'description', e.target.value)}
+                                                placeholder="Ex: Produto X"
+                                                className="h-10"
+                                            />
+                                        </div>
+                                        <div className="col-span-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-10 w-10 text-destructive"
+                                                onClick={() => handleRemoveBatchItem(item.id)}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
                                 ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Valor (R$) *</Label>
-                        <CurrencyInput value={state.valor} onChange={setters.setValor} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Descrição *</Label>
-                        <Input value={state.descricao} onChange={(e) => setters.setDescricao(e.target.value)} placeholder="Ex: Gêneros alimentícios" />
-                    </div>
+                            </div>
+                            <div className="text-right font-bold text-lg">
+                                Total: <span className="text-destructive font-bold">{formatCurrencyBRL(calculateTotal())}</span>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="space-y-2">
                         <Label>Observação</Label>
                         <Input value={state.obs} onChange={(e) => setters.setObs(e.target.value)} placeholder="Opcional" />
                     </div>
+
                     <p className="text-xs text-muted-foreground">
                         * Este gasto deduzirá do saldo no estabelecimento.
                     </p>
+
                     <Button
                         className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold"
                         onClick={async () => {
-                            const success = await onSubmit();
-                            if (success) onOpenChange(false);
+                            if (isBatchMode) {
+                                await handleBatchSubmit();
+                            } else {
+                                const success = await onSubmit();
+                                if (success) onOpenChange(false);
+                            }
                         }}
-                        disabled={isLoading || !state.merchant || !state.descricao || state.descricao.length < 5}
+                        disabled={isLoading || createTransaction.isPending || !state.merchant || (!isBatchMode && (!state.descricao || state.descricao.length < 5))}
                     >
-                        {isLoading ? "Registrando..." : "Registrar Consumo"}
+                        {isLoading || createTransaction.isPending ? "Processando..." : (isBatchMode ? "Lançar Lote" : "Registrar Consumo")}
                     </Button>
                 </div>
             </DialogContent>

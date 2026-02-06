@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Account } from "@/types";
+import { ListPlus } from "lucide-react";
 
 export default function RecursosPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);

@@ -46,7 +46,8 @@ import { AjustarSaldoDialog } from "@/components/forms/AjustarSaldoDialog";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
 import { PixFeeBatchDialog } from "@/components/forms/PixFeeBatchDialog";
 import { PixNaoIdentificadoDialog } from "@/components/forms/PixNaoIdentificadoDialog";
-import { FileText, Ghost } from "lucide-react";
+import { GastoBatchDialog } from "@/components/forms/GastoBatchDialog";
+import { FileText, Ghost, ListPlus } from "lucide-react";
 
 export default function AssociacaoPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);

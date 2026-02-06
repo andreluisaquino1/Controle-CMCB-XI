@@ -57,11 +57,14 @@ Esta aba é destinada à gestão exclusiva dos recursos próprios da Associaçã
 #### **1. Mensalidades (Entrada)**
 Registro do recebimento de mensalidades recebidas por turno.
 - **Campos**: Data, Turno (Manhã/Tarde), Valores (Espécie/PIX), Observação.
-- **Exemplo**: Recebimento de R$ 300,00 em dinheiro dos secretários.
+- **Espécie**: Registrado como módulo `mensalidade` na conta Espécie.
+- **PIX**: Registrado como módulo `mensalidade_pix` na conta PIX (Banco do Brasil).
+- **Exemplo**: Recebimento de R$ 300,00 em dinheiro e R$ 150,00 via PIX dos secretários.
 
 #### **2. Despesa Associação (Saída)**
 Pagamento direto de despesas utilizando saldo da Associação.
 - **Campos**: Data, Meio de Pagamento (Espécie/PIX...), Valor, Descrição.
+- **Modo em Lote** ✨ *Novo*: Dentro do diálogo de despesa, clique no botão **"Modo em Lote"** para registrar múltiplos itens de uma só vez (ex: vários recibos pagos com o mesmo meio de pagamento e mesma data).
 - **Exemplo**: Pagamento de R$ 100,00 via PIX para compra de material de limpeza.
 
 #### **3. Movimentar Saldo (Transferência)**
@@ -73,10 +76,24 @@ Transferência de valores entre contas internas.
 Ferramenta administrativa para correção de saldos em caso de divergência.
 - **Atenção**: Use com cautela. O sistema exibirá uma **confirmação de segurança** mostrando o impacto antes da conclusão.
 
+#### **5. Taxas PIX (Lote)** ✨ *Novo*
+Lançamento consolidado de taxas cobradas pelo Banco do Brasil por transações PIX.
+- **Campos**: Referência do Lote, Data, Lista de Itens (Valor + Descrição + Data opcional).
+- **Funcionamento**: O sistema cria uma "transação mãe" com o valor total e registra cada item individualmente para rastreabilidade.
+- **Visualização**: Na tabela de histórico, transações de taxa PIX exibem um botão **"Ver itens"** para consultar os valores individuais.
+- **Exemplo**: Lançar 15 taxas de R$ 0,50 referentes à semana 1 de março.
+
+#### **6. PIX Fantasma (PIX Não Identificado)** ✨ *Novo*
+Registro de valores que entraram via PIX na conta BB mas não foram identificados como mensalidade de nenhum assistido.
+- **Campos**: Data, Valor, Descrição/Referência.
+- **Uso**: Durante o fechamento, utilize para registrar a diferença entre o extrato bancário e as mensalidades identificadas.
+- **Exemplo**: Ao conferir o extrato, nota-se que entraram R$ 1.500,00 mas apenas R$ 1.350,00 foram identificados. O valor de R$ 150,00 deve ser lançado como "PIX Fantasma".
+
 ### Segurança e Validação
 Para garantir a integridade da auditoria, o sistema agora exige:
 - **Justificativas Obrigatórias**: Qualquer anulação, ajuste ou movimentação exige uma descrição de no mínimo **5 caracteres**.
 - **Confirmações de Ação**: Operações críticas (anular, ajustar, transferir) agora exibem um diálogo de confirmação para evitar cliques acidentais.
+- **Validação de Duplicidade**: O sistema impede lançamento duplicado de mensalidade (Espécie ou PIX) para o mesmo turno e data.
 
 ### Histórico
 Tabela completa de todas as movimentações da Associação. Use o botão de **Lixeira** para anular um lançamento incorreto (requer justificativa).
@@ -101,6 +118,7 @@ Envia dinheiro da instituição para o estabelecimento, gerando crédito.
 
 #### **Registrar Gasto (Consumo)**
 Baixa o saldo do estabelecimento quando uma compra é feita.
+- **Modo em Lote** ✨ *Novo*: Permite registrar vários itens comprados no mesmo estabelecimento e data. Útil para compras grandes com diversos itens que precisam de descrição individual.
 - **Exemplo**: Compra de lanche no valor de R$ 200,00 no Supermercado XYZ. O saldo do mercado diminuirá.
 
 #### **Gerenciar Estabelecimentos**
@@ -125,7 +143,8 @@ Registra o ingresso de verba na conta bancária (repasse).
 
 #### **Gasto de Recurso (Pagamento/Aporte)**
 Registro de saída de valores da conta de recurso.
-- **Funcionalidade**: Esta operação serve tanto para pagamentos diretos quanto para **Aportar Saldo** em estabelecimentos cadastrados (transferindo crédito para o fornecedor).
+- **Funcionalidade**: Esta operação serve tanto para pagamentos diretos quanto para **Aportar Saldo** em estabelecimentos cadastrados.
+- **Modo em Lote** ✨ *Novo*: Agora integrado no diálogo principal, permite lançar vários gastos de recurso de uma só vez.
 - **Exemplo**: Transferência de valor para o Supermercado para criar crédito futuro ou pagar uma compra específica.
 
 #### **Gerenciar Contas**
