@@ -2,9 +2,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Merchant } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDemoData } from "@/demo/useDemoData";
 
 export function useMerchants() {
-  return useQuery({
+  const { isDemo } = useAuth();
+  const { merchants } = useDemoData();
+
+  const query = useQuery({
     queryKey: ["merchants"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -16,7 +21,14 @@ export function useMerchants() {
       if (error) throw error;
       return data as Merchant[];
     },
+    enabled: !isDemo,
   });
+
+  if (isDemo) {
+    return { ...query, data: merchants as unknown as Merchant[], isLoading: false, isError: false, error: null };
+  }
+
+  return query;
 }
 
 export function useCreateMerchant() {

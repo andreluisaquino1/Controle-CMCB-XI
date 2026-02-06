@@ -17,6 +17,7 @@ import {
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { cleanAccountDisplayName } from "@/lib/account-display";
+import { sortByAccountOrder } from "@/lib/constants";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { Account } from "@/types";
 import { useState, useEffect } from "react";
@@ -58,19 +59,51 @@ export function AjustarSaldoDialog({
     // Local state for the "Final Balance" input to allow interactive calculation
     const [finalBalance, setFinalBalance] = useState(currentBalance + state.valor);
 
-    // Update finalBalance when account or adjustment value changes from outside
+    // Track which field is being edited: 'adjustment' | 'finalBalance' | null
+    const [activeField, setActiveField] = useState<'adjustment' | 'finalBalance' | null>(null);
+
+    // Update finalBalance when account changes
     useEffect(() => {
         setFinalBalance(currentBalance + state.valor);
-    }, [state.accountId, state.valor, currentBalance]);
+    }, [state.accountId, currentBalance]);
+
+    // Reset active field when account changes
+    useEffect(() => {
+        setActiveField(null);
+        setters.setValor(0);
+        setFinalBalance(currentBalance);
+    }, [state.accountId]);
 
     const handleAdjustmentChange = (val: number) => {
-        setters.setValor(val);
-        setFinalBalance(currentBalance + val);
+        if (val === 0) {
+            // Auto-clear when value is zeroed
+            setActiveField(null);
+            setters.setValor(0);
+            setFinalBalance(currentBalance);
+        } else {
+            setActiveField('adjustment');
+            setters.setValor(val);
+            setFinalBalance(currentBalance + val);
+        }
     };
 
     const handleFinalBalanceChange = (val: number) => {
-        setFinalBalance(val);
-        setters.setValor(val - currentBalance);
+        if (val === currentBalance) {
+            // Auto-clear when final balance equals current balance (adjustment = 0)
+            setActiveField(null);
+            setters.setValor(0);
+            setFinalBalance(currentBalance);
+        } else {
+            setActiveField('finalBalance');
+            setFinalBalance(val);
+            setters.setValor(val - currentBalance);
+        }
+    };
+
+    const handleClearFields = () => {
+        setActiveField(null);
+        setters.setValor(0);
+        setFinalBalance(currentBalance);
     };
 
     return (
@@ -92,7 +125,7 @@ export function AjustarSaldoDialog({
                                 <SelectValue placeholder="Selecione a conta" />
                             </SelectTrigger>
                             <SelectContent>
-                                {accounts.map((acc) => (
+                                {sortByAccountOrder(accounts).map((acc) => (
                                     <SelectItem key={acc.id} value={acc.id}>
                                         {cleanAccountDisplayName(acc.name)}
                                     </SelectItem>
@@ -106,28 +139,44 @@ export function AjustarSaldoDialog({
                         )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Valor do Ajuste (R$)</Label>
-                            <CurrencyInput
-                                value={state.valor}
-                                onChange={handleAdjustmentChange}
-                                placeholder="Ex: +10 ou -5"
-                            />
-                            <p className="text-[10px] text-muted-foreground leading-tight">
-                                Quanto somar ou subtrair
-                            </p>
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium">Valores</Label>
+                            {activeField && (
+                                <button
+                                    type="button"
+                                    onClick={handleClearFields}
+                                    className="text-xs text-muted-foreground hover:text-foreground underline"
+                                >
+                                    Limpar
+                                </button>
+                            )}
                         </div>
-                        <div className="space-y-2">
-                            <Label>Novo Saldo (R$)</Label>
-                            <CurrencyInput
-                                value={finalBalance}
-                                onChange={handleFinalBalanceChange}
-                                placeholder="Saldo final desejado"
-                            />
-                            <p className="text-[10px] text-muted-foreground leading-tight">
-                                Qual deve ser o saldo final
-                            </p>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">Valor do Ajuste (R$)</Label>
+                                <CurrencyInput
+                                    value={state.valor}
+                                    onChange={handleAdjustmentChange}
+                                    placeholder="Ex: +10 ou -5"
+                                    disabled={activeField === 'finalBalance'}
+                                />
+                                <p className="text-[10px] text-muted-foreground leading-tight">
+                                    {activeField === 'finalBalance' ? 'Calculado automaticamente' : 'Quanto somar ou subtrair'}
+                                </p>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">Novo Saldo (R$)</Label>
+                                <CurrencyInput
+                                    value={finalBalance}
+                                    onChange={handleFinalBalanceChange}
+                                    placeholder="Saldo final desejado"
+                                    disabled={activeField === 'adjustment'}
+                                />
+                                <p className="text-[10px] text-muted-foreground leading-tight">
+                                    {activeField === 'adjustment' ? 'Calculado automaticamente' : 'Qual deve ser o saldo final'}
+                                </p>
+                            </div>
                         </div>
                     </div>
 

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -11,6 +12,17 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -32,7 +44,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Loader2, UserCheck, UserX, Shield, Trash2, ShieldAlert } from "lucide-react";
+import { Loader2, UserCheck, UserX, Trash2, ShieldAlert, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -43,12 +55,14 @@ interface Profile {
     email: string;
     active: boolean;
     created_at: string;
-    role?: "admin" | "user";
+    role?: "admin" | "user" | "demo";
 }
 
 export default function UsuariosPage() {
     const { profile, isAdmin } = useAuth();
     const queryClient = useQueryClient();
+    const [editingUser, setEditingUser] = useState<Profile | null>(null);
+    const [newName, setNewName] = useState("");
 
     // Fetch all profiles and their roles
     const { data: profiles, isLoading } = useQuery({
@@ -101,7 +115,7 @@ export default function UsuariosPage() {
 
     // Update role mutation
     const updateRole = useMutation({
-        mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "user" }) => {
+        mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "user" | "demo" }) => {
             const { data: existingRole } = await supabase
                 .from("user_roles")
                 .select("*")
@@ -111,13 +125,13 @@ export default function UsuariosPage() {
             if (existingRole) {
                 const { error } = await supabase
                     .from("user_roles")
-                    .update({ role })
+                    .update({ role: role as "admin" | "user" }) // Cast to satisfy TS if the DB type isn't updated yet in frontend types
                     .eq("user_id", userId);
                 if (error) throw error;
             } else {
                 const { error } = await supabase
                     .from("user_roles")
-                    .insert({ user_id: userId, role });
+                    .insert({ user_id: userId, role: role as "admin" | "user" }); // Cast to satisfy TS
                 if (error) throw error;
             }
         },
@@ -139,14 +153,14 @@ export default function UsuariosPage() {
                 .from("profiles")
                 .delete()
                 .eq("user_id", userId);
-            
+
             if (profileError) throw profileError;
 
             const { error: roleError } = await supabase
                 .from("user_roles")
                 .delete()
                 .eq("user_id", userId);
-            
+
             if (roleError) throw roleError;
         },
         onSuccess: () => {
@@ -155,6 +169,26 @@ export default function UsuariosPage() {
         },
         onError: (error) => {
             toast.error(`Erro ao remover: ${error.message}`);
+        },
+    });
+
+    // Update profile name mutation
+    const updateProfile = useMutation({
+        mutationFn: async ({ userId, name }: { userId: string; name: string }) => {
+            const { error } = await supabase
+                .from("profiles")
+                .update({ name })
+                .eq("user_id", userId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["profiles-admin"] });
+            toast.success("Nome do usuário atualizado.");
+            setEditingUser(null);
+        },
+        onError: (error) => {
+            toast.error(`Erro ao atualizar nome: ${error.message}`);
         },
     });
 
@@ -203,7 +237,7 @@ export default function UsuariosPage() {
                                     <TableCell>
                                         <Select
                                             value={p.role}
-                                            onValueChange={(value: "admin" | "user") =>
+                                            onValueChange={(value: "admin" | "user" | "demo") =>
                                                 updateRole.mutate({ userId: p.user_id, role: value })
                                             }
                                             disabled={updateRole.isPending || p.user_id === profile?.user_id}
@@ -214,6 +248,7 @@ export default function UsuariosPage() {
                                             <SelectContent>
                                                 <SelectItem value="user">Usuário</SelectItem>
                                                 <SelectItem value="admin">Admin</SelectItem>
+                                                <SelectItem value="demo">Demo / Visitante</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </TableCell>
@@ -249,12 +284,25 @@ export default function UsuariosPage() {
                                                 }
                                                 disabled={toggleActivation.isPending || p.user_id === profile?.user_id}
                                             />
-                                            
+
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-primary hover:bg-primary/10"
+                                                disabled={p.user_id === profile?.user_id}
+                                                onClick={() => {
+                                                    setEditingUser(p);
+                                                    setNewName(p.name);
+                                                }}
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="icon" 
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
                                                         className="h-8 w-8 text-destructive hover:bg-destructive/10"
                                                         disabled={p.user_id === profile?.user_id}
                                                     >
@@ -290,6 +338,46 @@ export default function UsuariosPage() {
                     </Table>
                 </div>
             </div>
+
+            <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar Usuário</DialogTitle>
+                        <DialogDescription>
+                            Atualize o nome de exibição do usuário.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Nome completo</Label>
+                            <Input
+                                id="name"
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                placeholder="Digite o novo nome..."
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditingUser(null)}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                if (editingUser && newName.trim()) {
+                                    updateProfile.mutate({
+                                        userId: editingUser.user_id,
+                                        name: newName.trim()
+                                    });
+                                }
+                            }}
+                            disabled={updateProfile.isPending || !newName.trim()}
+                        >
+                            {updateProfile.isPending ? "Salvando..." : "Salvar Alterações"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }

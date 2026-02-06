@@ -70,7 +70,7 @@ export function TransactionTable({
                                 {formatDateBR(t.transaction_date)}
                             </TableCell>
                             <TableCell>
-                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${t.direction === "in" || t.module === "aporte_saldo"
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${t.direction === "in" || t.module === "aporte_saldo"
                                     ? "bg-success/10 text-success"
                                     : "bg-destructive/10 text-destructive"
                                     }`}>
@@ -90,7 +90,7 @@ export function TransactionTable({
                                 </TableCell>
                             )}
                             {showMerchant && <TableCell className="text-sm">{t.merchant_name || "-"}</TableCell>}
-                            <TableCell className={`text-right font-bold ${t.direction === "in" || t.module === "aporte_saldo" ? "text-success" : "text-destructive"
+                            <TableCell className={`text-right font-bold whitespace-nowrap ${t.direction === "in" || t.module === "aporte_saldo" ? "text-success" : "text-destructive"
                                 }`}>
                                 {t.direction === "in" || t.module === "aporte_saldo" ? "+" : "-"}
                                 {formatCurrencyBRL(Number(t.amount))}

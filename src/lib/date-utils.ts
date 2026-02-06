@@ -24,9 +24,9 @@ export function parseDateString(dateStr: string): Date {
 export function getWeekStartDate(): Date {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0 = Sunday, 5 = Friday
-  
+
   let daysToLastFriday: number;
-  
+
   if (dayOfWeek === 5) {
     // Today is Friday - start from today
     daysToLastFriday = 0;
@@ -41,11 +41,11 @@ export function getWeekStartDate(): Date {
     // Go back to last Friday
     daysToLastFriday = dayOfWeek + 2;
   }
-  
+
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - daysToLastFriday);
   weekStart.setHours(0, 0, 0, 0);
-  
+
   return weekStart;
 }
 
@@ -58,9 +58,30 @@ export function getTodayString(): string {
 
 /**
  * Format date for display in Brazilian format (DD/MM/YYYY)
+ * Handles both YYYY-MM-DD and full ISO date strings
  */
 export function formatDateBR(date: string | Date): string {
-  const d = typeof date === "string" ? parseDateString(date) : date;
+  if (!date) return "-";
+
+  let d: Date;
+  if (typeof date === "string") {
+    // Check if it's a full ISO string (contains 'T')
+    if (date.includes("T")) {
+      d = new Date(date);
+    } else {
+      // It's a YYYY-MM-DD format
+      d = parseDateString(date);
+    }
+  } else {
+    d = date;
+  }
+
+  // Guard against invalid dates
+  if (isNaN(d.getTime())) {
+    console.warn("[formatDateBR] Invalid date:", date);
+    return "-";
+  }
+
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "2-digit",

@@ -37,7 +37,7 @@ import { DateInput } from "@/components/forms/DateInput";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { formatDateBR } from "@/lib/date-utils";
 import { cleanAccountDisplayName } from "@/lib/account-display";
-import { MODULE_LABELS } from "@/lib/constants";
+import { MODULE_LABELS, sortByAccountOrder } from "@/lib/constants";
 import { useSaldosActions } from "@/hooks/use-saldos-actions";
 import { ActionCard } from "@/components/ActionCard";
 import { AporteSaldoDialog } from "@/components/forms/AporteSaldoDialog";
@@ -82,20 +82,14 @@ export default function SaldosPage() {
   const ueEntity = entitiesData?.entities?.find(e => e.type === "ue");
   const cxEntity = entitiesData?.entities?.find(e => e.type === "cx");
 
-  const filteredAccounts = (entitiesData?.accounts?.filter(acc => {
-    if (aporte.origem === "ASSOC") return acc.entity_id === associacaoEntity?.id;
-    if (aporte.origem === "UE") return acc.entity_id === ueEntity?.id;
-    if (aporte.origem === "CX") return acc.entity_id === cxEntity?.id;
-    return false;
-  }) || []).sort((a, b) => {
-    const order = ["Espécie", "PIX (Conta BB)", "Conta Digital (Escolaweb)", "Cofre"];
-    const idxA = order.indexOf(a.name);
-    const idxB = order.indexOf(b.name);
-    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-    if (idxA !== -1) return -1;
-    if (idxB !== -1) return 1;
-    return a.name.localeCompare(b.name);
-  });
+  const filteredAccounts = sortByAccountOrder(
+    (entitiesData?.accounts?.filter(acc => {
+      if (aporte.origem === "ASSOC") return acc.entity_id === associacaoEntity?.id;
+      if (aporte.origem === "UE") return acc.entity_id === ueEntity?.id;
+      if (aporte.origem === "CX") return acc.entity_id === cxEntity?.id;
+      return false;
+    }) || [])
+  );
 
   return (
     <DashboardLayout>

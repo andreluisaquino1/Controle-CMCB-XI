@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { DemoModeBanner } from "@/components/DemoModeBanner";
 import {
   LayoutDashboard,
   Building2,
@@ -42,7 +43,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { profile, isAdmin, signOut } = useAuth();
+  const { profile, isAdmin, isDemo, signOut } = useAuth();
   const location = useLocation();
 
   const handleSignOut = async () => {
@@ -51,8 +52,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      <div className="fixed top-0 left-0 right-0 z-[60]">
+        <DemoModeBanner />
+      </div>
+
       {/* Mobile Header */}
-      <header className="lg:hidden sticky top-0 z-50 bg-sidebar border-b border-sidebar-border">
+      <header className={cn(
+        "lg:hidden sticky z-50 bg-sidebar border-b border-sidebar-border",
+        isDemo ? "top-[44px]" : "top-0"
+      )}>
         <div className="flex items-center justify-between px-4 h-16">
           <div className="flex items-center gap-3">
             <img src={logo} alt="CMCB-XI" className="w-10 h-10 rounded-full" />
@@ -82,7 +90,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-full w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-200 ease-in-out lg:translate-x-0",
+          "fixed left-0 z-50 h-[calc(100%-44px)] w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-200 ease-in-out lg:translate-x-0",
+          isDemo ? "top-[44px]" : "top-0 h-full",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -103,10 +112,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             // Restriction: Only admin can see Users
-            const isRestricted = item.label === "Usuários";
-            if (isRestricted && !isAdmin) {
-              return null;
-            }
+            if (item.label === "Usuários" && !isAdmin) return null;
+
+            // Restriction: Demo user cannot see Users (Logs are now allowed)
+            if (isDemo && item.label === "Usuários") return null;
 
             const isActive = location.pathname === item.href;
             return (
@@ -155,7 +164,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen flex flex-col">
+      <main className={cn(
+        "lg:ml-64 min-h-screen flex flex-col transition-all duration-200",
+        isDemo ? "pt-[44px]" : ""
+      )}>
         <div className="flex-1 p-4 lg:p-6 max-w-7xl mx-auto w-full">
           {children}
         </div>

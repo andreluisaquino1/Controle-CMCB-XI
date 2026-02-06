@@ -1,4 +1,6 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDemoData } from "@/demo/useDemoData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Table,
@@ -37,7 +39,10 @@ interface AuditLog {
 }
 
 export default function LogPage() {
-    const { data: logs, isLoading } = useQuery({
+    const { isDemo } = useAuth();
+    const { getLogs } = useDemoData();
+
+    const { data: realLogs, isLoading } = useQuery({
         queryKey: ["audit-logs"],
         queryFn: async () => {
             const { data, error } = await supabase
@@ -70,7 +75,11 @@ export default function LogPage() {
             }
             return data as unknown as AuditLog[];
         },
+        enabled: !isDemo,
     });
+
+    // Use direct getter for synchronous demo data access
+    const logs = isDemo ? getLogs() : realLogs;
 
     return (
         <DashboardLayout>

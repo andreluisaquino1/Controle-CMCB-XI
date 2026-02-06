@@ -2,9 +2,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Account, Entity } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDemoData } from "@/demo/useDemoData";
+import { MOCK_ENTITIES } from "@/demo/demoSeed";
 
 export function useAccounts() {
-  return useQuery({
+  const { isDemo } = useAuth();
+  const { accounts } = useDemoData();
+
+  const query = useQuery({
     queryKey: ["accounts"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -16,11 +22,21 @@ export function useAccounts() {
       if (error) throw error;
       return data as Account[];
     },
+    enabled: !isDemo,
   });
+
+  if (isDemo) {
+    return { ...query, data: accounts as unknown as Account[], isLoading: false, isError: false, error: null };
+  }
+
+  return query;
 }
 
 export function useAccountsByEntityType(entityType: "associacao" | "ue" | "cx" | null) {
-  return useQuery({
+  const { isDemo } = useAuth();
+  const { accounts } = useDemoData();
+
+  const query = useQuery({
     queryKey: ["accounts", "by-entity-type", entityType],
     queryFn: async () => {
       if (!entityType) return [];
@@ -45,12 +61,22 @@ export function useAccountsByEntityType(entityType: "associacao" | "ue" | "cx" |
       if (error) throw error;
       return data as Account[];
     },
-    enabled: !!entityType,
+    enabled: !!entityType && !isDemo,
   });
+
+  if (isDemo) {
+    const entity = MOCK_ENTITIES.find(e => e.type === entityType);
+    const filtered = entity ? accounts.filter(a => a.entity_id === entity.id) : [];
+    return { ...query, data: filtered as unknown as Account[], isLoading: false, isError: false };
+  }
+
+  return query;
 }
 
 export function useEntities() {
-  return useQuery({
+  const { isDemo } = useAuth();
+
+  const query = useQuery({
     queryKey: ["entities"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -61,11 +87,21 @@ export function useEntities() {
       if (error) throw error;
       return data as Entity[];
     },
+    enabled: !isDemo,
   });
+
+  if (isDemo) {
+    return { ...query, data: MOCK_ENTITIES as unknown as Entity[], isLoading: false };
+  }
+
+  return query;
 }
 
 export function useEntitiesWithAccounts() {
-  return useQuery({
+  const { isDemo } = useAuth();
+  const { accounts: demoAccounts } = useDemoData();
+
+  const query = useQuery({
     queryKey: ["entities-with-accounts"],
     queryFn: async () => {
       const { data: entities, error: entitiesError } = await supabase
@@ -88,11 +124,25 @@ export function useEntitiesWithAccounts() {
         accounts: accounts as Account[],
       };
     },
+    enabled: !isDemo,
   });
+
+  if (isDemo) {
+    return {
+      ...query,
+      data: { entities: MOCK_ENTITIES as unknown as Entity[], accounts: demoAccounts as unknown as Account[] },
+      isLoading: false
+    };
+  }
+
+  return query;
 }
 
 export function useAssociacaoAccounts() {
-  return useQuery({
+  const { isDemo } = useAuth();
+  const { accounts: demoAccounts } = useDemoData();
+
+  const query = useQuery({
     queryKey: ["accounts", "associacao"],
     queryFn: async () => {
       const { data: entity, error: entityError } = await supabase
@@ -113,7 +163,16 @@ export function useAssociacaoAccounts() {
       if (error) throw error;
       return data as Account[];
     },
+    enabled: !isDemo,
   });
+
+  if (isDemo) {
+    const assoc = MOCK_ENTITIES.find(e => e.type === 'associacao');
+    const filtered = assoc ? demoAccounts.filter(a => a.entity_id === assoc.id) : [];
+    return { ...query, data: filtered as unknown as Account[], isLoading: false };
+  }
+
+  return query;
 }
 
 // Mutations for Account Management

@@ -42,3 +42,28 @@ export const FUND_ORIGINS = {
   UE: "UE",
   CX: "CX",
 } as const;
+
+/**
+ * Standard account display order: Espécie - PIX - Conta Digital - Cofre
+ */
+export const ACCOUNT_ORDER = [
+  "Espécie",
+  "PIX (Conta BB)",
+  "Conta Digital (Escolaweb)",
+  "Cofre",
+] as const;
+
+/**
+ * Sort accounts by standard order: Espécie - PIX - Conta Digital - Cofre
+ * Accounts not in the order list are sorted alphabetically at the end
+ */
+export function sortByAccountOrder<T extends { name: string }>(accounts: T[]): T[] {
+  return [...accounts].sort((a, b) => {
+    const idxA = ACCOUNT_ORDER.indexOf(a.name as typeof ACCOUNT_ORDER[number]);
+    const idxB = ACCOUNT_ORDER.indexOf(b.name as typeof ACCOUNT_ORDER[number]);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.name.localeCompare(b.name);
+  });
+}

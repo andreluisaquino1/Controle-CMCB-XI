@@ -193,7 +193,7 @@ export default function AssociacaoPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {/* Mensalidades */}
           <ActionCard
             title="Mensalidades"
@@ -328,22 +328,51 @@ export default function AssociacaoPage() {
           </CardContent>
         </Card>
 
-        {/* Info Card */}
-        <Card>
+        {/* Footer Info Section */}
+        <Card className="bg-muted/30 border-dashed">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Building2 className="h-5 w-5 text-primary" />
-              Sobre a Associação
+              Sobre a Associação CMCB-XI
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            <p>
-              <strong>CNPJ:</strong> 37.812.756/0001-45
-            </p>
-            <p className="mt-2">
-              A Associação é a única entidade com dinheiro em espécie (Espécie e Cofre).
-              Recebe mensalidades escolares e é usada para despesas do dia-a-dia.
-            </p>
+          <CardContent>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <h4 className="font-bold text-foreground">Informações Institucionais:</h4>
+                  <p className="text-sm text-muted-foreground"><strong>CNPJ:</strong> 37.812.756/0001-45</p>
+                  <p className="text-sm text-muted-foreground text-balance">
+                    Responsável pela gestão das mensalidades voluntárias e custeio das despesas operacionais do cotidiano escolar.
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-bold text-foreground">Gestão de Recursos:</h4>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    <li>• Arrecadação mensal de sócios contribuintes</li>
+                    <li>• Gestão de materiais e serviços da associação</li>
+                    <li>• Suporte financeiro imediato via contas locais</li>
+                  </ul>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-bold text-foreground mb-2">Contas Gerenciadas:</h4>
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="bg-background/50 p-2 rounded border border-border/50">
+                    <p className="text-xs font-semibold text-foreground">Espécie & Cofre</p>
+                    <p className="text-[10px] text-muted-foreground">Controle físico de valores no local (Bolsinha e Reserva).</p>
+                  </div>
+                  <div className="bg-background/50 p-2 rounded border border-border/50">
+                    <p className="text-xs font-semibold text-foreground">PIX (Banco do Brasil)</p>
+                    <p className="text-[10px] text-muted-foreground">Agência: 0782-0 | Conta: 36500-9</p>
+                  </div>
+                  <div className="bg-background/50 p-2 rounded border border-border/50">
+                    <p className="text-xs font-semibold text-foreground">Conta Digital (Escolaweb)</p>
+                    <p className="text-[10px] text-muted-foreground">Integração com sistema de taxas e mensalidades recorrentes.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

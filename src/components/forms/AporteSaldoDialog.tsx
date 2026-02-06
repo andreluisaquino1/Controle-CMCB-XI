@@ -17,6 +17,7 @@ import {
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { cleanAccountDisplayName } from "@/lib/account-display";
+import { sortByAccountOrder } from "@/lib/constants";
 import { Account, Merchant, Entity } from "@/types";
 
 interface AporteSaldoDialogProps {
@@ -67,7 +68,7 @@ export function AporteSaldoDialog({
         if (state.origem === "UE") return entity?.type === "ue";
         if (state.origem === "CX") return entity?.type === "cx";
         return false;
-    }).sort((a, b) => a.name.localeCompare(b.name));
+    });
 
     const sortedMerchants = [...(merchants || [])].sort((a, b) => a.name.localeCompare(b.name));
     return (
@@ -101,7 +102,7 @@ export function AporteSaldoDialog({
                                 <SelectValue placeholder={state.origem ? "Selecione a conta" : "Selecione origem primeiro"} />
                             </SelectTrigger>
                             <SelectContent>
-                                {filteredAccounts.map((acc) => (
+                                {sortByAccountOrder(filteredAccounts).map((acc) => (
                                     <SelectItem key={acc.id} value={acc.id}>
                                         {cleanAccountDisplayName(acc.name)}
                                     </SelectItem>

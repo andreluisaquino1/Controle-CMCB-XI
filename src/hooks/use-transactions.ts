@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Account, DashboardData, Merchant } from "@/types";
 import { ACCOUNT_NAMES } from "@/lib/constants";
 import { Database } from "@/integrations/supabase/types";
+import { useDemoData } from "@/demo/useDemoData";
 
 type TransactionModule = Database["public"]["Enums"]["transaction_module"];
 
@@ -26,8 +27,9 @@ interface CreateTransactionData {
 }
 
 export function useCreateTransaction() {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const queryClient = useQueryClient();
+  const { addTransaction } = useDemoData();
 
   return useMutation({
     mutationFn: async ({
@@ -36,6 +38,25 @@ export function useCreateTransaction() {
       transaction: CreateTransactionData;
     }) => {
       if (!user) throw new Error("Usuário não autenticado");
+
+      if (isDemo) {
+        const mockTx = {
+          id: crypto.randomUUID(),
+          date: transaction.transaction_date,
+          description: transaction.description || 'Lançamento Demo',
+          amount: transaction.amount,
+          type: transaction.direction === 'in' ? 'income' : 'expense',
+          category: transaction.module,
+          account_id: transaction.destination_account_id || transaction.source_account_id || '',
+          merchant_id: transaction.merchant_id || undefined,
+          source_account_id: transaction.source_account_id || undefined,
+          destination_account_id: transaction.destination_account_id || undefined,
+          module: transaction.module
+        };
+        // @ts-ignore
+        addTransaction(mockTx);
+        return mockTx as any;
+      }
 
       const { data: txn, error: txnError } = await supabase
         .from("transactions")

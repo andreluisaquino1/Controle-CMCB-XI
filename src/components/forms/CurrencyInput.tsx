@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { useState, ChangeEvent, FocusEvent } from "react";
+import { useState, useEffect, ChangeEvent, FocusEvent } from "react";
 import { parseCurrencyBRL, formatCurrencyBRL } from "@/lib/currency";
 
 interface CurrencyInputProps {
@@ -18,14 +18,21 @@ export function CurrencyInput({
   id,
 }: CurrencyInputProps) {
   const [displayValue, setDisplayValue] = useState(
-    value > 0 ? value.toFixed(2).replace(".", ",") : ""
+    value !== 0 ? value.toFixed(2).replace(".", ",") : ""
   );
+
+  // Sync displayValue when value changes from outside (e.g., calculated values)
+  useEffect(() => {
+    if (disabled) {
+      setDisplayValue(value !== 0 ? value.toFixed(2).replace(".", ",") : "");
+    }
+  }, [value, disabled]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     // Allow typing numbers, comma, period
     const input = e.target.value.replace(/[^\d,.-]/g, "");
     setDisplayValue(input);
-    
+
     // Parse and update parent
     const numericValue = parseCurrencyBRL(input);
     onChange(numericValue);

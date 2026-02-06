@@ -464,30 +464,51 @@ export default function RecursosPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Building2 className="h-5 w-5 text-primary" />
-              Sobre os Recursos
+              Entidades Vinculadas (UE e Caixa)
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-6 sm:grid-cols-2">
-              <div>
-                <h4 className="font-bold text-foreground mb-2">Unidade Executora:</h4>
-                <ul className="space-y-1 text-sm text-muted-foreground">
-                  {accounts
-                    .filter(a => a.entity_id === ueEntity?.id)
-                    .map(a => (
-                      <li key={a.id}>• {cleanAccountDisplayName(a.name)} ({a.account_number || "Sem número"})</li>
-                    ))}
-                </ul>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <h4 className="font-bold text-foreground flex items-center gap-2">
+                    Unidade Executora CMCB-XI
+                  </h4>
+                  <p className="text-xs text-muted-foreground"><strong>CNPJ:</strong> 38.331.489/0001-57</p>
+                  <p className="text-sm text-muted-foreground leading-snug">
+                    Focada em recursos federais diretos via FNDE para a manutenção administrativa e tecnológica.
+                  </p>
+                </div>
+                <div className="bg-background/40 p-2 rounded text-[10px] text-muted-foreground border border-border/40">
+                  <p className="font-medium text-foreground mb-1">Contas Principais (BB Ag 0782-0):</p>
+                  <ul className="grid grid-cols-1 gap-1">
+                    <li>• <strong>PDDE:</strong> 36699-4</li>
+                    <li>• <strong>Educação Conectada:</strong> 37715-5</li>
+                    <li>• <strong>PDDE Equidade:</strong> 46996-3</li>
+                  </ul>
+                </div>
               </div>
-              <div>
-                <h4 className="font-bold text-foreground mb-2">Caixa Escolar:</h4>
-                <ul className="space-y-1 text-sm text-muted-foreground">
-                  {accounts
-                    .filter(a => a.entity_id === cxEntity?.id)
-                    .map(a => (
-                      <li key={a.id}>• {cleanAccountDisplayName(a.name)} ({a.account_number || "Sem número"})</li>
-                    ))}
-                </ul>
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <h4 className="font-bold text-foreground flex items-center gap-2">
+                    Caixa Escolar CMCB-XI
+                  </h4>
+                  <p className="text-xs text-muted-foreground"><strong>CNPJ:</strong> 37.812.693/0001-27</p>
+                  <p className="text-sm text-muted-foreground leading-snug">
+                    Gere repasses estaduais e federais destinados especificamente à alimentação e manutenção estrutural.
+                  </p>
+                </div>
+                <div className="bg-background/40 p-2 rounded text-[10px] text-muted-foreground border border-border/40">
+                  <p className="font-medium text-foreground mb-1">Contas Principais (BB Ag 0782-0):</p>
+                  <ul className="grid grid-cols-2 gap-x-2 gap-y-1">
+                    <li>• <strong>PNAE Merenda:</strong> 47358-8</li>
+                    <li>• <strong>PDDE:</strong> 36761-3</li>
+                    <li>• <strong>FEE Estaduais:</strong> 36501-7</li>
+                    <li>• <strong>Educ. Conect:</strong> 37714-7</li>
+                    <li>• <strong>PDDE Equidade:</strong> 46995-5</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </CardContent>

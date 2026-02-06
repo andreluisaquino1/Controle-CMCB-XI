@@ -17,6 +17,7 @@ import {
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { cleanAccountDisplayName } from "@/lib/account-display";
+import { sortByAccountOrder } from "@/lib/constants";
 import { Entity, Account } from "@/types";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { AlertCircle } from "lucide-react";
@@ -100,7 +101,7 @@ export function GastoRecursoDialog({
                                 <SelectValue placeholder={state.entityId ? "Selecione a conta" : "Selecione entidade primeiro"} />
                             </SelectTrigger>
                             <SelectContent>
-                                {filteredAccounts.map(acc => (
+                                {sortByAccountOrder(filteredAccounts).map(acc => (
                                     <SelectItem key={acc.id} value={acc.id}>
                                         {cleanAccountDisplayName(acc.name)}
                                     </SelectItem>

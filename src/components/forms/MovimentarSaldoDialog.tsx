@@ -17,6 +17,7 @@ import {
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { cleanAccountDisplayName } from "@/lib/account-display";
+import { sortByAccountOrder } from "@/lib/constants";
 import { Account } from "@/types";
 
 interface MovimentarSaldoDialogProps {
@@ -76,8 +77,8 @@ export function MovimentarSaldoDialog({
                                     <SelectValue placeholder="Origem" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {accounts
-                                        .filter(acc => acc.id !== state.para)
+                                    {sortByAccountOrder(accounts
+                                        .filter(acc => acc.id !== state.para))
                                         .map((acc) => (
                                             <SelectItem key={acc.id} value={acc.id}>
                                                 {cleanAccountDisplayName(acc.name)}
@@ -93,14 +94,14 @@ export function MovimentarSaldoDialog({
                                     <SelectValue placeholder="Destino" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {accounts
+                                    {sortByAccountOrder(accounts
                                         .filter(acc => acc.id !== state.de)
                                         .filter(acc => {
                                             if (isContaDigital) {
                                                 return acc.name.includes("PIX (Conta BB)");
                                             }
                                             return true;
-                                        })
+                                        }))
                                         .map((acc) => (
                                             <SelectItem key={acc.id} value={acc.id}>
                                                 {cleanAccountDisplayName(acc.name)}
