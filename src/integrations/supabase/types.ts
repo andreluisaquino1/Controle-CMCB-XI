@@ -215,6 +215,7 @@ export type Database = {
           module: Database["public"]["Enums"]["transaction_module"]
           notes: string | null
           origin_fund: Database["public"]["Enums"]["fund_origin"] | null
+          parent_transaction_id: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           shift: Database["public"]["Enums"]["shift_type"] | null
           source_account_id: string | null
@@ -234,6 +235,7 @@ export type Database = {
           module: Database["public"]["Enums"]["transaction_module"]
           notes?: string | null
           origin_fund?: Database["public"]["Enums"]["fund_origin"] | null
+          parent_transaction_id?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           shift?: Database["public"]["Enums"]["shift_type"] | null
           source_account_id?: string | null
@@ -253,6 +255,7 @@ export type Database = {
           module?: Database["public"]["Enums"]["transaction_module"]
           notes?: string | null
           origin_fund?: Database["public"]["Enums"]["fund_origin"] | null
+          parent_transaction_id?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           shift?: Database["public"]["Enums"]["shift_type"] | null
           source_account_id?: string | null
@@ -293,6 +296,13 @@ export type Database = {
             columns: ["source_account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_parent_transaction_id_fkey"
+            columns: ["parent_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -348,15 +358,27 @@ export type Database = {
       }
       is_active_user: {
         Args: {
-          user_email: string
+          _user_id: string
         }
         Returns: boolean
+      }
+      assign_demo_role: {
+        Args: {
+          target_email: string
+        }
+        Returns: string
+      }
+      process_transaction: {
+        Args: {
+          p_tx: Json
+        }
+        Returns: Json
       }
     }
     Enums: {
       account_type: "bank" | "cash" | "cash_reserve" | "virtual"
       app_role: "admin" | "user"
-      audit_action: "edit" | "void"
+      audit_action: "edit" | "void" | "create"
       capital_custeio: "capital" | "custeio"
       entity_type: "associacao" | "ue" | "cx"
       fund_origin: "UE" | "CX"
@@ -367,6 +389,7 @@ export type Database = {
       transaction_module:
       | "mensalidade"
       | "gasto_associacao"
+      | "assoc_transfer"
       | "especie_transfer"
       | "especie_deposito_pix"
       | "especie_ajuste"

@@ -24,6 +24,7 @@ export const MODULE_LABELS: Record<string, string> = {
   mensalidade: "Mensalidade",
   gasto_associacao: "Despesa Associação",
   especie_transfer: "Movimentação entre Contas",
+  assoc_transfer: "Movimentação Associação",
   especie_deposito_pix: "Depósito PIX",
   especie_ajuste: "Ajuste de Saldo (Espécie)",
   pix_ajuste: "Ajuste de Saldo (PIX)",

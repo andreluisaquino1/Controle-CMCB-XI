@@ -172,7 +172,8 @@ export default function RelatoriosPage() {
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="mensalidade">Mensalidades</SelectItem>
                     <SelectItem value="gasto_associacao">Gastos Associação</SelectItem>
-                    <SelectItem value="especie_transfer">Movimentações</SelectItem>
+                    <SelectItem value="assoc_transfer">Movimentações Associação</SelectItem>
+                    <SelectItem value="especie_transfer">Movimentações Gerais</SelectItem>
                     <SelectItem value="conta_digital_taxa">Taxas Escolaweb</SelectItem>
                     <SelectItem value="conta_digital_ajuste">Ajustes Conta Digital</SelectItem>
                     <SelectItem value="especie_ajuste">Ajustes Espécie</SelectItem>

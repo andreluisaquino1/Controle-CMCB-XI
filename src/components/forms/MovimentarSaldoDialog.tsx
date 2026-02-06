@@ -18,6 +18,7 @@ import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { cleanAccountDisplayName } from "@/lib/account-display";
 import { sortByAccountOrder } from "@/lib/constants";
+import { formatCurrencyBRL } from "@/lib/currency";
 import { Account } from "@/types";
 
 interface MovimentarSaldoDialogProps {
@@ -141,6 +142,28 @@ export function MovimentarSaldoDialog({
                             placeholder="Opcional"
                         />
                     </div>
+
+                    {sourceAccount && (
+                        <div className="bg-muted/30 p-3 rounded-md space-y-2 border border-muted-foreground/10">
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Prévia de Impacto</h4>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Saldo atual:</span>
+                                <span className="font-medium">{formatCurrencyBRL(sourceAccount.balance)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Movimentação (+taxa):</span>
+                                <span className="font-medium text-destructive">
+                                    -{formatCurrencyBRL(state.valor + state.taxa)}
+                                </span>
+                            </div>
+                            <div className="border-t border-muted pt-1 flex justify-between text-sm font-bold">
+                                <span>Saldo projetado:</span>
+                                <span className={sourceAccount.balance - (state.valor + state.taxa) < 0 ? "text-destructive" : "text-primary"}>
+                                    {formatCurrencyBRL(sourceAccount.balance - (state.valor + state.taxa))}
+                                </span>
+                            </div>
+                        </div>
+                    )}
                     <Button
                         className="w-full"
                         onClick={async () => {

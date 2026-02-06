@@ -24,6 +24,7 @@ interface CreateTransactionData {
   shift?: "matutino" | "vespertino" | null;
   description?: string | null;
   notes?: string | null;
+  parent_transaction_id?: string | null;
 }
 
 export function useCreateTransaction() {
@@ -59,25 +60,25 @@ export function useCreateTransaction() {
       }
 
       const { data: txn, error: txnError } = await supabase
-        .from("transactions")
-        .insert([{
-          transaction_date: transaction.transaction_date,
-          module: transaction.module,
-          entity_id: transaction.entity_id || null,
-          source_account_id: transaction.source_account_id || null,
-          destination_account_id: transaction.destination_account_id || null,
-          merchant_id: transaction.merchant_id || null,
-          amount: transaction.amount,
-          direction: transaction.direction,
-          payment_method: transaction.payment_method || null,
-          origin_fund: transaction.origin_fund || null,
-          capital_custeio: transaction.capital_custeio || null,
-          shift: transaction.shift || null,
-          description: transaction.description || null,
-          notes: transaction.notes || null,
-          created_by: user.id,
-        }])
-        .select()
+        .rpc("process_transaction", {
+          p_tx: {
+            transaction_date: transaction.transaction_date,
+            module: transaction.module,
+            entity_id: transaction.entity_id || null,
+            source_account_id: transaction.source_account_id || null,
+            destination_account_id: transaction.destination_account_id || null,
+            merchant_id: transaction.merchant_id || null,
+            amount: transaction.amount,
+            direction: transaction.direction,
+            payment_method: transaction.payment_method || null,
+            origin_fund: transaction.origin_fund || null,
+            capital_custeio: transaction.capital_custeio || null,
+            shift: transaction.shift || null,
+            description: transaction.description || null,
+            notes: transaction.notes || null,
+            parent_transaction_id: transaction.parent_transaction_id || null,
+          }
+        })
         .single();
 
       if (txnError) throw txnError;
@@ -96,14 +97,7 @@ export function useCreateTransaction() {
         const newDashboard = { ...previousDashboard };
         const amount = Number(transaction.amount);
 
-        if (transaction.module === "mensalidade") {
-          if (transaction.payment_method === "cash") {
-            newDashboard.especieBalance += amount;
-          } else if (transaction.payment_method === "pix") {
-            newDashboard.pixBalance += amount;
-          }
-        }
-
+        // Generic balance adjustment based on direction and account name
         if (transaction.direction === "in" || transaction.direction === "out") {
           const isAdd = transaction.direction === "in";
           const accId = isAdd ? transaction.destination_account_id : transaction.source_account_id;
@@ -112,25 +106,28 @@ export function useCreateTransaction() {
             const acc = previousAccounts.find(a => a.id === accId);
             if (acc) {
               if (acc.name === ACCOUNT_NAMES.ESPECIE) newDashboard.especieBalance += (isAdd ? amount : -amount);
-              if (acc.name === ACCOUNT_NAMES.PIX) newDashboard.pixBalance += (isAdd ? amount : -amount);
-              if (acc.name === ACCOUNT_NAMES.COFRE) newDashboard.cofreBalance += (isAdd ? amount : -amount);
+              else if (acc.name === ACCOUNT_NAMES.PIX) newDashboard.pixBalance += (isAdd ? amount : -amount);
+              else if (acc.name === ACCOUNT_NAMES.COFRE) newDashboard.cofreBalance += (isAdd ? amount : -amount);
+              else if (acc.name === ACCOUNT_NAMES.CONTA_DIGITAL) newDashboard.contaDigitalBalance += (isAdd ? amount : -amount);
             }
           }
         }
 
-        if (transaction.direction === "transfer" && transaction.source_account_id && transaction.destination_account_id) {
+        if ((transaction.direction === "transfer" || transaction.module === "assoc_transfer") && transaction.source_account_id && transaction.destination_account_id) {
           const srcAcc = previousAccounts?.find(a => a.id === transaction.source_account_id);
           const dstAcc = previousAccounts?.find(a => a.id === transaction.destination_account_id);
 
           if (srcAcc) {
             if (srcAcc.name === ACCOUNT_NAMES.ESPECIE) newDashboard.especieBalance -= amount;
-            if (srcAcc.name === ACCOUNT_NAMES.PIX) newDashboard.pixBalance -= amount;
-            if (srcAcc.name === ACCOUNT_NAMES.COFRE) newDashboard.cofreBalance -= amount;
+            else if (srcAcc.name === ACCOUNT_NAMES.PIX) newDashboard.pixBalance -= amount;
+            else if (srcAcc.name === ACCOUNT_NAMES.COFRE) newDashboard.cofreBalance -= amount;
+            else if (srcAcc.name === ACCOUNT_NAMES.CONTA_DIGITAL) newDashboard.contaDigitalBalance -= amount;
           }
           if (dstAcc) {
             if (dstAcc.name === ACCOUNT_NAMES.ESPECIE) newDashboard.especieBalance += amount;
-            if (dstAcc.name === ACCOUNT_NAMES.PIX) newDashboard.pixBalance += amount;
-            if (dstAcc.name === ACCOUNT_NAMES.COFRE) newDashboard.cofreBalance += amount;
+            else if (dstAcc.name === ACCOUNT_NAMES.PIX) newDashboard.pixBalance += amount;
+            else if (dstAcc.name === ACCOUNT_NAMES.COFRE) newDashboard.cofreBalance += amount;
+            else if (dstAcc.name === ACCOUNT_NAMES.CONTA_DIGITAL) newDashboard.contaDigitalBalance += amount;
           }
         }
 
@@ -155,7 +152,7 @@ export function useCreateTransaction() {
           const amount = Number(transaction.amount);
           let newBalance = acc.balance;
 
-          if (transaction.direction === "transfer") {
+          if (transaction.direction === "transfer" || transaction.module === "assoc_transfer") {
             if (acc.id === transaction.source_account_id) newBalance -= amount;
             if (acc.id === transaction.destination_account_id) newBalance += amount;
           } else if (transaction.direction === "in" && acc.id === transaction.destination_account_id) {

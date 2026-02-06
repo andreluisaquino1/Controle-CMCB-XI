@@ -24,12 +24,12 @@ async function fetchCurrentBalances(): Promise<DashboardData> {
   };
 
   return {
-    especieBalance: Number(result?.especieBalance || 0),
-    cofreBalance: Number(result?.cofreBalance || 0),
-    pixBalance: Number(result?.pixBalance || 0),
-    contaDigitalBalance: Number(result?.contaDigitalBalance || 0),
-    merchantBalances: result?.merchantBalances || [],
-    resourceBalances: result?.resourceBalances || { UE: [], CX: [] },
+    especieBalance: Number(result?.especieBalance ?? 0),
+    cofreBalance: Number(result?.cofreBalance ?? 0),
+    pixBalance: Number(result?.pixBalance ?? 0),
+    contaDigitalBalance: Number(result?.contaDigitalBalance ?? 0),
+    merchantBalances: Array.isArray(result?.merchantBalances) ? result.merchantBalances : [],
+    resourceBalances: result?.resourceBalances ?? { UE: [], CX: [] },
   };
 }
 

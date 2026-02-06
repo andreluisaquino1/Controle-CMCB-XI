@@ -260,7 +260,7 @@ export function useAssociacaoActions(
             return false;
         }
 
-        // Regras restritivas da Conta Digital
+        // Phase 4: Rigid rules for Conta Digital
         if (sourceAccount.name === ACCOUNT_NAMES.CONTA_DIGITAL) {
             if (destAccount.name !== ACCOUNT_NAMES.PIX) {
                 toast.error("A Conta Digital só pode movimentar para o PIX (Conta BB).");
@@ -268,12 +268,18 @@ export function useAssociacaoActions(
             }
         }
 
+        // Phase 2: Refine Conta Digital tax rules
+        if (state.mov.taxa > 0 && sourceAccount.name !== ACCOUNT_NAMES.CONTA_DIGITAL) {
+            toast.error("Taxas só são permitidas em movimentações da Conta Digital.");
+            return false;
+        }
+
         try {
             // 1. Transferência principal
-            await createTransaction.mutateAsync({
+            const mainTx = await createTransaction.mutateAsync({
                 transaction: {
                     transaction_date: state.mov.date,
-                    module: "especie_transfer",
+                    module: "assoc_transfer",
                     entity_id: associacaoEntity.id,
                     source_account_id: sourceAccount.id,
                     destination_account_id: destAccount.id,
@@ -284,8 +290,8 @@ export function useAssociacaoActions(
                 },
             });
 
-            // 2. Registro da taxa (se houver)
-            if (state.mov.taxa > 0) {
+            // 2. Registro da taxa (se houver) - Phase 3: Link with parent_transaction_id
+            if (state.mov.taxa > 0 && mainTx?.id) {
                 await createTransaction.mutateAsync({
                     transaction: {
                         transaction_date: state.mov.date,
@@ -296,6 +302,7 @@ export function useAssociacaoActions(
                         amount: state.mov.taxa,
                         direction: "out",
                         description: `Taxa da movimentação: ${sourceAccount.name} -> ${destAccount.name}`,
+                        parent_transaction_id: mainTx.id,
                     },
                 });
             }
