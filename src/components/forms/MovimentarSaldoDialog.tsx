@@ -29,7 +29,7 @@ import { useState } from "react";
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { cleanAccountDisplayName } from "@/lib/account-display";
-import { sortByAccountOrder } from "@/lib/constants";
+import { ACCOUNT_NAMES, sortByAccountOrder } from "@/lib/constants";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { Account } from "@/types";
 
@@ -110,10 +110,11 @@ export function MovimentarSaldoDialog({
                                 </SelectTrigger>
                                 <SelectContent>
                                     {sortByAccountOrder(accounts
-                                        .filter(acc => acc.id !== state.de)
+                                        .filter(acc => acc.id !== state.de) // Cannot transfer to itself
+                                        .filter(acc => acc.name !== ACCOUNT_NAMES.CONTA_DIGITAL) // Cannot receive balance
                                         .filter(acc => {
                                             if (isContaDigital) {
-                                                return acc.name.includes("PIX (Conta BB)");
+                                                return acc.name === ACCOUNT_NAMES.PIX;
                                             }
                                             return true;
                                         }))

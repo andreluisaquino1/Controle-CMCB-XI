@@ -252,7 +252,8 @@
     <p>Pagamento direto de despesas utilizando saldo da Associação.</p>
     <ul>
         <li><strong>Forma de Registro</strong>: O sistema funciona agora exclusivamente em modo de
-            <strong>Lote</strong>, permitindo registrar um ou múltiplos itens no mesmo lançamento.</li>
+            <strong>Lote</strong>, permitindo registrar um ou múltiplos itens no mesmo lançamento.
+        </li>
         <li><strong>Campos</strong>: Meio de Pagamento (Espécie/PIX) no cabeçalho. Para cada item: Data individual,
             Valor e Descrição.</li>
         <li><strong>Exemplo</strong>: Pagamento de material de limpeza e escritório no mesmo diálogo, cada um com sua
@@ -262,6 +263,8 @@
     <h4>3. Movimentar Saldo (Transferência)</h4>
     <p>Transferência de valores entre contas internas. Ex: Sangria (Retirar do Espécie para Cofre) ou Depósito (Espécie
         para Banco).</p>
+    <p><strong>Restrição Conta Digital</strong>: A Conta Digital (Escolaweb) funciona apenas para saída de saldo para a
+        conta PIX, não podendo receber transferências de outras contas.</p>
     <p><strong>Taxas</strong>: É possível registrar taxas bancárias incidentes na transferência.</p>
 
     <h4>4. Ajustar Saldo (Correção)</h4>
@@ -280,6 +283,22 @@
     <h3>Histórico</h3>
     <p>Tabela completa de todas as movimentações da Associação. Use o botão de <strong>Lixeira</strong> para anular um
         lançamento incorreto (requer justificativa).</p>
+
+    <h4>5. Taxas PIX</h4>
+    <p>Lançamento consolidado de taxas cobradas pelo Banco do Brasil por transações PIX.</p>
+    <ul>
+        <li><strong>Campos</strong>: Referência do Lote, Data, Lista de Itens (Valor + Descrição + Data opcional).</li>
+        <li><strong>Funcionamento</strong>: O sistema cria uma "transação mãe" com o valor total e registra cada item
+            individualmente para rastreabilidade.</li>
+    </ul>
+
+    <h4>6. PIX Fantasma (PIX Não Identificado)</h4>
+    <p>Registro de valores que entraram via PIX na conta BB mas não foram identificados como mensalidade de nenhum
+        assistido.</p>
+    <ul>
+        <li><strong>Uso</strong>: Utilize para registrar a diferença entre o extrato bancário e as mensalidades
+            identificadas durante o fechamento.</li>
+    </ul>
 
     <h2 id="saldos">4. Saldos em Estabelecimentos</h2>
     <p>Módulo para controle de contas correntes em fornecedores (supermercados, papelarias, etc).</p>

@@ -100,24 +100,18 @@ export function PixFeeBatchDialog({ open, onOpenChange }: PixFeeBatchDialogProps
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>Lançamento de Taxas PIX (Lote)</DialogTitle>
+                    <DialogTitle>Lançamento de Taxas PIX</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-6 pt-4">
                     {/* Header Fields */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Referência do Lote *</Label>
-                            <Input
-                                placeholder="Ex: Semana 1 - Março"
-                                value={reference}
-                                onChange={(e) => setReference(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Data Geral *</Label>
-                            <DateInput value={batchDate} onChange={setBatchDate} />
-                        </div>
+                    <div className="space-y-2">
+                        <Label>Referência do Lote *</Label>
+                        <Input
+                            placeholder="Ex: Semana 1 - Março"
+                            value={reference}
+                            onChange={(e) => setReference(e.target.value)}
+                        />
                     </div>
 
                     {/* Items List */}

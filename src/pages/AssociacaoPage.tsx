@@ -54,6 +54,7 @@ export default function AssociacaoPage() {
   const { data: accounts, isLoading: accountsLoading } = useAssociacaoAccounts();
   const { data: entities } = useEntities();
   const { data: transitions, isLoading: transactionsLoading } = useAssociacaoTransactions();
+  const { shortcuts: expenseShortcuts, addShortcut, removeShortcut } = useExpenseShortcuts();
 
   const associacaoEntity = entities?.find(e => e.type === "associacao");
   const specieAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE);
@@ -241,6 +242,9 @@ export default function AssociacaoPage() {
               setMeio: setGastoMeio,
               setObs: setGastoObs,
             }}
+            shortcuts={expenseShortcuts}
+            addShortcut={addShortcut}
+            removeShortcut={removeShortcut}
             onSubmit={async () => true} // Not used as dialog handles its own batch submit
             isLoading={actionsLoading}
           />
@@ -305,7 +309,7 @@ export default function AssociacaoPage() {
 
           {/* Taxas PIX (Lote) */}
           <ActionCard
-            title="Taxas PIX (Lote)"
+            title="Taxas PIX"
             description="Lançar tarifas em lote"
             icon={FileText}
             variant="info"

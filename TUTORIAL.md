@@ -71,13 +71,14 @@ Pagamento direto de despesas utilizando saldo da Associação.
 #### **3. Movimentar Saldo (Transferência)**
 Transferência de valores entre contas internas.
 - **Uso Comum**: Sangria (Retirar do Espécie para Cofre) ou Depósito (Espécie para Banco).
+- **Restrição Conta Digital**: A **Conta Digital (Escolaweb)** funciona apenas para **saída** de saldo (transferindo para a conta PIX). Ela não pode ser selecionada como destino de nenhuma transferência.
 - **Taxas**: É possível registrar taxas bancárias incidentes na transferência.
 
 #### **4. Ajustar Saldo (Correção)**
 Ferramenta administrativa para correção de saldos em caso de divergência.
 - **Atenção**: Use com cautela. O sistema exibirá uma **confirmação de segurança** mostrando o impacto antes da conclusão.
 
-#### **5. Taxas PIX (Lote)** ✨ *Novo*
+#### **5. Taxas PIX**
 Lançamento consolidado de taxas cobradas pelo Banco do Brasil por transações PIX.
 - **Campos**: Referência do Lote, Data, Lista de Itens (Valor + Descrição + Data opcional).
 - **Funcionamento**: O sistema cria uma "transação mãe" com o valor total e registra cada item individualmente para rastreabilidade.
