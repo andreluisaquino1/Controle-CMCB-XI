@@ -170,19 +170,37 @@ ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Profiles: Admins/Own view" ON public.profiles;
 CREATE POLICY "Profiles: Admins/Own view" ON public.profiles FOR SELECT TO authenticated USING (public.is_admin_user(auth.uid()) OR auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Profiles: Admins/Own update" ON public.profiles;
 CREATE POLICY "Profiles: Admins/Own update" ON public.profiles FOR UPDATE TO authenticated USING (public.is_admin_user(auth.uid()) OR auth.uid() = user_id) WITH CHECK (public.is_admin_user(auth.uid()) OR auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admins only: manage roles" ON public.user_roles;
 CREATE POLICY "Admins only: manage roles" ON public.user_roles FOR ALL TO authenticated USING (public.is_admin_user(auth.uid()));
-CREATE POLICY "Admins only: view audit" ON public.audit_logs FOR SELECT TO authenticated USING (public.is_admin_user(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins only: view audit" ON public.audit_logs;
+DROP POLICY IF EXISTS "Active users view audit" ON public.audit_logs;
+CREATE POLICY "Active users view audit" ON public.audit_logs FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
+
+DROP POLICY IF EXISTS "Active users view data" ON public.accounts;
 CREATE POLICY "Active users view data" ON public.accounts FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
+
+DROP POLICY IF EXISTS "Active users view entities" ON public.entities;
 CREATE POLICY "Active users view entities" ON public.entities FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Active users view transactions" ON public.transactions;
 CREATE POLICY "Active users view transactions" ON public.transactions FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
 
 CREATE OR REPLACE FUNCTION public.update_updated_at_column() RETURNS TRIGGER AS 'BEGIN NEW.updated_at = now(); RETURN NEW; END;' LANGUAGE plpgsql SET search_path = public;
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_accounts_updated_at ON public.accounts;
 CREATE TRIGGER update_accounts_updated_at BEFORE UPDATE ON public.accounts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 CREATE OR REPLACE FUNCTION public.log_security_event() RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS 'BEGIN IF TG_TABLE_NAME = ''profiles'' AND (OLD.active IS DISTINCT FROM NEW.active) THEN INSERT INTO public.audit_logs (action, before_json, after_json, reason, user_id) VALUES (''change'', jsonb_build_object(''active'', OLD.active), jsonb_build_object(''active'', NEW.active), ''Status alterado'', auth.uid()); ELSIF TG_TABLE_NAME = ''user_roles'' THEN INSERT INTO public.audit_logs (action, before_json, after_json, reason, user_id) VALUES (''change'', ''{}''::jsonb, jsonb_build_object(''role'', NEW.role, ''user'', NEW.user_id), ''Role updated'', auth.uid()); END IF; IF TG_OP = ''DELETE'' THEN RETURN OLD; END IF; RETURN NEW; END;';
+DROP TRIGGER IF EXISTS trigger_log_profile_changes ON public.profiles;
 CREATE TRIGGER trigger_log_profile_changes AFTER UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.log_security_event();
 
 -- 4. BUSINESS LOGIC (RPCs)
