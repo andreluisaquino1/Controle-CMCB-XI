@@ -10,7 +10,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, profile, isAdmin, loading, signOut } = useAuth();
   const location = useLocation();
 
-  if (loading) {
+  if (loading || (user && !profile)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -26,7 +26,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   // Check if user has active profile
-  if (!profile || !profile.active) {
+  if (!profile.active) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="max-w-md text-center">

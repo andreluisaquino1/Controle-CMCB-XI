@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual do Usuário - Sistema Financeiro CMCB-XI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.5;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #1a365d;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 5px;
+            font-size: 24px;
+        }
+
+        h2 {
+            color: #2c5282;
+            margin-top: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 2px;
+            font-size: 18px;
+        }
+
+        h3 {
+            color: #2b6cb0;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        h4 {
+            color: #4a5568;
+            margin-top: 10px;
+            margin-bottom: 2px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        p,
+        ul {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        li {
+            margin-bottom: 2px;
+        }
+
+        code {
+            background-color: #f7fafc;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #c53030;
+            font-size: 0.9em;
+        }
+
+        strong {
+            color: #2d3748;
+        }
+
+        /* Table of Contents - Screen Only */
+        .toc {
+            background-color: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+            font-size: 16px;
+        }
+
+        .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+            margin-bottom: 0;
+        }
+
+        .toc a {
+            text-decoration: none;
+            color: #3182ce;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        /* Print Specific Styles for Max 2 Pages */
+        @media print {
+            body {
+                padding: 0;
+                max-width: 100%;
+                font-size: 9.5pt;
+                /* Reduced font size */
+                line-height: 1.25;
+                /* Compact line height */
+            }
+
+            h1 {
+                font-size: 16pt;
+                margin-bottom: 10px;
+                page-break-before: auto;
+            }
+
+            h2 {
+                font-size: 12pt;
+                margin-top: 10px;
+                margin-bottom: 4px;
+                border-bottom: 1px solid #ccc;
+                page-break-after: avoid;
+            }
+
+            h3 {
+                font-size: 10.5pt;
+                margin-top: 8px;
+                margin-bottom: 2px;
+                page-break-after: avoid;
+            }
+
+            h4 {
+                font-size: 9.5pt;
+                margin-top: 6px;
+                margin-bottom: 1px;
+                color: #000;
+                page-break-after: avoid;
+            }
+
+            p {
+                margin-bottom: 4px;
+                margin-top: 0;
+            }
+
+            ul {
+                margin-bottom: 6px;
+                margin-top: 0;
+                padding-left: 18px;
+            }
+
+            li {
+                margin-bottom: 1px;
+            }
+
+            .toc {
+                display: none !important;
+                /* Hide TOC in print to save huge space */
+            }
+
+            a {
+                text-decoration: none;
+                color: #000;
+            }
+
+            /* Prevent orphans/widows */
+            p,
+            h2,
+            h3,
+            h4,
+            li {
+                page-break-inside: avoid;
+            }
+
+            /* Optimization to fit columns if needed, but single column is safer for readability with small font */
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Manual do Usuário - Sistema Financeiro CMCB-XI</h1>
+    <p>Bem-vindo ao manual completo do Sistema Financeiro CMCB-XI. Este documento detalha todas as funcionalidades do
+        sistema.</p>
+
+    <div class="toc">
+        <h2>Índice</h2>
+        <ul>
+            <li>1. <a href="#acesso">Acesso e Perfil</a></li>
+            <li>2. <a href="#dashboard">Dashboard (Visão Geral)</a></li>
+            <li>3. <a href="#associacao">Associação</a></li>
+            <li>4. <a href="#saldos">Saldos em Estabelecimentos</a></li>
+            <li>5. <a href="#recursos">Recursos (UE e Caixa Escolar)</a></li>
+            <li>6. <a href="#relatorios">Relatórios</a></li>
+            <li>7. <a href="#admin">Administração e Logs</a></li>
+        </ul>
+    </div>
+
+    <h2 id="acesso">1. Acesso e Perfil</h2>
+
+    <h3>Login</h3>
+    <p>Ao acessar, utilize seu e-mail e senha cadastrados. <strong>Esqueci a senha</strong>: Clique em "Recuperar senha"
+        na tela de login.</p>
+
+    <h3>Perfil e Configurações</h3>
+    <p>Acesse clicando em <strong>Perfil</strong> no menu lateral.</p>
+    <ul>
+        <li><strong>Alterar Nome</strong>: Atualize seu nome de exibição.</li>
+        <li><strong>Alterar Senha</strong>: Permite trocar sua senha atual.</li>
+        <li><strong>Status da Conta</strong>: Exibe se seu usuário está "Ativo" ou "Pendente".</li>
+    </ul>
+
+    <h2 id="dashboard">2. Dashboard (Visão Geral)</h2>
+    <p>O <strong>Painel Principal</strong> oferece um resumo imediato da saúde financeira.</p>
+
+    <h3>Funcionalidades:</h3>
+    <ul>
+        <li><strong>Resumo Financeiro</strong>: Saldas da Associação:
+            <ul>
+                <li><strong>Espécie</strong> (Dinheiro), <strong>PIX</strong> (Banco), <strong>Conta Digital</strong>
+                    (Escolaweb), <strong>Cofre</strong>.</li>
+            </ul>
+        </li>
+        <li><strong>Ações Rápidas</strong>: Atalhos para Mensalidade, Despesa Associação e Gasto Estabelecimento.</li>
+        <li><strong>Saldos dos Estabelecimentos</strong>: Crédito ou débito em cada fornecedor.</li>
+        <li><strong>Recursos (UE/CX)</strong>: Resumo dos saldos bancários de recursos públicos.</li>
+    </ul>
+
+    <h2 id="associacao">3. Associação</h2>
+    <p>Gestão dos recursos próprios da Associação de Pais.</p>
+
+    <h3>Operações Disponíveis:</h3>
+
+    <h4>1. Mensalidades (Entrada)</h4>
+    <p>Registro do recebimento de mensalidades recebidas por turno.</p>
+    <ul>
+        <li><strong>Campos</strong>: Data, Turno, Valores, Observação.</li>
+        <li><strong>Exemplo</strong>: Recebimento de R$ 300,00 em dinheiro dos secretários.</li>
+    </ul>
+
+    <h4>2. Despesa Associação (Saída)</h4>
+    <p>Pagamento direto utilizando saldo da Associação.</p>
+    <ul>
+        <li><strong>Campos</strong>: Data, Meio de Pagamento, Valor, Descrição.</li>
+        <li><strong>Exemplo</strong>: Pagamento de R$ 100,00 via PIX para material de limpeza.</li>
+    </ul>
+
+    <h4>3. Movimentar Saldo (Transferência)</h4>
+    <p>Transferência entre contas internas. Ex: Sangria (Espécie para Cofre) ou Depósito.</p>
+
+    <h4>4. Ajustar Saldo (Correção)</h4>
+    <p>Ferramenta administrativa para correção de saldos (use com cautela).</p>
+
+    <h3>Histórico</h3>
+    <p>Tabela de movimentações. Use a <strong>Lixeira</strong> para anular lançamentos (requer justificativa).</p>
+
+    <h2 id="saldos">4. Saldos em Estabelecimentos</h2>
+    <p>Controle de contas correntes em fornecedores.</p>
+    <ul>
+        <li><strong>Saldo Positivo (Verde)</strong>: Temos crédito. <strong>Negativo (Vermelho)</strong>: Devemos.</li>
+    </ul>
+
+    <h3>Operações Disponíveis:</h3>
+
+    <h4>Aportar Saldo (Pagar ao Fornecedor)</h4>
+    <p>Envia dinheiro para o estabelecimento, gerando crédito. Origem: Associação, UE ou CX.</p>
+    <ul>
+        <li><strong>Exemplo</strong>: Transferir R$ 1.000,00 da conta PDDE (UE) para o Supermercado XYZ.</li>
+    </ul>
+
+    <h4>Registrar Gasto (Consumo)</h4>
+    <p>Baixa o saldo do estabelecimento quando uma compra é feita.</p>
+    <ul>
+        <li><strong>Exemplo</strong>: Compra de lanche de R$ 200,00 no Supermercado XYZ (reduz o saldo).</li>
+    </ul>
+
+    <h4>Gerenciar Estabelecimentos</h4>
+    <p>Novo Estabelecimento, Editar e Excluir nos ícones dos cartões.</p>
+
+    <h2 id="recursos">5. Recursos (UE e Caixa Escolar)</h2>
+    <p>Gestão de contas vinculadas a verbas públicas (PDDE, Merenda).</p>
+
+    <h3>Operações:</h3>
+
+    <h4>Entrada de Recurso</h4>
+    <p>Registra o ingresso de verba (repasse). Ex: R$ 5.000,00 de PDDE no BB.</p>
+
+    <h4>Gasto de Recurso (Pagamento/Aporte)</h4>
+    <p>Saída de valores da conta de recurso.</p>
+    <ul>
+        <li><strong>Funcionalidade</strong>: Pagamentos diretos ou <strong>Aporte</strong> em estabelecimentos.</li>
+        <li><strong>Exemplo</strong>: PIX para Supermercado para criar crédito ou pagar compra específica.</li>
+    </ul>
+
+    <h4>Gerenciar Contas</h4>
+    <p>Botão "Nova Conta", Editar e Arquivar nos cartões.</p>
+
+    <h2 id="relatorios">6. Relatórios</h2>
+
+    <h3>Funcionalidades:</h3>
+    <ul>
+        <li><strong>Filtro de Data</strong>: Selecione o período.</li>
+        <li><strong>Preview WhatsApp</strong>: Resumo formatado para envio em grupos.
+            <ul>
+                <li>Opção "Incluir saldos dos Recursos".</li>
+            </ul>
+        </li>
+        <li><strong>Exportar PDF</strong>: Documento oficial com resumo e tabela de transações.</li>
+        <li><strong>Histórico Detalhado</strong>: Tabela pesquisável e filtrável.</li>
+    </ul>
+
+    <h2 id="admin">7. Administração e Logs</h2>
+
+    <h3>Usuários (Apenas Admin)</h3>
+    <p>Cadastrar usuários, ativar/desativar acessos e definir permissões. Novos cadastros ficam como "Pendentes".</p>
+
+    <h3>Logs (Auditoria)</h3>
+    <p>Registro imutável de <strong>Anulações</strong>. Mostra quem anulou, quando e o motivo.</p>
+
+</body>
+
+</html>
