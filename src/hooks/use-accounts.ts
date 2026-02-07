@@ -5,6 +5,7 @@ import { Account, Entity } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDemoData } from "@/demo/useDemoData";
 import { MOCK_ENTITIES } from "@/demo/demoSeed";
+import { demoStore } from "@/demo/demoStore";
 
 export function useAccounts(includeInactive = false) {
   const { isDemo } = useAuth();
@@ -31,7 +32,8 @@ export function useAccounts(includeInactive = false) {
   });
 
   if (isDemo) {
-    const data = includeInactive ? accounts : accounts.filter(a => a.active);
+    const demoAccounts = accounts.length > 0 ? accounts : demoStore.getAccounts();
+    const data = includeInactive ? demoAccounts : demoAccounts.filter(a => a.active);
     return { ...query, data: data as unknown as Account[], isLoading: false, isError: false, error: null };
   }
 
@@ -76,8 +78,9 @@ export function useAccountsByEntityType(entityType: "associacao" | "ue" | "cx" |
   });
 
   if (isDemo) {
+    const demoAccounts = accounts.length > 0 ? accounts : demoStore.getAccounts();
     const entity = MOCK_ENTITIES.find(e => e.type === entityType);
-    let filtered = entity ? accounts.filter(a => a.entity_id === entity.id) : [];
+    let filtered = entity ? demoAccounts.filter(a => a.entity_id === entity.id) : [];
     if (!includeInactive) filtered = filtered.filter(a => a.active);
     return { ...query, data: filtered as unknown as Account[], isLoading: false, isError: false };
   }
@@ -145,7 +148,8 @@ export function useEntitiesWithAccounts(includeInactive = false) {
   });
 
   if (isDemo) {
-    const accounts = includeInactive ? demoAccounts : demoAccounts.filter(a => a.active);
+    const accountsData = demoAccounts.length > 0 ? demoAccounts : demoStore.getAccounts();
+    const accounts = includeInactive ? accountsData : accountsData.filter(a => a.active);
     return {
       ...query,
       data: { entities: MOCK_ENTITIES as unknown as Entity[], accounts: accounts as unknown as Account[] },
@@ -185,8 +189,9 @@ export function useAssociacaoAccounts() {
   });
 
   if (isDemo) {
+    const accountsData = demoAccounts.length > 0 ? demoAccounts : demoStore.getAccounts();
     const assoc = MOCK_ENTITIES.find(e => e.type === 'associacao');
-    const filtered = assoc ? demoAccounts.filter(a => a.entity_id === assoc.id) : [];
+    const filtered = assoc ? accountsData.filter(a => a.entity_id === assoc.id) : [];
     return { ...query, data: filtered as unknown as Account[], isLoading: false };
   }
 

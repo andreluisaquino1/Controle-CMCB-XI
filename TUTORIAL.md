@@ -16,6 +16,8 @@ O sistema gerencia três entidades distintas para o CMCB-XI:
 *   **Admin**: Gestão de usuários e ativação de contas.
 *   **Usuário**: Operação diária (lançamentos e relatórios).
 *   **Visitante/Demonstração**: Modo simulação. Permite realizar lançamentos e testes que ficam salvos apenas no seu navegador, sem afetar os dados reais da escola e sem visualizar os dados reais.
+    Login: teste@teste.com 
+    Senha: teste1
 
 ---
 

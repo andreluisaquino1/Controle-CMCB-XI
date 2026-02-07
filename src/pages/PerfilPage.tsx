@@ -168,7 +168,7 @@ export default function PerfilPage() {
                 <Label>Nível de Acesso</Label>
                 <div>
                   <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary uppercase">
-                    {profile?.role === "admin" ? "Administrador" : profile?.role === "demo" ? "Demonstração" : "Usuário Comum"}
+                    {profile?.role === "admin" ? "Administrador" : profile?.role === "demo" ? "Demonstração" : "Usuário"}
                   </div>
                 </div>
               </div>

@@ -34,6 +34,8 @@ interface GastoAssociacaoDialogProps {
     setters: {
         setDate: (v: string) => void;
         setMeio: (v: string) => void;
+        setValor: (v: number) => void;
+        setDescricao: (v: string) => void;
         setObs: (v: string) => void;
     };
     onSubmit: (strictBalance?: boolean) => Promise<boolean>;
@@ -71,13 +73,9 @@ export function GastoAssociacaoDialog({
         { id: crypto.randomUUID(), amount: 0, description: "", date: state.date }
     ]);
 
-    const { data: accounts } = useAssociacaoAccounts();
-    const { data: entities } = useEntities();
+    const { data: accounts, isLoading: isLoadingAccounts } = useAssociacaoAccounts();
+    const { data: entities, isLoading: isLoadingEntities } = useEntities();
     const createTransaction = useCreateTransaction();
-
-    const associacaoEntity = entities?.find(e => e.type === "associacao");
-    const especieAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE && a.active);
-    const pixAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.PIX && a.active);
 
     const handleAddBatchItem = () => {
         setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }, ...batchItems]);
@@ -95,6 +93,10 @@ export function GastoAssociacaoDialog({
     const calculateTotal = () => batchItems.reduce((acc, item) => acc + item.amount, 0);
 
     const handleBatchSubmit = async () => {
+        const associacaoEntity = entities?.find(e => e.type === "associacao");
+        const especieAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE && a.active);
+        const pixAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.PIX && a.active);
+
         if (!associacaoEntity) {
             toast.error("Entidade não encontrada.");
             return;
@@ -229,9 +231,9 @@ export function GastoAssociacaoDialog({
                     <Button
                         className="w-full bg-primary"
                         onClick={handleBatchSubmit}
-                        disabled={isLoading || createTransaction.isPending}
+                        disabled={isLoading || createTransaction.isPending || isLoadingAccounts || isLoadingEntities}
                     >
-                        {isLoading || createTransaction.isPending ? "Processando..." : "Lançar Gastos"}
+                        {isLoading || createTransaction.isPending || isLoadingAccounts || isLoadingEntities ? "Processando..." : "Lançar Gastos"}
                     </Button>
                 </div>
             </DialogContent>

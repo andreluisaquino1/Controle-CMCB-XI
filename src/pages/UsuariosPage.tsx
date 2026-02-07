@@ -58,6 +58,12 @@ interface Profile {
     role?: "admin" | "user" | "demo";
 }
 
+const ROLE_LABELS = {
+    admin: "Administrador",
+    user: "Usuário",
+    demo: "Demonstração",
+};
+
 export default function UsuariosPage() {
     const { profile, isAdmin } = useAuth();
     const queryClient = useQueryClient();
@@ -246,9 +252,9 @@ export default function UsuariosPage() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="user">Usuário</SelectItem>
-                                                <SelectItem value="admin">Admin</SelectItem>
-                                                <SelectItem value="demo">Demo / Visitante</SelectItem>
+                                                <SelectItem value="user">{ROLE_LABELS.user}</SelectItem>
+                                                <SelectItem value="admin">{ROLE_LABELS.admin}</SelectItem>
+                                                <SelectItem value="demo">{ROLE_LABELS.demo}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </TableCell>

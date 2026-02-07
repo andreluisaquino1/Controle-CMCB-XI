@@ -14,10 +14,10 @@ export const triggerDemoUpdate = () => {
 
 export function useDemoData() {
     const { isDemo } = useAuth();
-    const [accounts, setAccounts] = useState<DemoAccount[]>([]);
-    const [merchants, setMerchants] = useState<DemoAccount[]>([]);
-    const [transactions, setTransactions] = useState<DemoTransaction[]>([]);
-    const [logs, setLogs] = useState<DemoAuditLog[]>([]);
+    const [accounts, setAccounts] = useState<DemoAccount[]>(isDemo ? demoStore.getAccounts() : []);
+    const [merchants, setMerchants] = useState<DemoAccount[]>(isDemo ? demoStore.getMerchants() : []);
+    const [transactions, setTransactions] = useState<DemoTransaction[]>(isDemo ? demoStore.getTransactions() : []);
+    const [logs, setLogs] = useState<DemoAuditLog[]>(isDemo ? demoStore.getLogs() : []);
 
     const refresh = useCallback(() => {
         if (isDemo) {
