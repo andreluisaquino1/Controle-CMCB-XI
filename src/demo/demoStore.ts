@@ -1,7 +1,7 @@
 import { DemoAccount, DemoTransaction, DemoAuditLog, INITIAL_ACCOUNTS, INITIAL_MERCHANTS, INITIAL_TRANSACTIONS, MOCK_LOGS } from "./demoSeed";
 
 const STORAGE_KEY = "demo_state";
-const DEMO_schema_VERSION = "1.7"; // Increment this to force reset
+const DEMO_schema_VERSION = "1.8"; // Increment this to force reset
 
 interface DemoState {
     version?: string;

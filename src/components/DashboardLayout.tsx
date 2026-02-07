@@ -114,7 +114,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             // Restriction: Only admin can see Users
             if (item.label === "Usuários" && !isAdmin) return null;
 
-            // Restriction: Demo user cannot see Users (Logs are now allowed)
+            // Restriction: Demo user cannot see Users
             if (isDemo && item.label === "Usuários") return null;
 
             const isActive = location.pathname === item.href;

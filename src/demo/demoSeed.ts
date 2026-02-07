@@ -290,7 +290,7 @@ export const MOCK_LOGS = [
     {
         id: 'log-1',
         created_at: daysAgo(1),
-        action: 'Anulação de Transação',
+        action: 'void',
         reason: 'Lançamento duplicado',
         profiles: { name: 'Major Z' },
         transactions: {
@@ -310,7 +310,7 @@ export const MOCK_LOGS = [
     {
         id: 'log-2',
         created_at: daysAgo(5),
-        action: 'Anulação de Transação',
+        action: 'void',
         reason: 'Valor incorreto',
         profiles: { name: 'Tenente X' },
         transactions: {
@@ -330,7 +330,7 @@ export const MOCK_LOGS = [
     {
         id: 'log-3',
         created_at: daysAgo(8),
-        action: 'Edição de Transação',
+        action: 'edit',
         reason: 'Correção de categoria',
         profiles: { name: 'Capitão Y' },
         transactions: {
@@ -350,7 +350,7 @@ export const MOCK_LOGS = [
     {
         id: 'log-4',
         created_at: daysAgo(12),
-        action: 'Exclusão de Transação',
+        action: 'void',
         reason: 'Teste de sistema',
         profiles: { name: 'Major Z' },
         transactions: {
@@ -386,5 +386,61 @@ export const MOCK_LOGS = [
             merchant: null,
             entity: { name: 'Associação CMCB-XI', type: 'associacao' }
         }
+    },
+    {
+        id: 'log-6',
+        created_at: daysAgo(2),
+        action: 'change',
+        reason: 'Promoção de cargo e permissões',
+        profiles: { name: 'Sistema' },
+        transactions: null
+    },
+    {
+        id: 'log-7',
+        created_at: daysAgo(3),
+        action: 'edit',
+        reason: 'Ajuste de valor centavos',
+        profiles: { name: 'Capitão Y' },
+        transactions: {
+            description: 'Mensalidade Aluno B',
+            amount: 150.50,
+            module: 'mensalidade',
+            transaction_date: daysAgo(3),
+            direction: 'in',
+            origin_fund: 'Associação',
+            notes: 'Valor estava 150.00',
+            source: { name: 'PIX (Conta BB)' },
+            destination: null,
+            merchant: null,
+            entity: { name: 'Associação CMCB-XI', type: 'associacao' }
+        }
+    },
+    {
+        id: 'log-8',
+        created_at: daysAgo(1),
+        action: 'void',
+        reason: 'Lançamento em conta errada',
+        profiles: { name: 'Major Z' },
+        transactions: {
+            description: 'Manutenção Ar Condicionado',
+            amount: 450.00,
+            module: 'saida_especie',
+            transaction_date: daysAgo(1),
+            direction: 'out',
+            origin_fund: 'Associação',
+            notes: 'Deveria ser PIX',
+            source: { name: 'Espécie' },
+            destination: null,
+            merchant: null,
+            entity: { name: 'Associação CMCB-XI', type: 'associacao' }
+        }
+    },
+    {
+        id: 'log-9',
+        created_at: daysAgo(0),
+        action: 'change',
+        reason: 'Bloqueio de acesso temporário',
+        profiles: { name: 'Admin' },
+        transactions: null
     }
 ];
