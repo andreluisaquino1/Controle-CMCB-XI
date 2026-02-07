@@ -1,7 +1,5 @@
 import { useCallback } from 'react';
 import { toast } from "sonner";
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { formatCurrencyBRL } from '@/lib/currency';
 import { formatDateBR } from '@/lib/date-utils';
 import { DashboardData, ReportData, TransactionWithCreator } from '@/types';
@@ -136,6 +134,12 @@ ${cxBlock}
             toast.error("Aguarde o carregamento dos dados.");
             return;
         }
+
+        // Carregamento dinâmico para reduzir bundle inicial
+        const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+            import('jspdf'),
+            import('jspdf-autotable'),
+        ]);
 
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
