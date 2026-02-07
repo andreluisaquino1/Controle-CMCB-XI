@@ -191,6 +191,8 @@ export function useCreateTransaction() {
 }
 
 export function useCreateResourceTransaction() {
+  const { isDemo } = useAuth();
+  const { addTransaction } = useDemoData();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -199,6 +201,23 @@ export function useCreateResourceTransaction() {
     }: {
       transaction: Record<string, unknown>;
     }) => {
+      if (isDemo) {
+        // Map resource transaction to normal demo transaction
+        const mockTx = {
+          id: crypto.randomUUID(),
+          date: (transaction.transaction_date as string) || new Date().toISOString(),
+          description: (transaction.description as string) || 'Gasto de Recurso Demo',
+          amount: Number(transaction.amount),
+          type: (transaction.direction as string) === 'in' ? 'income' : 'expense',
+          category: (transaction.module as string) || 'recurso',
+          account_id: (transaction.account_id as string) || '',
+          module: (transaction.module as string) || 'pix_direto_uecx'
+        };
+        // @ts-expect-error - compatibility
+        addTransaction(mockTx);
+        return mockTx;
+      }
+
       const { data: txn, error: txnError } = await supabase
         .rpc("process_resource_transaction", {
           // @ts-expect-error - RPC expects Json, but we use Record for type safety in TS

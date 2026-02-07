@@ -70,6 +70,24 @@ export function useDemoData() {
             demoStore.setAccountActive(id, active);
             triggerDemoUpdate();
         },
+        createMerchant: (name: string) => {
+            const m = demoStore.createMerchant(name);
+            triggerDemoUpdate();
+            return m;
+        },
+        updateMerchant: (id: string, name: string) => {
+            demoStore.updateMerchant(id, name);
+            triggerDemoUpdate();
+        },
+        createAccount: (name: string, entity_id: string, account_number?: string) => {
+            const a = demoStore.createAccount(name, entity_id, account_number);
+            triggerDemoUpdate();
+            return a;
+        },
+        updateAccount: (id: string, name: string, account_number?: string) => {
+            demoStore.updateAccount(id, name, account_number);
+            triggerDemoUpdate();
+        },
         refresh
     };
 }

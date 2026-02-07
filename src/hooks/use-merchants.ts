@@ -38,6 +38,8 @@ export function useMerchants(includeInactive = false) {
 }
 
 export function useCreateMerchant() {
+  const { isDemo } = useAuth();
+  const { createMerchant } = useDemoData();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -46,6 +48,9 @@ export function useCreateMerchant() {
     }: {
       name: string;
     }) => {
+      if (isDemo) {
+        return createMerchant(name);
+      }
       const { data, error } = await supabase
         .from("merchants")
         .insert({ name })
@@ -67,10 +72,16 @@ export function useCreateMerchant() {
 }
 
 export function useUpdateMerchant() {
+  const { isDemo } = useAuth();
+  const { updateMerchant } = useDemoData();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      if (isDemo) {
+        updateMerchant(id, name);
+        return;
+      }
       const { error } = await supabase
         .from("merchants")
         .update({ name })

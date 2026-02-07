@@ -196,6 +196,8 @@ export function useAssociacaoAccounts() {
 // Mutations for Account Management
 
 export function useCreateAccount() {
+  const { isDemo } = useAuth();
+  const { createAccount } = useDemoData();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -208,6 +210,9 @@ export function useCreateAccount() {
       account_number?: string;
       entity_id: string;
     }) => {
+      if (isDemo) {
+        return createAccount(name, entity_id, account_number);
+      }
       const { data, error } = await supabase
         .from("accounts")
         .insert({
@@ -237,6 +242,8 @@ export function useCreateAccount() {
 }
 
 export function useUpdateAccount() {
+  const { isDemo } = useAuth();
+  const { updateAccount } = useDemoData();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -249,6 +256,10 @@ export function useUpdateAccount() {
       name: string;
       account_number?: string;
     }) => {
+      if (isDemo) {
+        updateAccount(id, name, account_number);
+        return;
+      }
       const { error } = await supabase
         .from("accounts")
         .update({

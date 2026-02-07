@@ -243,6 +243,67 @@ export const demoStore = {
         }
     },
 
+    createMerchant: (name: string) => {
+        const state = getStoredState();
+        if (!state) return null;
+
+        const newMerchant: DemoAccount = {
+            id: crypto.randomUUID(),
+            name,
+            description: 'Novo Estabelecimento Demo',
+            balance: 0,
+            type: 'merchant',
+            entity_id: 'ent_associacao',
+            active: true
+        };
+
+        state.merchants.push(newMerchant);
+        setStoredState(state);
+        return newMerchant;
+    },
+
+    updateMerchant: (id: string, name: string) => {
+        const state = getStoredState();
+        if (!state) return;
+
+        const merc = state.merchants.find(m => m.id === id);
+        if (merc) {
+            merc.name = name;
+            setStoredState(state);
+        }
+    },
+
+    createAccount: (name: string, entity_id: string, account_number?: string) => {
+        const state = getStoredState();
+        if (!state) return null;
+
+        const newAccount: DemoAccount = {
+            id: crypto.randomUUID(),
+            name,
+            description: account_number ? `Conta ${account_number}` : 'Nova Conta Demo',
+            balance: 0,
+            type: 'resource',
+            entity_id,
+            active: true
+        };
+
+        state.accounts.push(newAccount);
+        setStoredState(state);
+        return newAccount;
+    },
+
+    updateAccount: (id: string, name: string, account_number?: string) => {
+        const state = getStoredState();
+        if (!state) return;
+
+        const acc = state.accounts.find(a => a.id === id);
+        if (acc) {
+            acc.name = name;
+            if (account_number) acc.description = `Conta ${account_number}`;
+            setStoredState(state);
+        }
+    },
+
     getReportSummary: (startDate: string, endDate: string) => {
         demoStore.init();
         const transactions = getStoredState()?.transactions || [];

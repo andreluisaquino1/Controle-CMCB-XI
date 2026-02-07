@@ -1,152 +1,127 @@
-# Manual do Usuário - Sistema Financeiro CMCB-XI
+# Manual do Usuário - Sistema Financeiro CMCB-XI (Versão Final)
 
-Bem-vindo ao manual completo do Sistema Financeiro CMCB-XI. Este documento detalha todas as funcionalidades do sistema, organizadas por abas e módulos.
-
-## Índice
-
-1. [Acesso e Perfil](#1-acesso-e-perfil)
-2. [Dashboard (Visão Geral)](#2-dashboard-visão-geral)
-3. [Associação](#3-associação)
-4. [Saldos em Estabelecimentos](#4-saldos-em-estabelecimentos)
-5. [Recursos (UE e Caixa Escolar)](#5-recursos-ue-e-caixa-escolar)
-6. [Relatórios](#6-relatórios)
-7. [Administração e Logs](#7-administração-e-logs)
+Este documento apresenta todas as funcionalidades do sistema, detalhando abas, funções e exemplos de uso prático para a gestão da Associação, Unidade Executora e Caixa Escolar.
 
 ---
 
-## 1. Acesso e Perfil
+## 1. Institucional e Acesso
 
-### Login
-Ao acessar o sistema, utilize seu e-mail e senha cadastrados.
-- **Esqueci a senha**: Na tela de login, clique em "Recuperar senha" para receber um link de redefinição por e-mail.
+O sistema gerencia três entidades distintas para o CMCB-XI:
 
-### Perfil e Configurações
-Acesse clicando em **Perfil** no menu lateral.
-- **Alterar Nome**: Atualize seu nome de exibição.
-- **Alterar Senha**: Permite trocar sua senha atual por uma nova.
-- **Status da Conta**: Exibe se seu usuário está "Ativo" ou "Pendente".
+1.  **Associação de Pais e Mestres**: Gestão de mensalidades dos alunos do Colégio Militar e custeio operacional imediato.
+2.  **Unidade Executora (UE)**: Responsável por recursos federais diretos (FNDE/PDDE).
+3.  **Caixa Escolar (CX)**: Gere repasses estaduais e alimentação escolar (Merenda).
 
----
-
-## 2. Dashboard (Visão Geral)
-
-O **Painel Principal** oferece um resumo imediato da saúde financeira da instituição.
-
-### Funcionalidades:
-- **Resumo Financeiro**: Exibe o saldo consolidado das contas da Associação:
-  - **Espécie**: Dinheiro físico em caixa.
-  - **PIX (BB)**: Saldo bancário da conta de movimento.
-  - **Conta Digital**: Saldo na plataforma de cobrança (Escolaweb).
-  - **Cofre**: Reserva física.
-- **Ações Rápidas**: Atalhos para as operações mais comuns (Mensalidade, Despesa Associação e Gasto Estabelecimento).
-- **Saldos dos Estabelecimentos**: Mostra quanto crédito ou débito a instituição possui em cada fornecedor cadastrado.
-- **Recursos (UE/CX)**: Resumo dos saldos bancários das contas de recursos federais/estaduais.
+**Perfis de Acesso:**
+*   **Admin**: Gestão de usuários e ativação de contas.
+*   **Usuário**: Operação diária (lançamentos e relatórios).
+*   **Visitante/Demonstração**: Modo simulação. Permite realizar lançamentos e testes que ficam salvos apenas no seu navegador, sem afetar os dados reais da escola e sem visualizar os dados reais.
 
 ---
 
-## 3. Associação
+## 2. Abas e Funcionalidades
 
-Esta aba é destinada à gestão exclusiva dos recursos próprios da Associação de Pais.
+### 2.1 Dashboard (Visão Geral e Atalhos)
+**Função**: Centralizar a saúde financeira e oferecer acesso rápido às tarefas comuns.
+*   **Saldos em Tempo Real**: Mostra o total disponível em **Espécie**, **Banco (PIX)**, **Conta Digital** e **Cofre**.
+*   **Saldos dos Estabelecimentos**: Lista rápida de fornecedores onde há crédito ou débito.
+*   **Ações Rápidas (Atalhos)**:
+    *   **Mensalidade**: Atalho para registro de entrada de alunos (mesma função da aba Associação).
+    *   **Despesa Associação**: Atalho para pagamento direto (mesma função da aba Associação).
+    *   **Gasto Estabelecimento**: Atalho para abater saldo em mercado (mesma função da aba Saldos).
+    > [!NOTE]
+    > Estes botões são **atalhos** das funções completas encontradas nas abas específicas abaixo.
 
-### Contas Gerenciadas
-- **Espécie**, **PIX**, **Conta Digital** e **Cofre**.
+### 2.2 Associação (Recursos Próprios)
+**Função**: Gestão de mensalidades dos alunos e custeio operacional imediato.
+*   **Botão [Mensalidades]**: Registro de valores recebidos.
+    *   *Como usar*: Recebeu R$ 300,00 da secretaria no turno manhã? Clique em Mensalidades, selecione "Manhã" e insira o valor. O sistema divide automaticamente entre Espécie e PIX se necessário.
+*   **Botão [Despesa Associação]**: Pagamento direto de serviços/materiais.
+    *   *Como usar*: Pagou R$ 20,00 em um xerox? Clique aqui, escolha o meio (Espécie/PIX) e descreva o gasto. Isso retira o valor diretamente do saldo da Associação.
+*   **Botão [Movimentar Saldo]**: Transferência entre as contas internas (Ex: Banco para Cofre).
+    *   *Como usar*: Retirou R$ 1.000,00 do dinheiro em espécie para guardar no Cofre físico? Selecione origem "Espécie", destino "Cofre" e o valor.
+*   **Botão [PIX Fantasma]**: Registrar créditos no extrato bancário sem origem identificada.
+    *   *Como usar*: Apareceu um PIX de R$ 50,00 no extrato mas não sabe quem enviou? Use esta função para o saldo bater, e identifique-o depois.
+    *   *Exemplo*: Verificou o extrato do Banco do Brasil e há um crédito de R$ 50,00 'PIX RECEBIDO - CPF ***.123.456-**'. Use este botão para registrar a entrada agora e ajustar para o aluno correto futuramente.
+*   **Botão [Taxas PIX]**: Lançamento rápido de tarifas bancárias em lote.
+    *   *Como usar*: No fim da semana, lance todas as tarifas de manutenção da conta e de envio e recebimento de pix de uma só vez para simplificar a conciliação.
+    *   *Exemplo*: O Banco descontou 'TARIFA MENSALIDADE' de R$ 55,00 e 'TARIFA DE RECEBIMENTO DE PIX' de R$ 1,00? Clique aqui e lance os R$ 56,00 totais como taxa.
+*   **Botão [Ajustar Saldo]**: Correções pontuais (erros de digitação ou saldo inicial).
+    *   *Como usar*: O saldo físico da Espécie está R$ 5,00 diferente? Use o Ajuste com a justificativa "Acerto de quebra de caixa".
 
-### Operações Disponíveis:
+### 2.3 Saldos em Estabelecimentos (Contas Correntes)
+**Função**: Controle de verba "pré-paga" enviada para fornecedores.
+*   **Botão [Novo Estabelecimento]**: Cadastrar um novo mercado ou fornecedor recorrente.
+    *   *Como usar*: Quer começar a comprar no "Mercado do João"? Clique aqui e insira o nome para ele aparecer na lista.
+*   **Botão [Aporte]**: Enviar dinheiro (da Assoc/UE/CX) para o fornecedor.
+    *   *Como usar*: Fez um PIX de R$ 2.000,00 da conta PDDE para o "Supermercado X"? Clique em Aporte, selecione a conta de origem (UE > PDDE) e o mercado destino.
+*   **Botão [Registrar Gasto]**: Abater do saldo do fornecedor após uma compra realizada.
+    *   *Como usar*: Foi ao "Supermercado X" e comprou R$ 150,00 em lanches? Use este botão para dar baixa e manter o saldo atualizado.
 
-#### **1. Mensalidades (Entrada)**
-Registro do recebimento de mensalidades recebidas por turno.
-- **Campos**: Data, Turno (Manhã/Tarde), Valores (Espécie/PIX), Observação.
-- **Exemplo**: Recebimento de R$ 300,00 em dinheiro dos secretários.
+### 2.4 Recursos (UE e Caixa Escolar)
+**Função**: Controle de verbas vinculadas (FNDE/Repasses Estaduais).
+*   **Botão [Nova Conta]**: Adicionar uma nova rubrica ou conta bancária específica.
+    *   *Como usar*: Abriram uma nova conta para receber um recurso específico? Clique aqui e vincule-a à UE ou CX.
+*   **Botão [Entrada de Recurso]**: Registrar a chegada de verba pública.
+    *   *Como usar*: Caiu o repasse do PNAE (Merenda)? Selecione a conta de destino correta e registre o valor recebido do governo.
+*   **Botão [Gasto de Recurso]**: Pagamento direto de notas fiscais usando verba vinculada ou aportar como saldo em estabelecimento.
+    *   *Como usar*: Pagou a manutenção do ar condicionado com a conta FEE? Use este botão para registrar a saída direta da conta bancária vinculada.
+    *   *Como usar*: Deseja aportar o saldo da conta FEE para o "Supermercado X"? Use este botão para registrar a saída direta da conta bancária vinculada.
 
-#### **2. Despesa Associação (Saída)**
-Pagamento direto de despesas utilizando saldo da Associação.
-- **Campos**: Data, Meio de Pagamento (Espécie/PIX...), Valor, Descrição.
-- **Exemplo**: Pagamento de R$ 100,00 via PIX para compra de material de limpeza.
+### 2.5 Relatórios e Prestação de Contas
+**Função**: Exportação e transparência.
+*   **Selecione o período do relatório desejado.**
+*   **Botão [Copiar Texto / Abrir WhatsApp]**: Gera o resumo formatado.
+    *   *Como usar*: Use toda sexta-feira para enviar o resumo atualizado no grupo de oficiais. Você pode escolher incluir ou não os saldos da UE/CX no resumo.
+*   **Botão [Exportar PDF]**: Gera o balancete oficial em PDF.
+    *   *Como usar*: Selecione o período do mês fechado e exporte o PDF para arquivamento ou anexar à prestação de contas física.
+*   **Filtros (Lupa/Funil)**: Buscar transações específicas.
+    *   *Como usar*: Precisa achar quanto gastou com "Limpeza" no mês passado? Use a busca textual e o filtro de datas.
 
-#### **3. Movimentar Saldo (Transferência)**
-Transferência de valores entre contas internas.
-- **Uso Comum**: Sangria (Retirar do Espécie para Cofre) ou Depósito (Espécie para Banco).
-- **Taxas**: É possível registrar taxas bancárias incidentes na transferência.
+### 2.6 Anulação e Histórico
+**Função**: Corrigir erros de lançamento de forma transparente.
+*   **Botão [Anular]**: Localizado ao final de cada linha no "Histórico".
+    *   *Como usar*: Lançou um valor errado na Mensalidade? Clique no botão X vermelho no histórico, insira a justificativa (Ex: "Valor digitado incorretamente") e confirme. O sistema reverte o saldo automaticamente.
+*   **Logs de Auditoria**: Registro permanente de todas as ações.
+    *   *Como usar*: Vá em Logs para conferir quem anulou um lançamento e qual foi a justificativa fornecida.
 
-#### **4. Ajustar Saldo (Correção)**
-Ferramenta administrativa para correção de saldos em caso de divergência.
-- **Atenção**: Use com cautela, pois altera o saldo diretamente sem contrapartida financeira comum.
+### 2.7 Gestão de Cadastros (Edição e Exclusão)
+**Função**: Manter a lista de fornecedores e contas em dia.
+*   **Botão [Lápis]**: Edita o nome de um estabelecimento ou número de conta.
+    *   *Como usar*: O nome do mercado mudou? Clique no lápis ao lado do nome na aba Saldos e atualize.
+    *   *Como usar*: O número da conta mudou? Clique no lápis ao lado do número na aba Saldos e atualize.
+*   **Botão [Lixeira]**: Desativa um estabelecimento ou conta.
+    *   *Como usar*: Um fornecedor não atende mais a escola? Clique na lixeira no card do estabelecimento para desativá-lo. Ele não aparecerá mais para novos lançamentos, mas seu histórico será preservado.
+    *   *Como usar*: Uma conta não é mais utilizada? Clique na lixeira no card da conta para desativá-la. Ela não aparecerá mais para novos lançamentos, mas seu histórico será preservado.
 
-### Histórico
-Tabela completa de todas as movimentações da Associação. Use o botão de **Lixeira** para anular um lançamento incorreto (requer justificativa).
+### 2.8 Administração de Usuários (Apenas Admin)
+**Função**: Controle de quem acessa o sistema.
+*   **Ativação (Switch)**: Libera acesso para novos cadastros.
+    *   *Como usar*: Um novo Tenente se cadastrou? Vá em Usuários e ative a chave (Switch) para que ele consiga logar.
+*   **Alterar Função (Select)**: Muda permissões.
+    *   *Como usar*: Precisa que um usuário vire admin? Altere a função dele para "Admin" na lista de usuários, ou quer mostrar o funcionamento do sistema sem mostrar os valores reais? Altere a função dele para "Demo / Visitante" na lista de usuários.
 
----
-
-## 4. Saldos em Estabelecimentos
-
-Módulo para controle de contas correntes em fornecedores (supermercados, papelarias, etc).
-
-### Conceito
-O sistema controla quanto crédito a instituição possui em cada local.
-- **Saldo Positivo (Verde)**: Temos crédito para gastar.
-- **Saldo Negativo (Vermelho)**: Devemos ao estabelecimento.
-
-### Operações Disponíveis:
-
-#### **Aportar Saldo (Pagar ao Fornecedor)**
-Envia dinheiro da instituição para o estabelecimento, gerando crédito.
-- **Origem dos Recursos**: Pode vir da Associação, Unidade Executora (UE) ou Caixa Escolar (CX).
-- **Exemplo**: Transferir R$ 1.000,00 da conta PDDE (UE) para o Supermercado XYZ. O saldo no mercado aumentará.
-
-#### **Registrar Gasto (Consumo)**
-Baixa o saldo do estabelecimento quando uma compra é feita.
-- **Exemplo**: Compra de lanche no valor de R$ 200,00 no Supermercado XYZ. O saldo do mercado diminuirá.
-
-#### **Gerenciar Estabelecimentos**
-- **Novo Estabelecimento**: Cadastra um novo fornecedor.
-- **Editar/Excluir**: Ícones visíveis nos cartões de cada estabelecimento.
-
----
-
-## 5. Recursos (UE e Caixa Escolar)
-
-Gestão das contas bancárias vinculadas a verbas públicas (PDDE, Merenda, etc).
-
-### Contas
-- **Unidade Executora (UE)**: Recursos federais diretos.
-- **Caixa Escolar (CX)**: Recursos estaduais/federais para alimentação/manutenção.
-
-### Operações:
-
-#### **Entrada de Recurso**
-Registra o ingresso de verba na conta bancária (repasse).
-- **Exemplo**: Recebimento de R$ 5.000,00 de repasse PDDE na conta do Banco do Brasil.
-
-#### **Gasto de Recurso (Pagamento/Aporte)**
-Registro de saída de valores da conta de recurso.
-- **Funcionalidade**: Esta operação serve tanto para pagamentos diretos quanto para **Aportar Saldo** em estabelecimentos cadastrados (transferindo crédito para o fornecedor).
-- **Exemplo**: Transferência de valor para o Supermercado para criar crédito futuro ou pagar uma compra específica.
-
-#### **Gerenciar Contas**
-Botão **"Nova Conta"** para cadastrar novas contas bancárias. Ícones de lápis e lixeira nos cartões para editar/arquivar contas existentes.
-
----
-
-## 6. Relatórios
-
-Central de prestação de contas.
-
-### Funcionalidades:
-- **Filtro de Data**: Selecione o período desejado (Início e Fim).
-- **Preview WhatsApp**: Gera um texto formatado automaticamente com o resumo do período, pronto para envio em grupos de prestação de contas.
-  - **Opção "Incluir saldos dos Recursos"**: Adiciona ao resumo os saldos das contas UE/CX.
-- **Exportar PDF**: Gera um documento oficial contendo o resumo e a tabela detalhada de todas as transações do período.
-- **Histórico Detalhado**: Tabela pesquisável de todas as operações. Use os filtros para ver apenas "Mensalidades" ou "Gastos", por exemplo.
+### 2.9 Perfil e Segurança
+*   **Alterar Senha**: No menu Perfil, você pode definir uma nova senha informando a atual.
+*   **Esqueci a Senha**: Na tela de login, clique em "Esqueci minha senha" para receber um link de redefinição no e-mail cadastrado.
 
 ---
 
-## 7. Administração e Logs
+## 3. Guia Operacional (Rotina)
 
-### Usuários (Apenas Admin)
-- Permite cadastrar novos usuários, ativar/desativar acessos e definir permissões (Admin, Usuário Comum, Visitante).
-- **Importante**: Novos cadastros ficam como "Pendentes" até que um Admin os ative nesta tela.
+Para uma gestão eficiente, siga este fluxo diário:
 
-### Logs (Auditoria)
-- Exibe um registro imutável de todas as **Anulações** de transações feitas no sistema.
-- Mostra: Quem anulou, quando, qual foi a transação original e o motivo justificado.
-- Garante transparência e segurança nas correções de lançamentos.
+1.  **Conferência Inicial**: No início do turno, cheque o saldo em **Espécie** para garantir que o físico bate com o sistema.
+2.  **Lançamentos de Entrada**: Registre mensalidades conforme entram na secretaria.
+3.  **Autorização de Compras**: Antes de autorizar uma compra em mercado, verifique se o **Saldo do Estabelecimento** comporta o valor.
+4.  **Fechamento**: No final do dia/semana, gere o **Relatório** do período e utilize o **Preview WhatsApp** para informar os demais sobre as movimentações.
+
+---
+
+## 4. Auditoria e Segurança
+
+*   **Não há Edição**: Para evitar fraudes, valores não podem ser editados.
+*   **Fluxo de Anulação**: Se errar, use o botão **Anular** no histórico. 
+*   **Logs**: O sistema registra em **Logs** quem anulou, a data, o valor original e a justificativa obrigatória.
+
+---
