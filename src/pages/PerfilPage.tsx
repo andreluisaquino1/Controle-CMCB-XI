@@ -240,7 +240,8 @@ export default function PerfilPage() {
           <CardContent className="pt-6">
             <Button variant="destructive" onClick={handleSignOut} className="w-full">
               <LogOut className="h-4 w-4 mr-2" />
-              Sair da Conta\n            </Button>
+              Sair da Conta
+            </Button>
           </CardContent>
         </Card>
       </div>
