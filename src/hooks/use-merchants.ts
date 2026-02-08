@@ -32,7 +32,6 @@ export function useMerchants(includeInactive = false) {
       // We need to fetch balances where account_id IN merchantIds
       // Note: ledger_balances view might have 'account_id' as text. 
       // Ensure we query correctly.
-      // @ts-ignore
       const { data: balancesData, error: balancesError } = await supabase
         .from("ledger_balances")
         .select("account_id, balance")
