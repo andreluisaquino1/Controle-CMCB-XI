@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import RelatoriosPage from "../pages/RelatoriosPage";
+import RelatoriosPage from "@/pages/RelatoriosPage";
 import React from "react";
 import { useDashboardData, useReportData } from "@/hooks/use-dashboard-data";
 import { useAllTransactionsWithCreator } from "@/hooks/use-entity-transactions";

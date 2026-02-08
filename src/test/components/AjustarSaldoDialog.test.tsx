@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { AjustarSaldoDialog } from "../components/forms/AjustarSaldoDialog";
+import { AjustarSaldoDialog } from "@/components/forms/AjustarSaldoDialog";
 import React from "react";
 
 const mockAccounts = [

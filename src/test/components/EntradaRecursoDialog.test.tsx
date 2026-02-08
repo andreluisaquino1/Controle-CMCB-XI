@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { EntradaRecursoDialog } from "../components/forms/EntradaRecursoDialog";
+import { EntradaRecursoDialog } from "@/components/forms/EntradaRecursoDialog";
 import React from "react";
 
 const mockEntities = [

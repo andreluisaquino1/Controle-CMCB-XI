@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { DateInput } from "../components/forms/DateInput";
+import { DateInput } from "@/components/forms/DateInput";
 import { getTodayString } from "@/lib/date-utils";
 import React from "react";
 

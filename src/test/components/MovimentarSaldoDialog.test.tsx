@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { MovimentarSaldoDialog } from "../components/forms/MovimentarSaldoDialog";
+import { MovimentarSaldoDialog } from "@/components/forms/MovimentarSaldoDialog";
 import React from "react";
 import { ACCOUNT_NAMES } from "@/lib/constants";
 

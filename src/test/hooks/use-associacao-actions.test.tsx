@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useAssociacaoActions } from "../hooks/use-associacao-actions";
+import { useAssociacaoActions } from "@/hooks/use-associacao-actions";
 import { toast } from "sonner";
 import { createLedgerTransaction } from "@/domain/ledger";
 import { useQueryClient } from "@tanstack/react-query";

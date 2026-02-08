@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import AssociacaoPage from "../pages/AssociacaoPage";
+import AssociacaoPage from "@/pages/AssociacaoPage";
 import React from "react";
 import { useAssociacaoAccounts, useEntities } from "@/hooks/use-accounts";
 import { useAssociacaoTransactions } from "@/hooks/use-entity-transactions";

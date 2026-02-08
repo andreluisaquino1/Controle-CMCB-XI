@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { waitFor } from "@testing-library/dom";
-import { useSaldosTransactions } from "../hooks/use-entity-transactions";
+import { useSaldosTransactions } from "@/hooks/use-entity-transactions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTransactionMetadata } from "../hooks/use-transaction-metadata";
+import { useTransactionMetadata } from "@/hooks/use-transaction-metadata";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 
@@ -19,7 +19,7 @@ vi.mock("@/contexts/AuthContext", () => ({
     useAuth: vi.fn()
 }));
 
-vi.mock("../hooks/use-transaction-metadata", () => ({
+vi.mock("@/hooks/use-transaction-metadata", () => ({
     useTransactionMetadata: vi.fn()
 }));
 

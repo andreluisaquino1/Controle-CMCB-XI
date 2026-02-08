@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useSaldosActions } from "../hooks/use-saldos-actions";
+import { useSaldosActions } from "@/hooks/use-saldos-actions";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 

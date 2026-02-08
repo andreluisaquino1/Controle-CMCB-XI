@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { CurrencyInput } from "../components/forms/CurrencyInput";
+import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import React from "react";
 
 describe("CurrencyInput component", () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { ConsumoSaldoDialog } from "../components/forms/ConsumoSaldoDialog";
+import { ConsumoSaldoDialog } from "@/components/forms/ConsumoSaldoDialog";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createLedgerTransaction } from "@/domain/ledger";

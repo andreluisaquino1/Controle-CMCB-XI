@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { TransactionTable } from "../components/transactions/TransactionTable";
+import { TransactionTable } from "@/components/transactions/TransactionTable";
 import React from "react";
 
 // Mock child component to avoid internal logic and context issues

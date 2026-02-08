@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { waitFor } from "@testing-library/dom";
-import { useMerchants } from "../hooks/use-merchants";
+import { useMerchants } from "@/hooks/use-merchants";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDemoData } from "@/demo/useDemoData";
@@ -56,7 +56,7 @@ describe("useMerchants hook", () => {
             { id: "m2", name: "Merchant 2", balance: 20, active: true },
         ];
         const mockBalances = [
-            { account_id: "m1", balance: 100 },
+            { account_id: "m1", balance_cents: 10000 },
         ];
 
         // Mock first call: Fetch Merchants
@@ -87,8 +87,8 @@ describe("useMerchants hook", () => {
         await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
         expect(result.current.data).toHaveLength(2);
-        expect(result.current.data![0].balance).toBe(100); // Merged from ledger
-        expect(result.current.data![1].balance).toBe(20);  // Fallback to table
+        expect(result.current.data![0].balance).toBe(100); // Merged from ledger: 10000 / 100 = 100
+        expect(result.current.data![1].balance).toBe(20);  // Fallback to table balance
     });
 
     it("should return demo data when isDemo is true", () => {

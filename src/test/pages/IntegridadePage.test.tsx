@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import IntegridadePage from "../pages/IntegridadePage";
+import IntegridadePage from "@/pages/IntegridadePage";
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

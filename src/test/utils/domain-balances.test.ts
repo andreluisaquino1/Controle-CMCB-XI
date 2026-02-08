@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getAccountBalanceCents } from "../domain/balances";
+import { getAccountBalanceCents } from "@/domain/balances";
 import { supabase } from "@/integrations/supabase/client";
 
 // Mock Supabase client
