@@ -33,6 +33,8 @@ export interface DemoAuditLog {
     created_at: string;
     action: string;
     reason: string | null;
+    before_json: any;
+    after_json: any;
     profiles: { name: string | null } | null;
     transactions: {
         description: string | null;
@@ -393,7 +395,9 @@ export const MOCK_LOGS = [
         action: 'change',
         reason: 'Promoção de cargo e permissões',
         profiles: { name: 'Sistema' },
-        transactions: null
+        transactions: null,
+        before_json: { role: 'user', active: true, user_id: 'user-123' },
+        after_json: { role: 'admin', active: true, user_id: 'user-123' }
     },
     {
         id: 'log-7',
@@ -413,7 +417,9 @@ export const MOCK_LOGS = [
             destination: null,
             merchant: null,
             entity: { name: 'Associação CMCB-XI', type: 'associacao' }
-        }
+        },
+        before_json: null,
+        after_json: null
     },
     {
         id: 'log-8',
@@ -433,7 +439,9 @@ export const MOCK_LOGS = [
             destination: null,
             merchant: null,
             entity: { name: 'Associação CMCB-XI', type: 'associacao' }
-        }
+        },
+        before_json: null,
+        after_json: null
     },
     {
         id: 'log-9',
@@ -441,6 +449,18 @@ export const MOCK_LOGS = [
         action: 'change',
         reason: 'Bloqueio de acesso temporário',
         profiles: { name: 'Admin' },
-        transactions: null
+        transactions: null,
+        before_json: { active: true, user_id: 'user-456' },
+        after_json: { active: false, user_id: 'user-456' }
+    },
+    {
+        id: 'log-10',
+        created_at: daysAgo(0),
+        action: 'change',
+        reason: 'Transferência manual de responsabilidade',
+        profiles: { name: 'Admin' },
+        transactions: null,
+        before_json: { account_id: 'acc_especie', responsible_id: 'user-old' },
+        after_json: { account_id: 'acc_especie', responsible_id: 'user-new' }
     }
 ];
