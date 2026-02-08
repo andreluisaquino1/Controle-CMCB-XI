@@ -65,8 +65,8 @@ export function EntradaRecursoDialog({
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                     <div className="space-y-2">
-                        <Label>Data *</Label>
-                        <DateInput value={state.date} onChange={setters.setDate} />
+                        <Label htmlFor="ent-date">Data *</Label>
+                        <DateInput id="ent-date" value={state.date} onChange={setters.setDate} />
                     </div>
                     <div className="space-y-2">
                         <Label>Entidade *</Label>
@@ -99,16 +99,16 @@ export function EntradaRecursoDialog({
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>Valor (R$) *</Label>
-                        <CurrencyInput value={state.amount} onChange={setters.setAmount} />
+                        <Label htmlFor="ent-amount">Valor (R$) *</Label>
+                        <CurrencyInput id="ent-amount" value={state.amount} onChange={setters.setAmount} />
                     </div>
                     <div className="space-y-2">
-                        <Label>Descrição *</Label>
-                        <Input value={state.description} onChange={(e) => setters.setDescription(e.target.value)} placeholder="Ex: Repasse PDDE" />
+                        <Label htmlFor="ent-desc">Descrição *</Label>
+                        <Input id="ent-desc" value={state.description} onChange={(e) => setters.setDescription(e.target.value)} placeholder="Ex: Repasse PDDE" />
                     </div>
                     <div className="space-y-2">
-                        <Label>Observação</Label>
-                        <Input value={state.notes} onChange={(e) => setters.setNotes(e.target.value)} placeholder="Opcional" />
+                        <Label htmlFor="ent-obs">Observação</Label>
+                        <Input id="ent-obs" value={state.notes} onChange={(e) => setters.setNotes(e.target.value)} placeholder="Opcional" />
                     </div>
                     <Button
                         className="w-full bg-success hover:bg-success/90"

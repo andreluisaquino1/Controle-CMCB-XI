@@ -223,22 +223,25 @@ export function GastoRecursoDialog({
                             {batchItems.map((item) => (
                                 <div key={item.id} className="grid grid-cols-12 gap-2 items-end p-2 border rounded bg-muted/20">
                                     <div className="col-span-3 space-y-1">
-                                        <Label className="text-[10px]">Data</Label>
+                                        <Label htmlFor={`date-${item.id}`} className="text-[10px]">Data</Label>
                                         <DateInput
+                                            id={`date-${item.id}`}
                                             value={item.date}
                                             onChange={(v) => updateBatchItem(item.id, 'date', v)}
                                         />
                                     </div>
                                     <div className="col-span-2 space-y-1">
-                                        <Label className="text-[10px]">Valor</Label>
+                                        <Label htmlFor={`amount-${item.id}`} className="text-[10px]">Valor</Label>
                                         <CurrencyInput
+                                            id={`amount-${item.id}`}
                                             value={item.amount}
                                             onChange={(v) => updateBatchItem(item.id, 'amount', v)}
                                         />
                                     </div>
                                     <div className="col-span-6 space-y-1">
-                                        <Label className="text-[10px]">Descrição *</Label>
+                                        <Label htmlFor={`desc-${item.id}`} className="text-[10px]">Descrição *</Label>
                                         <Input
+                                            id={`desc-${item.id}`}
                                             value={item.description}
                                             onChange={(e) => updateBatchItem(item.id, 'description', e.target.value)}
                                             placeholder="Ex: Produto X"

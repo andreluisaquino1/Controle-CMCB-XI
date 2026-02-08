@@ -129,8 +129,8 @@ export function AjustarSaldoDialog({
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                     <div className="space-y-2">
-                        <Label>Data *</Label>
-                        <DateInput value={state.date} onChange={setters.setDate} />
+                        <Label htmlFor="adj-date">Data *</Label>
+                        <DateInput id="adj-date" value={state.date} onChange={setters.setDate} />
                     </div>
 
                     <div className="space-y-2">
@@ -169,8 +169,9 @@ export function AjustarSaldoDialog({
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">Valor do Ajuste (R$)</Label>
+                                <Label htmlFor="adj-amount" className="text-xs text-muted-foreground">Valor do Ajuste (R$)</Label>
                                 <CurrencyInput
+                                    id="adj-amount"
                                     value={state.valor}
                                     onChange={handleAdjustmentChange}
                                     placeholder="Ex: +10 ou -5"
@@ -181,8 +182,9 @@ export function AjustarSaldoDialog({
                                 </p>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">Novo Saldo (R$)</Label>
+                                <Label htmlFor="adj-final" className="text-xs text-muted-foreground">Novo Saldo (R$)</Label>
                                 <CurrencyInput
+                                    id="adj-final"
                                     value={finalBalance}
                                     onChange={handleFinalBalanceChange}
                                     placeholder="Saldo final desejado"
@@ -196,8 +198,9 @@ export function AjustarSaldoDialog({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Motivo *</Label>
+                        <Label htmlFor="adj-reason">Motivo *</Label>
                         <Input
+                            id="adj-reason"
                             value={state.motivo}
                             onChange={(e) => setters.setMotivo(e.target.value)}
                             placeholder="Ex: Saldo inicial, correção, etc"
@@ -205,8 +208,9 @@ export function AjustarSaldoDialog({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Observação</Label>
+                        <Label htmlFor="adj-obs">Observação</Label>
                         <Input
+                            id="adj-obs"
                             value={state.obs}
                             onChange={(e) => setters.setObs(e.target.value)}
                             placeholder="Informações adicionais"

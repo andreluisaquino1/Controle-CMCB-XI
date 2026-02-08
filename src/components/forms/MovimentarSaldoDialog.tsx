@@ -84,8 +84,8 @@ export function MovimentarSaldoDialog({
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                     <div className="space-y-2">
-                        <Label>Data *</Label>
-                        <DateInput value={state.date} onChange={setters.setDate} />
+                        <Label htmlFor="mov-date">Data *</Label>
+                        <DateInput id="mov-date" value={state.date} onChange={setters.setDate} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -132,28 +132,31 @@ export function MovimentarSaldoDialog({
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Valor (R$) *</Label>
-                            <CurrencyInput value={state.valor} onChange={setters.setValor} />
+                            <Label htmlFor="mov-valor">Valor (R$) *</Label>
+                            <CurrencyInput id="mov-valor" value={state.valor} onChange={setters.setValor} />
                         </div>
                         <div className="space-y-2">
-                            <Label>Taxa (R$)</Label>
+                            <Label htmlFor="mov-taxa">Taxa (R$)</Label>
                             <CurrencyInput
+                                id="mov-taxa"
                                 value={state.taxa}
                                 onChange={setters.setTaxa}
                             />
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <Label>Descrição *</Label>
+                        <Label htmlFor="mov-desc">Descrição *</Label>
                         <Input
+                            id="mov-desc"
                             value={state.descricao}
                             onChange={(e) => setters.setDescricao(e.target.value)}
                             placeholder="Motivo da movimentação"
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label>Observação</Label>
+                        <Label htmlFor="mov-obs">Observação</Label>
                         <Input
+                            id="mov-obs"
                             value={state.obs}
                             onChange={(e) => setters.setObs(e.target.value)}
                             placeholder="Opcional"
