@@ -196,8 +196,9 @@ export function ConsumoSaldoDialog({
                                         />
                                     </div>
                                     <div className="col-span-6 space-y-1">
-                                        <Label className="text-[10px]">Descrição *</Label>
+                                        <Label className="text-[10px]" htmlFor={`desc-${item.id}`}>Descrição *</Label>
                                         <Input
+                                            id={`desc-${item.id}`}
                                             value={item.description}
                                             onChange={(e) => updateBatchItem(item.id, 'description', e.target.value)}
                                             placeholder="Ex: Produto X"

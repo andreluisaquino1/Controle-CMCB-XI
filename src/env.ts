@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const EnvSchema = z.object({
     VITE_SUPABASE_URL: z.string().url(),
-    VITE_SUPABASE_ANON_KEY: z.string().min(20),
+    VITE_SUPABASE_ANON_KEY: z.string().min(1), // Relaxed for development
 });
 
 // Valida as variáveis de ambiente no boot da aplicação

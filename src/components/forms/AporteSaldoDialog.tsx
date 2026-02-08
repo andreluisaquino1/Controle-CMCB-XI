@@ -194,12 +194,12 @@ export function AporteSaldoDialog({
                         <CurrencyInput value={state.valor} onChange={setters.setValor} />
                     </div>
                     <div className="space-y-2">
-                        <Label>Descrição *</Label>
-                        <Input value={state.descricao} onChange={(e) => setters.setDescricao(e.target.value)} placeholder="Descreva o aporte" />
+                        <Label htmlFor="aporte-descricao">Descrição *</Label>
+                        <Input id="aporte-descricao" value={state.descricao} onChange={(e) => setters.setDescricao(e.target.value)} placeholder="Descreva o aporte" />
                     </div>
                     <div className="space-y-2">
-                        <Label>Observação</Label>
-                        <Input value={state.obs} onChange={(e) => setters.setObs(e.target.value)} placeholder="Opcional" />
+                        <Label htmlFor="aporte-obs">Observação</Label>
+                        <Input id="aporte-obs" value={state.obs} onChange={(e) => setters.setObs(e.target.value)} placeholder="Opcional" />
                     </div>
                     <div className="space-y-2">
                         <Label>Capital/Custeio (opcional)</Label>
