@@ -31,10 +31,12 @@ export function useAssociacaoTransactions() {
     queryKey: ["transactions", "associacao"],
     queryFn: async () => {
       // Fetch Ledger Transactions
+      // Filter by association modules to avoid being drowned by other transaction types
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: ledgerData, error } = await (supabase as any)
         .from("ledger_transactions")
         .select("*")
+        .or('metadata->>modulo.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual"),metadata->>original_module.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual")')
         .order("created_at", { ascending: false })
         .limit(100);
 
@@ -287,49 +289,57 @@ export function useSaldosTransactions() {
   const query = useQuery({
     queryKey: ["transactions", "saldos"],
     queryFn: async () => {
-      // Fetch Ledger Transactions for modules 'aporte_saldo' and 'consumo_saldo'
-      // Since mapTransaction expects specific structure, we'll map manually for this view too to keep it consistent
-      // But filtering by metadata->modulo is slower if not indexed.
-      // Alternatively, filter by account types if possible. But 'consumo_saldo' has Merchant as source.
+      // 1. Fetch from legacy transactions
+      const legacyPromise = supabase
+        .from("transactions")
+        .select("*")
+        .in("module", ["aporte_saldo", "consumo_saldo"])
+        .order("transaction_date", { ascending: false })
+        .limit(100);
 
+      // 2. Fetch from new ledger_transactions
+      // Filtering by metadata->modulo = ['aporte_saldo', 'consumo_saldo']
+      // We use .or() to check both current and legacy metadata keys to be safe
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: ledgerData, error } = await (supabase as any)
+      const ledgerPromise = (supabase as any)
         .from("ledger_transactions")
         .select("*")
+        .or('metadata->>modulo.in.("aporte_saldo","consumo_saldo"),metadata->>original_module.in.("aporte_saldo","consumo_saldo")')
         .order("created_at", { ascending: false })
         .limit(100);
 
-      if (error) throw error;
+      const [legacyRes, ledgerRes] = await Promise.all([legacyPromise, ledgerPromise]);
 
-      // Filter in memory for now as JSON filtering in Supabase JS can be tricky with Types
-      const filtered = (ledgerData || []).filter((l: any) => {
+      if (legacyRes.error) throw legacyRes.error;
+      if (ledgerRes.error) throw ledgerRes.error;
+
+      // 3. Map legacy transactions
+      const legacyMapped = (legacyRes.data || []).map((t): TransactionWithCreator => ({
+        ...mapTransaction(t, meta?.profileNameMap || new Map(), meta?.accountNameMap || new Map(), meta?.merchantNameMap || new Map()),
+      }));
+
+      // 4. Map and filter ledger transactions (manual filter to be safe with metadata structure)
+      const ledgerMapped = (ledgerRes.data || []).filter((l: any) => {
         const mod = l.metadata?.modulo || l.metadata?.original_module;
         return mod === 'aporte_saldo' || mod === 'consumo_saldo';
-      });
-
-      return filtered.map((l: any) => {
+      }).map((l: any): TransactionWithCreator => {
         const ledgerTx = l as LedgerTransaction;
         const mod = (ledgerTx.metadata?.modulo || ledgerTx.metadata?.original_module) as string;
 
         let direction: "in" | "out" | "transfer" = "out";
-        // Aporte = Transfer (Out from Source, In to Merchant). UI usually shows as Transfer or Out?
-        // Consumo = Expense (Out from Merchant)
-        if (ledgerTx.type === 'transfer') direction = "transfer"; // Aporte
-        else if (ledgerTx.type === 'expense') direction = "out"; // Consumo
+        if (ledgerTx.type === 'transfer') direction = "transfer";
+        else if (ledgerTx.type === 'expense') direction = "out";
 
         const creatorName = meta?.profileNameMap?.get(ledgerTx.created_by) || "Sistema";
 
-        // Helper to resolve names
         const resolveName = (key: string | null) => {
           if (!key) return null;
-          // Try Account Map
           if (LEDGER_KEY_TO_ACCOUNT_NAME[key]) return LEDGER_KEY_TO_ACCOUNT_NAME[key];
-          // Try Merchant Map (since we use Merchant ID as key now)
           if (meta?.merchantNameMap?.has(key)) return meta.merchantNameMap.get(key);
-          // Try literal
           return key;
         };
 
+        const merchantName = resolveName(ledgerTx.metadata?.merchant_id as string || (ledgerTx.type === 'expense' ? ledgerTx.source_account : ledgerTx.destination_account));
         return {
           id: ledgerTx.id,
           transaction_date: (ledgerTx.metadata?.transaction_date as string) || ledgerTx.created_at,
@@ -345,15 +355,18 @@ export function useSaldosTransactions() {
           creator_name: creatorName,
           source_account_name: resolveName(ledgerTx.source_account),
           destination_account_name: resolveName(ledgerTx.destination_account),
-          merchant_name: resolveName(ledgerTx.metadata?.merchant_id as string || (ledgerTx.type === 'expense' ? ledgerTx.source_account : ledgerTx.destination_account)),
-
-          // Legacy/Unused
+          merchant_name: merchantName,
           source_account_id: null,
           destination_account_id: null,
           merchant_id: (ledgerTx.metadata?.merchant_id as string) || null,
           entity_id: null
         } as TransactionWithCreator;
       });
+      // 5. Merge and sort
+      return [...legacyMapped, ...ledgerMapped]
+        .sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime() ||
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 100);
     },
     enabled: !isDemo && !!meta,
   });

@@ -86,12 +86,20 @@ describe("useSaldosTransactions hook", () => {
 
         const mockQuery = {
             select: vi.fn().mockReturnThis(),
+            or: vi.fn().mockReturnThis(),
+            in: vi.fn().mockReturnThis(),
             order: vi.fn().mockReturnThis(),
             limit: vi.fn().mockReturnThis(),
             then: vi.fn((resolve) => resolve({ data: mockLedgerData, error: null }))
         };
 
-        (supabase.from as any).mockReturnValue(mockQuery);
+        (supabase.from as any).mockImplementation((table: string) => {
+            if (table === "transactions") {
+                // Return empty for legacy to focus on ledger mapping in this test
+                return { ...mockQuery, then: vi.fn((resolve) => resolve({ data: [], error: null })) };
+            }
+            return mockQuery;
+        });
 
         const { result } = renderHook(() => useSaldosTransactions(), {
             wrapper: createWrapper(),

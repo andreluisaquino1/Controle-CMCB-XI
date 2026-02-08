@@ -117,60 +117,18 @@ export function useSaldosActions(
         }
     };
 
-    const handleAporteSubmit = async (accounts?: Account[], strictBalance: boolean = false) => {
+    const handleAporteSubmit = async () => {
         const validation = aporteSaldoSchema.safeParse(aporte);
         if (!validation.success) {
             toast.error(validation.error.errors[0].message);
             return false;
         }
 
-        let entityId: string | undefined;
-        let originFund: "UE" | "CX" | null = null;
-
-        if (aporte.origem === "ASSOC") {
-            entityId = associacaoEntity?.id;
-        } else if (aporte.origem === "UE") {
-            entityId = ueEntity?.id;
-            originFund = "UE";
-        } else if (aporte.origem === "CX") {
-            entityId = cxEntity?.id;
-            originFund = "CX";
-        }
-
-        if (strictBalance && accounts && (aporte.origem === "ASSOC")) {
-            const sourceAcc = accounts.find(a => a.id === aporte.conta);
-            if (sourceAcc && aporte.valor > (sourceAcc.balance || 0)) {
-                toast.error(`Saldo insuficiente em ${sourceAcc.name}.`);
-                return false;
-            }
-        }
-
-        try {
-            await createTransaction.mutateAsync({
-                transaction: {
-                    transaction_date: aporte.date,
-                    module: "aporte_saldo",
-                    entity_id: entityId || null,
-                    source_account_id: aporte.conta,
-                    merchant_id: aporte.merchant,
-                    amount: aporte.valor,
-                    direction: "out",
-                    payment_method: "pix",
-                    origin_fund: originFund,
-                    capital_custeio: aporte.capitalCusteio ? (aporte.capitalCusteio as "capital" | "custeio") : null,
-                    description: aporte.descricao,
-                    notes: aporte.obs || null,
-                },
-            });
-
-            toast.success("Aporte registrado.");
-            resetAporte();
-            if (onSuccess) onSuccess();
-            return true;
-        } catch (error) {
-            toast.error("Falha ao registrar aporte.");
-            return false;
-        }
+        // The actual transaction is now handled by AporteSaldoDialog directly via Ledger
+        // This handler just resets the form and triggers success callback
+        resetAporte();
+        if (onSuccess) onSuccess();
+        return true;
     };
 
 
