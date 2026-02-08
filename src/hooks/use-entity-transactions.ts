@@ -76,7 +76,7 @@ export function useAssociacaoTransactions() {
         return {
           id: ledgerTx.id,
           transaction_date: ledgerTx.created_at, // Use created_at as date
-          module: (ledgerTx.metadata?.modulo as any) || 'outros',
+          module: (ledgerTx.metadata?.modulo as any) || (ledgerTx.metadata?.original_module as any) || 'outros',
           amount: ledgerTx.amount_cents / 100,
           direction,
           description: ledgerTx.description,
@@ -303,13 +303,13 @@ export function useSaldosTransactions() {
 
       // Filter in memory for now as JSON filtering in Supabase JS can be tricky with Types
       const filtered = (ledgerData || []).filter((l: any) => {
-        const mod = l.metadata?.modulo;
+        const mod = l.metadata?.modulo || l.metadata?.original_module;
         return mod === 'aporte_saldo' || mod === 'consumo_saldo';
       });
 
       return filtered.map((l: any) => {
         const ledgerTx = l as LedgerTransaction;
-        const mod = ledgerTx.metadata?.modulo as string;
+        const mod = (ledgerTx.metadata?.modulo || ledgerTx.metadata?.original_module) as string;
 
         let direction: "in" | "out" | "transfer" = "out";
         // Aporte = Transfer (Out from Source, In to Merchant). UI usually shows as Transfer or Out?
