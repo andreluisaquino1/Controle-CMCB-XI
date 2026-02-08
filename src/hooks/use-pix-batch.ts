@@ -24,6 +24,9 @@ export interface TransactionItem {
     created_at: string;
 }
 
+import { createLedgerTransaction } from "@/domain/ledger";
+import { LEDGER_KEYS } from "@/lib/constants";
+
 export function useCreatePixFeeBatch() {
     const { isDemo } = useAuth();
     const { addTransaction } = useDemoData();
@@ -55,16 +58,33 @@ export function useCreatePixFeeBatch() {
                 return mockTx;
             }
 
-            // @ts-expect-error - RPC not typed
-            const { data, error } = await supabase.rpc("process_pix_fee_batch", {
-                p_entity_id: entityId,
-                p_payload: payload as unknown as Record<string, unknown>,
-            });
+            // Loop through items and create Ledger Transactions locally
+            // This replaces the RPC 'process_pix_fee_batch'
+            const results = [];
+            for (const item of payload.items) {
+                // Validate item
+                if (item.amount <= 0) continue;
 
-            if (error) throw error;
-            return data;
+                await createLedgerTransaction({
+                    type: 'fee', // Using 'fee' type for PIX fees
+                    source_account: LEDGER_KEYS.PIX, // Always PIX account
+                    amount_cents: Math.round(item.amount * 100),
+                    description: item.description,
+                    metadata: {
+                        modulo: 'taxa_pix_bb',
+                        reference: payload.reference,
+                        occurred_at: item.occurred_at,
+                        batch_reference: payload.reference
+                    }
+                });
+                results.push(item);
+            }
+            return results;
         },
         onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
+            queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+            // Keep legacy invalids just in case
             queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
             queryClient.invalidateQueries({ queryKey: ["accounts"] });
             queryClient.invalidateQueries({ queryKey: ["transactions"] });

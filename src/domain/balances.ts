@@ -5,10 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
  * O saldo é retornado em centavos (Cents).
  */
 export async function getAccountBalanceCents(accountName: string) {
-    const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
         .from("ledger_balances")
         .select("balance_cents")
-        .eq("account", accountName)
+        .eq("account_key", accountName)
         .maybeSingle();
 
     if (error) {
@@ -18,3 +19,4 @@ export async function getAccountBalanceCents(accountName: string) {
 
     return Number(data?.balance_cents ?? 0);
 }
+

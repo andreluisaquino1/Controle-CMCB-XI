@@ -15,6 +15,9 @@ import { EntradaRecursoDialog } from "@/components/forms/EntradaRecursoDialog";
 import { GastoRecursoDialog } from "@/components/forms/GastoRecursoDialog";
 import { AccountDialog } from "@/components/forms/AccountDialog";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
+import { LEDGER_KEYS, ACCOUNT_NAME_TO_LEDGER_KEY } from "@/lib/constants";
+import { createLedgerTransaction } from "@/domain/ledger";
+import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -22,10 +25,12 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Account } from "@/types";
 import { ListPlus } from "lucide-react";
+import { TransactionExportActions } from "@/components/transactions/TransactionExportActions";
 
 export default function RecursosPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
-  const createTransaction = useCreateResourceTransaction();
+  const queryClient = useQueryClient();
+  // const createTransaction = useCreateResourceTransaction(); // Legacy
   const voidTransaction = useVoidTransaction();
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
@@ -122,27 +127,48 @@ export default function RecursosPage() {
   const handleEntradaSubmit = async () => {
     setActionsLoading(true);
     try {
-      await createTransaction.mutateAsync({
-        transaction: {
+      // Determine Source Account Key for Ledger (Affected Account)
+      // Logic: If Entity is UE -> resource_ue. If CX -> resource_cx.
+      const selectedEntity = entities.find(e => e.id === entrada.entityId);
+      let accountKey = "";
+
+      if (selectedEntity?.type === 'ue') accountKey = LEDGER_KEYS.UE;
+      else if (selectedEntity?.type === 'cx') accountKey = LEDGER_KEYS.CX;
+
+      if (!accountKey) {
+        // Fallback verify by account name if mapped
+        const acc = accounts.find(a => a.id === entrada.accountId);
+        if (acc) accountKey = ACCOUNT_NAME_TO_LEDGER_KEY[acc.name] || "";
+      }
+
+      if (!accountKey) throw new Error("Conta Ledger não identificada.");
+
+      await createLedgerTransaction({
+        type: "income",
+        source_account: accountKey,
+        amount_cents: Math.round(entrada.amount * 100),
+        description: entrada.description,
+        metadata: {
+          modulo: "pix_direto_uecx", // Keeping module for consistency
           transaction_date: entrada.date,
-          module: "pix_direto_uecx",
+          notes: entrada.notes,
           entity_id: entrada.entityId,
-          source_account_id: null,
-          destination_account_id: entrada.accountId,
-          amount: entrada.amount,
-          direction: "in",
           payment_method: "pix",
-          origin_fund: entities.find(e => e.id === entrada.entityId)?.type === "ue" ? "UE" : "CX",
-          description: entrada.description,
-          notes: entrada.notes || null,
-        },
+          origin_fund: selectedEntity?.type === "ue" ? "UE" : "CX"
+        }
       });
+
+      await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
+      await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+      await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+
       toast.success("Entrada registrada.");
       resetEntrada();
       setOpenDialog(null);
       return true;
     } catch (error) {
       console.error("Error creating resource transaction:", error);
+      toast.error("Erro ao registrar entrada.");
       return false;
     } finally {
       setActionsLoading(false);
@@ -414,10 +440,13 @@ export default function RecursosPage() {
         {/* Transactions Table Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <ScrollText className="h-5 w-5 text-primary" />
-              Histórico dos Recursos
-            </CardTitle>
+            <div className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ScrollText className="h-5 w-5 text-primary" />
+                Histórico dos Recursos
+              </CardTitle>
+              <TransactionExportActions transactions={transactions} filename="recursos_relatorio" />
+            </div>
           </CardHeader>
           <CardContent>
             <TransactionTable
@@ -529,6 +558,6 @@ export default function RecursosPage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </DashboardLayout >
   );
 }

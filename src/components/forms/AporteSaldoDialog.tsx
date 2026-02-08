@@ -14,12 +14,19 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { cleanAccountDisplayName } from "@/lib/account-display";
 import { sortByAccountOrder } from "@/lib/constants";
 import { Account, Merchant, Entity } from "@/types";
+// import { useCreateTransaction } from "@/hooks/use-transactions"; // Legacy
+import { createLedgerTransaction } from "@/domain/ledger";
+import { LEDGER_KEYS, ACCOUNT_NAME_TO_LEDGER_KEY } from "@/lib/constants";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface AporteSaldoDialogProps {
     open: boolean;
@@ -62,6 +69,9 @@ export function AporteSaldoDialog({
     onSubmit,
     isLoading,
 }: AporteSaldoDialogProps) {
+    const queryClient = useQueryClient();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const filteredAccounts = accounts.filter(acc => {
         if (!state.origem) return false;
         const entity = entities.find(e => e.id === acc.entity_id);
@@ -72,6 +82,59 @@ export function AporteSaldoDialog({
     });
 
     const sortedMerchants = [...(merchants || [])].filter(m => m.active).sort((a, b) => a.name.localeCompare(b.name));
+
+    const handleSubmit = async () => {
+        try {
+            setIsSubmitting(true);
+            const sourceAccountInfo = accounts.find(a => a.id === state.conta);
+
+            // Determine Ledger Source Key
+            let sourceKey = "";
+            if (sourceAccountInfo) {
+                sourceKey = ACCOUNT_NAME_TO_LEDGER_KEY[sourceAccountInfo.name];
+            }
+
+            // Fallback for Resources if not mapped by name
+            if (!sourceKey) {
+                if (state.origem === "UE") sourceKey = LEDGER_KEYS.UE;
+                else if (state.origem === "CX") sourceKey = LEDGER_KEYS.CX;
+            }
+
+            if (!sourceKey) throw new Error("Conta de origem não identificada no Ledger.");
+
+            await createLedgerTransaction({
+                type: 'transfer',
+                source_account: sourceKey,
+                destination_account: state.merchant, // Merchant ID as Ledger Account
+                amount_cents: Math.round(state.valor * 100),
+                description: `Aporte: ${state.descricao}`,
+                metadata: {
+                    modulo: "aporte_saldo",
+                    notes: state.obs,
+                    transaction_date: state.date,
+                    original_source_id: state.conta,
+                    capital_custeio: state.capitalCusteio,
+                    merchant_id: state.merchant // redundancy for metadata
+                }
+            });
+
+            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+            // Legacy invalidation
+            await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["merchants"] });
+
+            toast.success("Aporte registrado.");
+            onSubmit(); // Callback to reset parent
+            onOpenChange(false);
+        } catch (error) {
+            console.error(error);
+            toast.error("Falha ao registrar aporte.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
@@ -152,13 +215,10 @@ export function AporteSaldoDialog({
                     </div>
                     <Button
                         className="w-full"
-                        onClick={async () => {
-                            const success = await onSubmit();
-                            if (success) onOpenChange(false);
-                        }}
-                        disabled={isLoading || !state.origem || !state.conta || !state.merchant || !state.descricao || state.descricao.length < 5}
+                        onClick={handleSubmit}
+                        disabled={isLoading || isSubmitting || !state.origem || !state.conta || !state.merchant || !state.descricao || state.descricao.length < 5}
                     >
-                        {isLoading ? "Registrando..." : "Registrar Aporte"}
+                        {isLoading || isSubmitting ? "Registrando..." : "Registrar Aporte"}
                     </Button>
                 </div>
             </DialogContent>

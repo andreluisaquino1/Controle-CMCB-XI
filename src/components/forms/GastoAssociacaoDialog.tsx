@@ -19,9 +19,11 @@ import { DateInput } from "@/components/forms/DateInput";
 import { PlusCircle, X, Plus, Trash2, ListPlus, User } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useCreateTransaction } from "@/hooks/use-transactions";
+// import { useCreateTransaction } from "@/hooks/use-transactions"; // Legacy
+import { createLedgerTransaction } from "@/domain/ledger";
 import { useAssociacaoAccounts, useEntities } from "@/hooks/use-accounts";
-import { ACCOUNT_NAMES } from "@/lib/constants";
+import { ACCOUNT_NAMES, ACCOUNT_NAME_TO_LEDGER_KEY } from "@/lib/constants";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface GastoAssociacaoDialogProps {
     open: boolean;
@@ -34,8 +36,6 @@ interface GastoAssociacaoDialogProps {
     setters: {
         setDate: (v: string) => void;
         setMeio: (v: string) => void;
-        setValor: (v: number) => void;
-        setDescricao: (v: string) => void;
         setObs: (v: string) => void;
     };
     onSubmit: (strictBalance?: boolean) => Promise<boolean>;
@@ -75,7 +75,9 @@ export function GastoAssociacaoDialog({
 
     const { data: accounts, isLoading: isLoadingAccounts } = useAssociacaoAccounts();
     const { data: entities, isLoading: isLoadingEntities } = useEntities();
-    const createTransaction = useCreateTransaction();
+    // const createTransaction = useCreateTransaction();
+    const queryClient = useQueryClient();
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleAddBatchItem = () => {
         setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }, ...batchItems]);
@@ -120,27 +122,38 @@ export function GastoAssociacaoDialog({
         }
 
         try {
+            setIsSubmitting(true);
             for (const item of validItems) {
-                await createTransaction.mutateAsync({
-                    transaction: {
+                // Determine source key
+                const sourceKey = ACCOUNT_NAME_TO_LEDGER_KEY[sourceAccount.name];
+                if (!sourceKey) throw new Error(`Chave Ledger não encontrada para ${sourceAccount.name}`);
+
+                await createLedgerTransaction({
+                    type: "expense",
+                    source_account: sourceKey,
+                    amount_cents: Math.round(item.amount * 100),
+                    description: item.description,
+                    metadata: {
+                        modulo: "gasto_associacao",
+                        payment_method: state.meio,
+                        notes: state.obs,
                         transaction_date: item.date,
-                        module: "gasto_associacao",
-                        entity_id: associacaoEntity.id,
-                        source_account_id: sourceAccount.id,
-                        amount: item.amount,
-                        direction: "out",
-                        payment_method: state.meio as "cash" | "pix",
-                        description: item.description,
-                        notes: state.obs || "",
-                    },
+                        entity_id: associacaoEntity.id
+                    }
                 });
             }
 
-            toast.success(`${validItems.length} despesas registradas.`);
+            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+
+            toast.success(`${validItems.length} despesas registradas (Ledger).`);
             onOpenChange(false);
             setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }]);
         } catch (error) {
             console.error("Error submitting batch expenses:", error);
+            toast.error("Erro ao registrar despesas.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -231,9 +244,9 @@ export function GastoAssociacaoDialog({
                     <Button
                         className="w-full bg-primary"
                         onClick={handleBatchSubmit}
-                        disabled={isLoading || createTransaction.isPending || isLoadingAccounts || isLoadingEntities}
+                        disabled={isLoading || isSubmitting || isLoadingAccounts || isLoadingEntities}
                     >
-                        {isLoading || createTransaction.isPending || isLoadingAccounts || isLoadingEntities ? "Processando..." : "Lançar Gastos"}
+                        {isLoading || isSubmitting || isLoadingAccounts || isLoadingEntities ? "Processando..." : "Lançar Gastos"}
                     </Button>
                 </div>
             </DialogContent>

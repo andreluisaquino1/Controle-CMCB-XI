@@ -44,6 +44,7 @@ import { ActionCard } from "@/components/ActionCard";
 import { AporteSaldoDialog } from "@/components/forms/AporteSaldoDialog";
 import { ConsumoSaldoDialog } from "@/components/forms/ConsumoSaldoDialog";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
+import { TransactionExportActions } from "@/components/transactions/TransactionExportActions";
 
 export default function SaldosPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
@@ -351,10 +352,13 @@ export default function SaldosPage() {
         {/* Transactions Table Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <ScrollText className="h-5 w-5 text-primary" />
-              Histórico de Saldos nos Estabelecimentos
-            </CardTitle>
+            <div className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ScrollText className="h-5 w-5 text-primary" />
+                Histórico de Saldos nos Estabelecimentos
+              </CardTitle>
+              <TransactionExportActions transactions={transactions} filename="saldos_relatorio" />
+            </div>
           </CardHeader>
           <CardContent>
             <TransactionTable
@@ -411,6 +415,6 @@ export default function SaldosPage() {
           </DialogContent>
         </Dialog>
       </div>
-    </DashboardLayout>
+    </DashboardLayout >
   );
 }

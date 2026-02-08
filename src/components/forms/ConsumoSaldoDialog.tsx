@@ -20,8 +20,10 @@ import { formatCurrencyBRL } from "@/lib/currency";
 import { ListPlus, User, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useCreateTransaction } from "@/hooks/use-transactions";
 import { useEntities } from "@/hooks/use-accounts";
+// import { useCreateTransaction } from "@/hooks/use-transactions"; // Legacy
+import { createLedgerTransaction } from "@/domain/ledger";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ConsumoSaldoDialogProps {
     open: boolean;
@@ -67,8 +69,9 @@ export function ConsumoSaldoDialog({
     ]);
 
     const { data: entities } = useEntities();
-    const createTransaction = useCreateTransaction();
+    const queryClient = useQueryClient();
     const associacaoEntity = entities?.find(e => e.type === "associacao");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleAddBatchItem = () => {
         setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }, ...batchItems]);
@@ -109,26 +112,35 @@ export function ConsumoSaldoDialog({
         }
 
         try {
+            setIsSubmitting(true);
             for (const item of validItems) {
-                await createTransaction.mutateAsync({
-                    transaction: {
+                await createLedgerTransaction({
+                    type: 'expense',
+                    source_account: state.merchant, // Merchant ID as Source (consuming balance)
+                    amount_cents: Math.round(item.amount * 100),
+                    description: item.description,
+                    metadata: {
+                        modulo: "consumo_saldo",
                         transaction_date: item.date,
-                        module: "consumo_saldo",
-                        entity_id: associacaoEntity.id,
+                        notes: state.obs,
                         merchant_id: state.merchant,
-                        amount: item.amount,
-                        direction: "out",
-                        description: item.description,
-                        notes: state.obs || "",
-                    },
+                    }
                 });
             }
+
+            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["merchants"] }); // Balance update likely depends on this
+            // Legacy invalidation
+            await queryClient.invalidateQueries({ queryKey: ["transactions"] });
 
             toast.success(`${validItems.length} consumos registrados.`);
             setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }]);
             onOpenChange(false);
         } catch (error) {
             console.error("Error submitting batch consumption:", error);
+            toast.error("Falha ao registrar consumos.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -222,9 +234,9 @@ export function ConsumoSaldoDialog({
                     <Button
                         className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold"
                         onClick={handleBatchSubmit}
-                        disabled={isLoading || createTransaction.isPending || !state.merchant}
+                        disabled={isLoading || isSubmitting || !state.merchant}
                     >
-                        {isLoading || createTransaction.isPending ? "Processando..." : "Lançar Gastos"}
+                        {isLoading || isSubmitting ? "Processando..." : "Lançar Gastos"}
                     </Button>
                 </div>
             </DialogContent>

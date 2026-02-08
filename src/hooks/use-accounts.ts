@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useDemoData } from "@/demo/useDemoData";
 import { MOCK_ENTITIES } from "@/demo/demoSeed";
 import { demoStore } from "@/demo/demoStore";
+import { ACCOUNT_NAME_TO_LEDGER_KEY } from "@/lib/constants";
 
 export function useAccounts(includeInactive = false) {
   const { isDemo } = useAuth();
@@ -23,10 +24,11 @@ export function useAccounts(includeInactive = false) {
         baseQuery = baseQuery.eq("active", true);
       }
 
-      const { data, error } = await baseQuery;
+      const { data: accountsData, error: accountsError } = await baseQuery;
+      if (accountsError) throw accountsError;
 
-      if (error) throw error;
-      return data as Account[];
+      const ledgerMap = await fetchLedgerBalancesMap();
+      return mergeBalances(accountsData as Account[], ledgerMap);
     },
     enabled: !isDemo,
   });
@@ -69,10 +71,11 @@ export function useAccountsByEntityType(entityType: "associacao" | "ue" | "cx" |
         baseQuery = baseQuery.eq("active", true);
       }
 
-      const { data, error } = await baseQuery;
+      const { data: accountsData, error: accountsError } = await baseQuery;
+      if (accountsError) throw accountsError;
 
-      if (error) throw error;
-      return data as Account[];
+      const ledgerMap = await fetchLedgerBalancesMap();
+      return mergeBalances(accountsData as Account[], ledgerMap);
     },
     enabled: !!entityType && !isDemo,
   });
@@ -135,13 +138,15 @@ export function useEntitiesWithAccounts(includeInactive = false) {
         accQuery = accQuery.eq("active", true);
       }
 
-      const { data: accounts, error: accountsError } = await accQuery;
-
+      const { data: accountsData, error: accountsError } = await accQuery;
       if (accountsError) throw accountsError;
+
+      const ledgerMap = await fetchLedgerBalancesMap();
+      const mergedAccounts = mergeBalances(accountsData as Account[], ledgerMap);
 
       return {
         entities: entities as Entity[],
-        accounts: accounts as Account[],
+        accounts: mergedAccounts,
       };
     },
     enabled: !isDemo,
@@ -175,15 +180,17 @@ export function useAssociacaoAccounts() {
 
       if (entityError) throw entityError;
 
-      const { data, error } = await supabase
+      const { data: accountsData, error: accountsError } = await supabase
         .from("accounts")
         .select("*")
         .eq("entity_id", entity.id)
         .eq("active", true)
         .order("name");
 
-      if (error) throw error;
-      return data as Account[];
+      if (accountsError) throw accountsError;
+
+      const ledgerMap = await fetchLedgerBalancesMap();
+      return mergeBalances(accountsData as Account[], ledgerMap);
     },
     enabled: !isDemo,
   });
@@ -343,5 +350,34 @@ export function useActivateAccount() {
     onError: (error: Error) => {
       toast.error(error.message || "Não foi possível reativar.");
     },
+  });
+}
+
+// Helpers
+async function fetchLedgerBalancesMap() {
+  // @ts-ignore - view might not be in types yet
+  const { data, error } = await supabase.from("ledger_balances").select("*");
+  if (error) throw error;
+
+  const map = new Map<string, number>();
+  data?.forEach((row: any) => {
+    map.set(row.account_key, (row.balance_cents || 0) / 100);
+  });
+  return map;
+}
+
+function mergeBalances(accounts: Account[], ledgerMap: Map<string, number>): Account[] {
+  return accounts.map(acc => {
+    const ledgerKey = ACCOUNT_NAME_TO_LEDGER_KEY[acc.name];
+    if (ledgerKey && ledgerMap.has(ledgerKey)) {
+      return { ...acc, balance: ledgerMap.get(ledgerKey)! };
+    }
+    // If mapped but no balance found, assume 0 (Ledger authority)
+    if (ledgerKey) {
+      return { ...acc, balance: 0 };
+    }
+    // If not mapped (e.g. unknown account), keep original (legacy) or 0? 
+    // Keeping original for safety during migration of non-standard accounts.
+    return acc;
   });
 }

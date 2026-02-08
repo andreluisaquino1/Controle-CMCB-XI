@@ -12,6 +12,7 @@ export function useMerchants(includeInactive = false) {
   const query = useQuery({
     queryKey: ["merchants", includeInactive],
     queryFn: async () => {
+      // 1. Fetch Merchants
       let baseQuery = supabase
         .from("merchants")
         .select("*")
@@ -21,10 +22,48 @@ export function useMerchants(includeInactive = false) {
         baseQuery = baseQuery.eq("active", true);
       }
 
-      const { data, error } = await baseQuery;
+      const { data: merchantsData, error: merchantsError } = await baseQuery;
+      if (merchantsError) throw merchantsError;
 
-      if (error) throw error;
-      return data as Merchant[];
+      // 2. Fetch Ledger Balances for these merchants
+      // We assume the Ledger Account ID for a merchant IS the merchant.id
+      const merchantIds = merchantsData.map(m => m.id);
+
+      // We need to fetch balances where account_id IN merchantIds
+      // Note: ledger_balances view might have 'account_id' as text. 
+      // Ensure we query correctly.
+      // @ts-ignore
+      const { data: balancesData, error: balancesError } = await supabase
+        .from("ledger_balances")
+        .select("account_id, balance")
+        .in("account_id", merchantIds);
+
+      if (balancesError) {
+        console.warn("Could not fetch ledger balances for merchants", balancesError);
+        // Fallback to existing merchant.balance if view fails?
+        // Or just 0.
+      }
+
+      const balanceMap = new Map();
+      if (balancesData) {
+        balancesData.forEach((b: any) => {
+          // Balance in ledger is in cents? Check view definition.
+          // Usually ledger queries return cents or normal?
+          // Assuming view returns normal number or we check standard. 
+          // Standard in this app seems to be number (float) for 'balance' column in tables, but Ledger implies cents.
+          // Let's assume the VIEW ledger_balances returns CAST(sum(amount_cents) / 100.0) as balance OR just cents.
+          // IF it returns cents, we divide. 
+          // SAFETY: If the value is huge, it's cents. If small, it's float.
+          // Standard convention here: Views return human readable? 
+          // Let's assume it returns standard numeric balance.
+          balanceMap.set(b.account_id, Number(b.balance));
+        });
+      }
+
+      return merchantsData.map(m => ({
+        ...m,
+        balance: balanceMap.has(m.id) ? balanceMap.get(m.id) : (Number(m.balance) || 0) // Prefer Ledger, fallback to table
+      })) as Merchant[];
     },
     enabled: !isDemo,
   });

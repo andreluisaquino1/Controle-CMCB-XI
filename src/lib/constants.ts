@@ -9,6 +9,33 @@ export const ACCOUNT_NAMES = {
 } as const;
 
 /**
+ * Ledger keys for internal standardization
+ */
+export const LEDGER_KEYS = {
+  CASH: "cash",
+  PIX: "pix_bb",
+  DIGITAL: "digital_escolaweb",
+  SAFE: "safe",
+  UE: "resource_ue",
+  CX: "resource_cx",
+} as const;
+
+export const ACCOUNT_NAME_TO_LEDGER_KEY: Record<string, string> = {
+  [ACCOUNT_NAMES.ESPECIE]: LEDGER_KEYS.CASH,
+  [ACCOUNT_NAMES.PIX]: LEDGER_KEYS.PIX,
+  [ACCOUNT_NAMES.CONTA_DIGITAL]: LEDGER_KEYS.DIGITAL,
+  [ACCOUNT_NAMES.COFRE]: LEDGER_KEYS.SAFE,
+  // Mapping for Resources (Virtual Accounts for UE/CX)
+  "Conta UE": LEDGER_KEYS.UE,
+  "Conta CX": LEDGER_KEYS.CX,
+};
+
+export const LEDGER_KEY_TO_ACCOUNT_NAME: Record<string, string> = Object.entries(ACCOUNT_NAME_TO_LEDGER_KEY).reduce((acc, [name, key]) => {
+  acc[key] = name;
+  return acc;
+}, {} as Record<string, string>);
+
+/**
  * Entity names
  */
 export const ENTITY_NAMES = {

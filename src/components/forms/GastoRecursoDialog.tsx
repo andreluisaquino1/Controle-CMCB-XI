@@ -17,14 +17,15 @@ import {
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { cleanAccountDisplayName } from "@/lib/account-display";
-import { sortByAccountOrder } from "@/lib/constants";
+import { sortByAccountOrder, ACCOUNT_NAME_TO_LEDGER_KEY, LEDGER_KEYS } from "@/lib/constants";
 import { Entity, Account } from "@/types";
 import { formatCurrencyBRL } from "@/lib/currency";
-import { AlertCircle, ListPlus, User, Plus, Trash2 } from "lucide-react";
+import { AlertCircle, Plus, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useCreateResourceTransaction } from "@/hooks/use-transactions";
+import { createLedgerTransaction } from "@/domain/ledger";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface GastoRecursoDialogProps {
     open: boolean;
@@ -70,12 +71,12 @@ export function GastoRecursoDialog({
     onSubmit,
     isLoading,
 }: GastoRecursoDialogProps) {
-    const [isBatchMode, setIsBatchMode] = useState(false);
     const [batchItems, setBatchItems] = useState<BatchExpenseItem[]>([
         { id: crypto.randomUUID(), amount: 0, description: "", date: state.date }
     ]);
 
-    const createTransaction = useCreateResourceTransaction();
+    const queryClient = useQueryClient();
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const filteredAccounts = accounts.filter(acc => acc.entity_id === state.entityId && acc.active);
     const selectedAccount = accounts.find(a => a.id === state.accountId);
@@ -104,28 +105,53 @@ export function GastoRecursoDialog({
             return;
         }
 
+        const selectedEntity = entities.find(e => e.id === state.entityId);
+
         try {
+            setIsSubmitting(true);
             for (const item of validItems) {
-                await createTransaction.mutateAsync({
-                    transaction: {
-                        transaction_date: item.date,
-                        module: "pix_direto_uecx", // Default for direct resource expense
-                        entity_id: state.entityId,
-                        source_account_id: state.accountId,
-                        amount: item.amount,
-                        direction: "out",
-                        description: item.description,
-                        notes: state.notes || "",
+                // Determine Source Account Key
+                // Strategy: Use mapped key from Name, or derive from Entity Type
+                let sourceKey = ACCOUNT_NAME_TO_LEDGER_KEY[selectedAccount?.name || ""];
+
+                if (!sourceKey && selectedEntity) {
+                    if (selectedEntity.type === 'ue') sourceKey = LEDGER_KEYS.UE;
+                    else if (selectedEntity.type === 'cx') sourceKey = LEDGER_KEYS.CX;
+                }
+
+                if (!sourceKey) {
+                    throw new Error(`Não foi possível determinar a conta Ledger para ${selectedAccount?.name}`);
+                }
+
+                await createLedgerTransaction({
+                    type: "expense", // 'pix_direto_uecx' is usually expense
+                    source_account: sourceKey,
+                    amount_cents: Math.round(item.amount * 100),
+                    description: item.description,
+                    metadata: {
+                        modulo: "pix_direto_uecx",
+                        transaction_date: item.date, // Store date
                         merchant_id: state.merchantId,
-                        capital_custeio: state.capitalCusteio || null,
-                    },
+                        capital_custeio: state.capitalCusteio,
+                        notes: state.notes,
+                        entity_id: state.entityId
+                    }
                 });
             }
+
+            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+            await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
+
             toast.success(`${validItems.length} gastos de recursos registrados.`);
             setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }]);
             onOpenChange(false);
         } catch (error) {
-            // Error managed by mutation
+            console.error(error);
+            toast.error("Falha ao registrar gastos.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -273,9 +299,9 @@ export function GastoRecursoDialog({
                     <Button
                         className="w-full bg-destructive hover:bg-destructive/90"
                         onClick={handleBatchSubmit}
-                        disabled={isLoading || createTransaction.isPending || !state.entityId || !state.accountId || !state.merchantId}
+                        disabled={isLoading || isSubmitting || !state.entityId || !state.accountId || !state.merchantId}
                     >
-                        {isLoading || createTransaction.isPending ? "Processando..." : "Lançar Gastos"}
+                        {isLoading || isSubmitting ? "Processando..." : "Lançar Gastos"}
                     </Button>
                 </div>
             </DialogContent>

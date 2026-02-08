@@ -10,7 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
-import { useCreateTransaction } from "@/hooks/use-transactions";
+// import { useCreateTransaction } from "@/hooks/use-transactions"; // Legacy
+import { createLedgerTransaction } from "@/domain/ledger";
+import { LEDGER_KEYS } from "@/lib/constants";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAssociacaoAccounts, useEntities } from "@/hooks/use-accounts";
 import { ACCOUNT_NAMES } from "@/lib/constants";
@@ -25,16 +28,17 @@ interface PixNaoIdentificadoDialogProps {
 
 export function PixNaoIdentificadoDialog({ open, onOpenChange }: PixNaoIdentificadoDialogProps) {
     const { user } = useAuth();
-    const createTransaction = useCreateTransaction();
+    const queryClient = useQueryClient();
     const { data: accounts } = useAssociacaoAccounts();
     const { data: entities } = useEntities();
-
-    const associacaoEntity = entities?.find(e => e.type === "associacao");
-    const pixAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.PIX);
 
     const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
     const [amount, setAmount] = useState(0);
     const [description, setDescription] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const associacaoEntity = entities?.find(e => e.type === "associacao");
+    const pixAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.PIX && a.active);
 
     const handleSubmit = async () => {
         if (!associacaoEntity || !pixAccount) {
@@ -53,26 +57,35 @@ export function PixNaoIdentificadoDialog({ open, onOpenChange }: PixNaoIdentific
         }
 
         try {
-            await createTransaction.mutateAsync({
-                transaction: {
-                    transaction_date: date,
-                    module: "pix_nao_identificado",
-                    entity_id: associacaoEntity.id,
-                    destination_account_id: pixAccount.id,
-                    amount: amount,
-                    direction: "in",
-                    payment_method: "pix",
-                    description: `PIX Não Identificado: ${description}`,
+            setIsSubmitting(true);
+            await createLedgerTransaction({
+                type: 'income',
+                source_account: LEDGER_KEYS.PIX,
+                amount_cents: Math.round(amount * 100),
+                description: `PIX Não Identificado: ${description}`,
+                metadata: {
+                    modulo: "pix_nao_identificado",
                     notes: `Lançamento de PIX não identificado - ${description}`,
-                },
+                    payment_method: "pix",
+                    occurred_at: date // Store date in metadata as Ledger uses created_at by default
+                }
             });
+
+            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+            // Legacy invalidation
+            await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
 
             toast.success("PIX não identificado registrado.");
             onOpenChange(false);
             setAmount(0);
             setDescription("");
         } catch (error) {
+            console.error(error);
             toast.error("Falha ao registrar PIX não identificado.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -116,9 +129,9 @@ export function PixNaoIdentificadoDialog({ open, onOpenChange }: PixNaoIdentific
                     <Button
                         className="w-full"
                         onClick={handleSubmit}
-                        disabled={createTransaction.isPending || amount <= 0}
+                        disabled={isSubmitting || amount <= 0}
                     >
-                        {createTransaction.isPending ? "Registrando..." : "Registrar PIX Não Identificado"}
+                        {isSubmitting ? "Registrando..." : "Registrar PIX Não Identificado"}
                     </Button>
                 </div>
             </DialogContent>

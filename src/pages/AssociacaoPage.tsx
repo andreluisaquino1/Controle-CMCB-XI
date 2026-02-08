@@ -47,6 +47,7 @@ import { TransactionTable } from "@/components/transactions/TransactionTable";
 import { PixFeeBatchDialog } from "@/components/forms/PixFeeBatchDialog";
 import { PixNaoIdentificadoDialog } from "@/components/forms/PixNaoIdentificadoDialog";
 import { FileText, Ghost, ListPlus } from "lucide-react";
+import { TransactionExportActions } from "@/components/transactions/TransactionExportActions";
 
 export default function AssociacaoPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
@@ -256,10 +257,13 @@ export default function AssociacaoPage() {
         {/* Transactions Table */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Building2 className="h-5 w-5 text-primary" />
-              Histórico da Associação
-            </CardTitle>
+            <div className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Building2 className="h-5 w-5 text-primary" />
+                Histórico da Associação
+              </CardTitle>
+              <TransactionExportActions transactions={transitions} filename="associacao_relatorio" />
+            </div>
           </CardHeader>
           <CardContent>
             <TransactionTable
@@ -445,6 +449,6 @@ export default function AssociacaoPage() {
         open={openDialog === "pix_nao_id"}
         onOpenChange={(o) => setOpenDialog(o ? "pix_nao_id" : null)}
       />
-    </DashboardLayout>
+    </DashboardLayout >
   );
 }

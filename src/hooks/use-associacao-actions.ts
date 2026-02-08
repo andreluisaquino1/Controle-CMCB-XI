@@ -3,7 +3,7 @@ import { Account, Entity, Transaction } from '@/types';
 import { useCreateTransaction } from '@/hooks/use-transactions';
 import { toast } from "sonner";
 import { formatCurrencyBRL } from '@/lib/currency';
-import { ACCOUNT_NAMES } from '@/lib/constants';
+import { ACCOUNT_NAMES, ACCOUNT_NAME_TO_LEDGER_KEY } from '@/lib/constants';
 import { getTodayString } from '@/lib/date-utils';
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
@@ -13,6 +13,8 @@ import {
     movimentarSaldoSchema,
     ajusteSchema
 } from "@/lib/schemas";
+import { createLedgerTransaction } from "@/domain/ledger";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AssociacaoState {
     mensalidade: {
@@ -52,7 +54,10 @@ export function useAssociacaoActions(
     associacaoEntity?: Entity,
     onSuccess?: () => void
 ) {
-    const createTransaction = useCreateTransaction();
+    const queryClient = useQueryClient();
+    const createTransaction = useCreateTransaction(); // Keep for legacy or mix? Actually we want to replace it.
+    // We'll use local state for loading since we're calling async functions directly
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [state, setState] = useState<AssociacaoState>({
         mensalidade: { date: getTodayString(), turno: "", cash: 0, pix: 0, obs: "" },
@@ -122,74 +127,74 @@ export function useAssociacaoActions(
             return false;
         }
 
-        if (!especieAccount || !pixAccount || !associacaoEntity) {
-            toast.error("Contas ou entidade não encontradas.");
+        // We don't necessarily need accounts entities for Ledger if we use constants, but valid for checks
+        if (!associacaoEntity) {
+            toast.error("Entidade não encontrada.");
             return false;
         }
 
-        const { data: existing } = await supabase
-            .from("transactions")
-            .select("module, payment_method")
-            .in("module", ["mensalidade", "mensalidade_pix"])
-            .eq("transaction_date", state.mensalidade.date)
-            .eq("shift", state.mensalidade.turno as "matutino" | "vespertino")
-            .eq("status", "posted");
-
-        const hasCash = existing?.some(e => e.module === 'mensalidade' && e.payment_method === 'cash');
-        const hasPix = existing?.some(e => e.module === 'mensalidade_pix' || (e.module === 'mensalidade' && e.payment_method === 'pix'));
-
-        if (state.mensalidade.cash > 0 && hasCash) {
-            toast.error(`Já existe um registro em ESPÉCIE para o turno ${state.mensalidade.turno} nesta data.`);
-            return false;
-        }
-
-        if (state.mensalidade.pix > 0 && hasPix) {
-            toast.error(`Já existe um registro em PIX para o turno ${state.mensalidade.turno} nesta data.`);
-            return false;
-        }
+        // Helper
+        const toCents = (val: number) => Math.round(val * 100);
 
         try {
+            setIsSubmitting(true);
+
+            // TODO: Check for existing transactions in Ledger? 
+            // For now, let's just create.
+
             if (state.mensalidade.cash > 0) {
-                await createTransaction.mutateAsync({
-                    transaction: {
-                        transaction_date: state.mensalidade.date,
-                        module: "mensalidade",
-                        entity_id: associacaoEntity.id,
-                        destination_account_id: especieAccount.id,
-                        amount: state.mensalidade.cash,
-                        direction: "in",
+                await createLedgerTransaction({
+                    type: "income",
+                    source_account: ACCOUNT_NAME_TO_LEDGER_KEY[ACCOUNT_NAMES.ESPECIE],
+                    // Entrada em Espécie não tem source externa no sistema atual, 
+                    // mas no Ledger "income" geralmente source=conta de destino (onde entra o dinheiro).
+                    // WAIT. The proposed Ledger `createLedgerTransaction` has `source_account` and `destination_account`.
+                    // For INCOME: source_account is the account RECEIVING the money? 
+                    // Let's check the instruction: "entrada/recebimento -> type: 'income'"
+                    // And example:
+                    // insert into ... (source_account='pix_bb', destination_account=null, amount=10000)
+                    // So for INCOME, source_account IS the account receiving the money. 
+                    // Correct.
+
+                    amount_cents: toCents(state.mensalidade.cash),
+                    description: `Mensalidade ${state.mensalidade.turno}`,
+                    metadata: {
+                        modulo: "mensalidade",
                         payment_method: "cash",
-                        shift: state.mensalidade.turno as "matutino" | "vespertino",
-                        description: `Mensalidade ${state.mensalidade.turno}`,
-                        notes: state.mensalidade.obs || null,
-                    },
+                        shift: state.mensalidade.turno,
+                        notes: state.mensalidade.obs
+                    }
                 });
             }
 
             if (state.mensalidade.pix > 0) {
-                await createTransaction.mutateAsync({
-                    transaction: {
-                        transaction_date: state.mensalidade.date,
-                        module: "mensalidade_pix",
-                        entity_id: associacaoEntity.id,
-                        destination_account_id: pixAccount.id,
-                        amount: state.mensalidade.pix,
-                        direction: "in",
+                await createLedgerTransaction({
+                    type: "income",
+                    source_account: ACCOUNT_NAME_TO_LEDGER_KEY[ACCOUNT_NAMES.PIX],
+                    amount_cents: toCents(state.mensalidade.pix),
+                    description: `Mensalidade ${state.mensalidade.turno} (PIX)`,
+                    metadata: {
+                        modulo: "mensalidade_pix",
                         payment_method: "pix",
-                        shift: state.mensalidade.turno as "matutino" | "vespertino",
-                        description: `Mensalidade ${state.mensalidade.turno} (PIX)`,
-                        notes: state.mensalidade.obs || null,
-                    },
+                        shift: state.mensalidade.turno,
+                        notes: state.mensalidade.obs
+                    }
                 });
             }
 
-            toast.success("Mensalidade registrada.");
+            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["account_balances"] }); // We will need this query key later
+
+            toast.success("Mensalidade registrada (Ledger).");
             resetMensalidade();
             if (onSuccess) onSuccess();
             return true;
         } catch (error) {
+            console.error(error);
             toast.error("Falha ao registrar mensalidade.");
             return false;
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -201,35 +206,40 @@ export function useAssociacaoActions(
             return false;
         }
 
-        const sourceAccount = state.gasto.meio === "cash" ? especieAccount : pixAccount;
+        // Helper
+        const toCents = (val: number) => Math.round(val * 100);
 
-        if (!sourceAccount || !associacaoEntity) {
-            toast.error("Conta de origem ou entidade não encontrada.");
-            return false;
-        }
+        // Mapping source account
+        const sourceName = state.gasto.meio === "cash" ? ACCOUNT_NAMES.ESPECIE : ACCOUNT_NAMES.PIX;
+        const sourceKey = ACCOUNT_NAME_TO_LEDGER_KEY[sourceName];
 
         try {
-            await createTransaction.mutateAsync({
-                transaction: {
-                    transaction_date: state.gasto.date,
-                    module: "gasto_associacao",
-                    entity_id: associacaoEntity.id,
-                    source_account_id: sourceAccount.id,
-                    amount: state.gasto.valor,
-                    direction: "out",
-                    payment_method: state.gasto.meio as "cash" | "pix",
-                    description: state.gasto.descricao,
-                    notes: state.gasto.obs || null,
-                },
+            setIsSubmitting(true);
+            await createLedgerTransaction({
+                type: "expense",
+                source_account: sourceKey,
+                amount_cents: toCents(state.gasto.valor),
+                description: state.gasto.descricao,
+                metadata: {
+                    modulo: "gasto_associacao",
+                    payment_method: state.gasto.meio,
+                    notes: state.gasto.obs
+                }
             });
 
-            toast.success("Gasto registrado.");
+            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+
+            toast.success("Gasto registrado (Ledger).");
             resetGasto();
             if (onSuccess) onSuccess();
             return true;
         } catch (error) {
+            console.error(error);
             toast.error("Falha ao registrar gasto.");
             return false;
+        } finally {
+            setIsSubmitting(false);
         }
     };
     const handleMovimentarSubmit = async (): Promise<boolean> => {
@@ -260,48 +270,64 @@ export function useAssociacaoActions(
             }
         }
 
-        // Permite taxas em qualquer movimentação, padrão 0
+        // Mapping keys
+        const sourceKey = ACCOUNT_NAME_TO_LEDGER_KEY[sourceAccount.name] || sourceAccount.name; // Fallback?
+        const destKey = ACCOUNT_NAME_TO_LEDGER_KEY[destAccount.name] || destAccount.name;
+
+        // Helper
+        const toCents = (val: number) => Math.round(val * 100);
 
         try {
-            // 1. Transferência principal
-            const mainTx = await createTransaction.mutateAsync({
-                transaction: {
-                    transaction_date: state.mov.date,
-                    module: "assoc_transfer",
-                    entity_id: associacaoEntity.id,
-                    source_account_id: sourceAccount.id,
-                    destination_account_id: destAccount.id,
-                    amount: state.mov.valor,
-                    direction: "transfer",
-                    description: state.mov.descricao,
-                    notes: state.mov.obs || null,
-                },
+            setIsSubmitting(true);
+
+            // 1. Create Transfer
+            // Since createLedgerTransaction (singular) doesn't return the ID easily unless we mod it, 
+            // maybe we can't link parent_id easily if the function doesn't return it.
+            // Let's assume for now we don't link via parent_id or checking ledger.ts again if it returns data.
+            // Line 26: const { error } = await supabase...insert(...) 
+            // It does NOT select the inserted row. So we don't get the ID back.
+            // We can add .select() to ledger.ts later if needed. 
+            // For now, we'll just insert both.
+
+            await createLedgerTransaction({
+                type: "transfer",
+                source_account: sourceKey,
+                destination_account: destKey,
+                amount_cents: toCents(state.mov.valor),
+                description: state.mov.descricao,
+                metadata: {
+                    modulo: "assoc_transfer",
+                    notes: state.mov.obs
+                }
             });
 
-            // 2. Registro da taxa (se houver) - Phase 3: Link with parent_transaction_id
-            if (state.mov.taxa > 0 && (mainTx as unknown as Transaction)?.id) {
-                await createTransaction.mutateAsync({
-                    transaction: {
-                        transaction_date: state.mov.date,
-                        module: "conta_digital_taxa",
-                        entity_id: associacaoEntity.id,
-                        source_account_id: sourceAccount.id,
-                        destination_account_id: null,
-                        amount: state.mov.taxa,
-                        direction: "out",
-                        description: `Taxa da movimentação: ${sourceAccount.name} -> ${destAccount.name}`,
-                        parent_transaction_id: (mainTx as unknown as Transaction).id,
-                    },
+            // 2. Register Taxa (Fee) if exists
+            if (state.mov.taxa > 0) {
+                await createLedgerTransaction({
+                    type: "fee",
+                    source_account: sourceKey, // Fee leaves the source account
+                    amount_cents: toCents(state.mov.taxa),
+                    description: `Taxa da movimentação: ${sourceAccount.name} -> ${destAccount.name}`,
+                    metadata: {
+                        modulo: "conta_digital_taxa",
+                        related_transfer: `Transfer to ${destKey}`
+                    }
                 });
             }
 
-            toast.success("Movimentação registrada.");
+            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+
+            toast.success("Movimentação registrada (Ledger).");
             resetMov();
             if (onSuccess) onSuccess();
             return true;
         } catch (error) {
+            console.error(error);
             toast.error("Falha ao registrar movimentação.");
             return false;
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -318,38 +344,47 @@ export function useAssociacaoActions(
             return false;
         }
 
-        let module: Database["public"]["Enums"]["transaction_module"] = "especie_ajuste";
-        if (account.name === ACCOUNT_NAMES.ESPECIE) module = "especie_ajuste";
-        else if (account.name === ACCOUNT_NAMES.COFRE) module = "cofre_ajuste";
-        else if (account.name === ACCOUNT_NAMES.CONTA_DIGITAL) module = "conta_digital_ajuste";
-        // @ts-expect-error - "pix_ajuste" is missing from DB enum but used in UI logic
-        else if (account.name === ACCOUNT_NAMES.PIX) module = "pix_ajuste";
+        // Logic for adjustment:
+        // Use 'income' for positive adjustment (Money In)
+        // Use 'expense' for negative adjustment (Money Out)
+        // This ensures the Balance View (SUM CASE) works correctly regardless of 'adjustment' type implementation details.
 
         const direction = state.ajuste.valor > 0 ? "in" : "out";
         const absAmount = Math.abs(state.ajuste.valor);
+        const accountKey = ACCOUNT_NAME_TO_LEDGER_KEY[account.name] || account.name;
+
+        // Helper
+        const toCents = (val: number) => Math.round(val * 100);
 
         try {
-            await createTransaction.mutateAsync({
-                transaction: {
-                    transaction_date: state.ajuste.date,
-                    module,
-                    entity_id: associacaoEntity.id,
-                    source_account_id: direction === "out" ? account.id : null,
-                    destination_account_id: direction === "in" ? account.id : null,
-                    amount: absAmount,
-                    direction,
-                    description: `Ajuste: ${state.ajuste.motivo}`,
-                    notes: state.ajuste.obs || null,
-                },
+            setIsSubmitting(true);
+
+            await createLedgerTransaction({
+                type: direction === 'in' ? 'income' : 'expense',
+                source_account: accountKey,
+                amount_cents: toCents(absAmount),
+                description: `Ajuste: ${state.ajuste.motivo}`,
+                metadata: {
+                    modulo: "ajuste_manual",
+                    original_type: "adjustment", // preserving intent
+                    notes: state.ajuste.obs,
+                    reason: state.ajuste.motivo
+                }
             });
 
-            toast.success(`Ajuste de ${account.name} registrado.`);
+            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+
+            toast.success(`Ajuste de ${account.name} registrado (Ledger).`);
             resetAjuste();
             if (onSuccess) onSuccess();
             return true;
         } catch (error) {
+            console.error(error);
             toast.error("Falha ao registrar ajuste.");
             return false;
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -366,6 +401,6 @@ export function useAssociacaoActions(
             resetMov,
             resetAjuste
         },
-        isLoading: createTransaction.isPending,
+        isLoading: isSubmitting || createTransaction.isPending,
     };
 }

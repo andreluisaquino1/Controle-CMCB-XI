@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: {
           // Separate heavy export libraries into their own chunks
-          'export-libs': ['xlsx', 'jspdf', 'jspdf-autotable'],
+          'export-libs': ['exceljs', 'jspdf', 'jspdf-autotable'],
         },
       },
     },
