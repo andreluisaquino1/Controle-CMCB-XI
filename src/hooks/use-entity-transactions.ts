@@ -66,11 +66,19 @@ export function useAssociacaoTransactions() {
         }
 
         const sourceName = LEDGER_KEY_TO_ACCOUNT_NAME[ledgerTx.source_account] || ledgerTx.source_account;
+        const destName = ledgerTx.destination_account ? (LEDGER_KEY_TO_ACCOUNT_NAME[ledgerTx.destination_account] || ledgerTx.destination_account) : null;
 
-        // Destination
-        let destName = null;
-        if (ledgerTx.destination_account) {
-          destName = LEDGER_KEY_TO_ACCOUNT_NAME[ledgerTx.destination_account] || ledgerTx.destination_account;
+        // Unified account name for the table (prioritize non-external)
+        const isSourceExternal = ledgerTx.source_account.startsWith('ext:');
+        const isDestExternal = ledgerTx.destination_account?.startsWith('ext:');
+
+        let displaySourceName = sourceName;
+        let displayDestName = destName;
+
+        if (isSourceExternal && destName) {
+          displaySourceName = destName; // Show the real account even if it's the destination for income
+        } else if (isDestExternal && sourceName) {
+          displayDestName = sourceName; // Show the real account even if it's the source for expense
         }
 
         const creatorName = meta?.profileNameMap?.get(ledgerTx.created_by) || "Sistema";
@@ -89,8 +97,8 @@ export function useAssociacaoTransactions() {
 
           // Mapped fields
           creator_name: creatorName,
-          source_account_name: sourceName,
-          destination_account_name: destName,
+          source_account_name: displaySourceName,
+          destination_account_name: displayDestName,
           merchant_name: null, // Ledger doesn't have merchant column yet
           entity_name: null,
 

@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { useState, useEffect, ChangeEvent, FocusEvent } from "react";
+import { useState, useEffect, ChangeEvent, FocusEvent, useRef } from "react";
 import { parseCurrencyBRL, formatCurrencyBRL } from "@/lib/currency";
 
 interface CurrencyInputProps {
@@ -17,35 +17,41 @@ export function CurrencyInput({
   disabled = false,
   id,
 }: CurrencyInputProps) {
+  // Use a ref to track the last numeric value we already processed/notified
+  // to avoid re-formatting while the user is still typing (e.g., "1," -> "1,0")
+  const lastProcessedValue = useRef<number>(value);
+
   const [displayValue, setDisplayValue] = useState(
     value !== 0 ? value.toFixed(2).replace(".", ",") : ""
   );
 
-  // Sync displayValue when value changes from outside (e.g., calculated values)
+  // Sync displayValue ONLY when value prop changes significantly from our last processed value
+  // (e.g., external reset to 0 or manual calculation from another field)
   useEffect(() => {
-    if (disabled) {
+    if (value !== lastProcessedValue.current) {
+      lastProcessedValue.current = value;
       setDisplayValue(value !== 0 ? value.toFixed(2).replace(".", ",") : "");
     }
-  }, [value, disabled]);
+  }, [value]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    // Allow typing numbers, comma, period
     const input = e.target.value.replace(/[^\d,.-]/g, "");
     setDisplayValue(input);
 
-    // Parse and update parent
     const numericValue = parseCurrencyBRL(input);
+    lastProcessedValue.current = numericValue;
     onChange(numericValue);
   };
 
   const handleBlur = (e: FocusEvent<HTMLInputElement>) => {
-    // Format on blur
     const numericValue = parseCurrencyBRL(displayValue);
-    if (numericValue > 0) {
+    if (numericValue !== 0) {
       setDisplayValue(numericValue.toFixed(2).replace(".", ","));
     } else {
       setDisplayValue("");
     }
+    // Final sync
+    lastProcessedValue.current = numericValue;
     onChange(numericValue);
   };
 
@@ -54,6 +60,7 @@ export function CurrencyInput({
       id={id}
       type="text"
       inputMode="decimal"
+      autoComplete="off"
       value={displayValue}
       onChange={handleChange}
       onBlur={handleBlur}

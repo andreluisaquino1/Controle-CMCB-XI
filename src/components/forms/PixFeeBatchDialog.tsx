@@ -19,13 +19,14 @@ import { format } from "date-fns";
 interface PixFeeBatchDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    entityId: string | null;
 }
 
 interface BatchItemState extends PixFeeItem {
     id: string; // Temp ID for UI key
 }
 
-export function PixFeeBatchDialog({ open, onOpenChange }: PixFeeBatchDialogProps) {
+export function PixFeeBatchDialog({ open, onOpenChange, entityId }: PixFeeBatchDialogProps) {
     const { user } = useAuth();
     const createBatch = useCreatePixFeeBatch();
 
@@ -38,8 +39,8 @@ export function PixFeeBatchDialog({ open, onOpenChange }: PixFeeBatchDialogProps
 
     const handleAddItem = () => {
         setItems([
+            { id: crypto.randomUUID(), amount: 0, description: "Taxa PIX", occurred_at: "" },
             ...items,
-            { id: crypto.randomUUID(), amount: 0, description: "Taxa PIX", occurred_at: "" }
         ]);
     };
 
@@ -58,7 +59,7 @@ export function PixFeeBatchDialog({ open, onOpenChange }: PixFeeBatchDialogProps
     const calculateTotal = () => items.reduce((acc, item) => acc + item.amount, 0);
 
     const handleSubmit = async () => {
-        if (!user?.user_metadata?.entity_id) {
+        if (!entityId) {
             toast.error("Entidade não selecionada.");
             return;
         }
@@ -75,7 +76,7 @@ export function PixFeeBatchDialog({ open, onOpenChange }: PixFeeBatchDialogProps
         }
 
         createBatch.mutate({
-            entityId: user.user_metadata.entity_id,
+            entityId: entityId,
             payload: {
                 reference,
                 occurred_at: batchDate,

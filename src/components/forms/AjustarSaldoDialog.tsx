@@ -32,6 +32,7 @@ import { sortByAccountOrder } from "@/lib/constants";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { Account } from "@/types";
 import { useState, useEffect } from "react";
+import { XCircle } from "lucide-react";
 
 interface AjustarSaldoDialogProps {
     open: boolean;
@@ -68,51 +69,52 @@ export function AjustarSaldoDialog({
     const currentBalance = selectedAccount?.balance || 0;
     const [confirmOpen, setConfirmOpen] = useState(false);
 
-    // Local state for the "Final Balance" input to allow interactive calculation
-    const [finalBalance, setFinalBalance] = useState(currentBalance + state.valor);
-
-    // Track which field is being edited: 'adjustment' | 'finalBalance' | null
+    // Track which field is physically active to implement exclusive locking
     const [activeField, setActiveField] = useState<'adjustment' | 'finalBalance' | null>(null);
 
-    // Update finalBalance when account changes
-    useEffect(() => {
-        setFinalBalance(currentBalance + state.valor);
-    }, [state.accountId, currentBalance, state.valor]);
+    // Local state for the "Final Balance" calculation
+    const [finalBalance, setFinalBalance] = useState(currentBalance + state.valor);
 
-    // Reset active field when account changes
+    // Sync calculated field when active one changes
+    useEffect(() => {
+        if (activeField === 'adjustment') {
+            setFinalBalance(currentBalance + state.valor);
+        } else if (activeField === 'finalBalance') {
+            // setters.setValor(finalBalance - currentBalance) is handled in handleFinalBalanceChange
+        } else {
+            // Neither is active, keep them in sync with current state
+            setFinalBalance(currentBalance + state.valor);
+        }
+    }, [state.valor, currentBalance, activeField]);
+
+    // Cleanup and Reset when account changes
     useEffect(() => {
         setActiveField(null);
         setters.setValor(0);
         setFinalBalance(currentBalance);
-    }, [state.accountId, currentBalance, setters]);
+    }, [state.accountId, currentBalance]);
 
     const handleAdjustmentChange = (val: number) => {
         if (val === 0) {
-            // Auto-clear when value is zeroed
             setActiveField(null);
-            setters.setValor(0);
-            setFinalBalance(currentBalance);
-        } else {
+        } else if (!activeField) {
             setActiveField('adjustment');
-            setters.setValor(val);
-            setFinalBalance(currentBalance + val);
         }
+        setters.setValor(val);
+        setFinalBalance(currentBalance + val);
     };
 
     const handleFinalBalanceChange = (val: number) => {
         if (val === currentBalance) {
-            // Auto-clear when final balance equals current balance (adjustment = 0)
             setActiveField(null);
-            setters.setValor(0);
-            setFinalBalance(currentBalance);
-        } else {
+        } else if (!activeField) {
             setActiveField('finalBalance');
-            setFinalBalance(val);
-            setters.setValor(val - currentBalance);
         }
+        setFinalBalance(val);
+        setters.setValor(val - currentBalance);
     };
 
-    const handleClearFields = () => {
+    const handleClearValues = () => {
         setActiveField(null);
         setters.setValor(0);
         setFinalBalance(currentBalance);
@@ -157,15 +159,6 @@ export function AjustarSaldoDialog({
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
                             <Label className="text-sm font-medium">Valores</Label>
-                            {activeField && (
-                                <button
-                                    type="button"
-                                    onClick={handleClearFields}
-                                    className="text-xs text-muted-foreground hover:text-foreground underline"
-                                >
-                                    Limpar
-                                </button>
-                            )}
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
@@ -178,7 +171,7 @@ export function AjustarSaldoDialog({
                                     disabled={activeField === 'finalBalance'}
                                 />
                                 <p className="text-[10px] text-muted-foreground leading-tight">
-                                    {activeField === 'finalBalance' ? 'Calculado automaticamente' : 'Quanto somar ou subtrair'}
+                                    {activeField === 'finalBalance' ? 'Calculado' : 'Somar ou subtrair'}
                                 </p>
                             </div>
                             <div className="space-y-2">
@@ -187,11 +180,11 @@ export function AjustarSaldoDialog({
                                     id="adj-final"
                                     value={finalBalance}
                                     onChange={handleFinalBalanceChange}
-                                    placeholder="Saldo final desejado"
+                                    placeholder="Saldo desejado"
                                     disabled={activeField === 'adjustment'}
                                 />
                                 <p className="text-[10px] text-muted-foreground leading-tight">
-                                    {activeField === 'adjustment' ? 'Calculado automaticamente' : 'Qual deve ser o saldo final'}
+                                    {activeField === 'adjustment' ? 'Calculado' : 'Qual será o saldo'}
                                 </p>
                             </div>
                         </div>
@@ -227,7 +220,7 @@ export function AjustarSaldoDialog({
                         <AlertDialogTrigger asChild>
                             <Button
                                 className="w-full"
-                                disabled={isLoading || !state.accountId || !state.motivo || state.motivo.length < 5}
+                                disabled={isLoading || !state.accountId || !state.motivo || state.motivo.length < 5 || state.valor === 0}
                             >
                                 {isLoading ? "Salvando..." : "Registrar Ajuste"}
                             </Button>
@@ -236,7 +229,7 @@ export function AjustarSaldoDialog({
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Confirmar Ajuste de Saldo?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    Esta ação alterará o saldo de <strong>{selectedAccount ? cleanAccountDisplayName(selectedAccount.name) : ""}</strong> de {formatCurrencyBRL(currentBalance)} para <strong>{formatCurrencyBRL(finalBalance)}</strong>.
+                                    Esta ação alterará o saldo de <strong>{selectedAccount ? cleanAccountDisplayName(selectedAccount.name) : ""}</strong> de {formatCurrencyBRL(currentBalance)} para <strong>{formatCurrencyBRL(currentBalance + state.valor)}</strong>.
                                     Esta operação será registrada na trilha de auditoria.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>

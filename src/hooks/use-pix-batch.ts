@@ -58,37 +58,42 @@ export function useCreatePixFeeBatch() {
                 return mockTx;
             }
 
-            // Loop through items and create Ledger Transactions locally
-            // This replaces the RPC 'process_pix_fee_batch'
-            const results = [];
-            for (const item of payload.items) {
-                // Validate item
-                if (item.amount <= 0) continue;
+            // Aggregate all items into a single Ledger Transaction
+            const validItems = payload.items.filter(item => item.amount > 0);
+            if (validItems.length === 0) return [];
 
-                await createLedgerTransaction({
-                    type: 'fee', // Using 'fee' type for PIX fees
-                    source_account: LEDGER_KEYS.PIX, // Always PIX account
-                    amount_cents: Math.round(item.amount * 100),
-                    description: item.description,
-                    metadata: {
-                        modulo: 'taxa_pix_bb',
-                        reference: payload.reference,
-                        occurred_at: item.occurred_at,
-                        batch_reference: payload.reference
-                    }
-                });
-                results.push(item);
-            }
-            return results;
+            const totalAmountCents = validItems.reduce((acc, item) => acc + Math.round(item.amount * 100), 0);
+            const itemCount = validItems.length;
+            const summaryDescription = `Lote de Tarifas PIX (${itemCount} itens)${payload.reference ? ` - ${payload.reference}` : ""}`;
+
+            await createLedgerTransaction({
+                type: 'fee',
+                source_account: LEDGER_KEYS.PIX,
+                amount_cents: totalAmountCents,
+                description: summaryDescription,
+                metadata: {
+                    modulo: 'taxa_pix_bb',
+                    batch_reference: payload.reference,
+                    item_count: itemCount,
+                    items: validItems.map(item => ({
+                        amount: item.amount,
+                        description: item.description,
+                        occurred_at: item.occurred_at
+                    }))
+                }
+            });
+
+            return validItems;
         },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
-            queryClient.invalidateQueries({ queryKey: ["account_balances"] });
-            // Keep legacy invalids just in case
-            queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
-            queryClient.invalidateQueries({ queryKey: ["accounts"] });
-            queryClient.invalidateQueries({ queryKey: ["transactions"] });
-            queryClient.invalidateQueries({ queryKey: ["all-transactions"] });
+        onSettled: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["dashboard-data"] }),
+                queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] }),
+                queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+                queryClient.invalidateQueries({ queryKey: ["all-transactions"] })
+            ]);
             toast.success("Taxas PIX lançadas com sucesso!");
         },
         onError: (error: Error) => {
@@ -107,7 +112,6 @@ export function useTransactionItems(parentTransactionId: string | null) {
             if (!parentTransactionId) return [];
             if (isDemo) return []; // Demo doesn't track child items yet for simplicity
 
-            // @ts-expect-error - RPC not typed
             const { data, error } = await supabase.rpc("get_transaction_items", {
                 p_parent_transaction_id: parentTransactionId,
             });

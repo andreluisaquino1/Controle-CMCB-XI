@@ -24,9 +24,10 @@ import { AlertCircle, Calculator } from "lucide-react";
 interface PixNaoIdentificadoDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    entityId: string | null;
 }
 
-export function PixNaoIdentificadoDialog({ open, onOpenChange }: PixNaoIdentificadoDialogProps) {
+export function PixNaoIdentificadoDialog({ open, onOpenChange, entityId }: PixNaoIdentificadoDialogProps) {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const { data: accounts } = useAssociacaoAccounts();
@@ -41,7 +42,7 @@ export function PixNaoIdentificadoDialog({ open, onOpenChange }: PixNaoIdentific
     const pixAccount = accounts?.find(a => a.name === ACCOUNT_NAMES.PIX && a.active);
 
     const handleSubmit = async () => {
-        if (!associacaoEntity || !pixAccount) {
+        if (!entityId || !pixAccount) {
             toast.error("Entidade ou conta PIX não encontrada.");
             return;
         }
@@ -71,11 +72,13 @@ export function PixNaoIdentificadoDialog({ open, onOpenChange }: PixNaoIdentific
                 }
             });
 
-            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
-            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
-            // Legacy invalidation
-            await queryClient.invalidateQueries({ queryKey: ["transactions"] });
-            await queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["dashboard-data"] }),
+                queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] }),
+                queryClient.invalidateQueries({ queryKey: ["accounts"] })
+            ]);
 
             toast.success("PIX não identificado registrado.");
             onOpenChange(false);

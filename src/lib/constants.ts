@@ -18,6 +18,8 @@ export const LEDGER_KEYS = {
   SAFE: "safe",
   UE: "resource_ue",
   CX: "resource_cx",
+  EXTERNAL_INCOME: "ext:income",
+  EXTERNAL_EXPENSE: "ext:expense",
 } as const;
 
 export const ACCOUNT_NAME_TO_LEDGER_KEY: Record<string, string> = {

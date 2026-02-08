@@ -143,10 +143,15 @@ export function GastoAssociacaoDialog({
                 });
             }
 
-            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
-            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["dashboard-data"] }),
+                queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] }),
+                queryClient.invalidateQueries({ queryKey: ["accounts"] })
+            ]);
 
-            toast.success(`${validItems.length} despesas registradas (Ledger).`);
+            toast.success(`${validItems.length} despesas registradas.`);
             onOpenChange(false);
             setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }]);
         } catch (error) {

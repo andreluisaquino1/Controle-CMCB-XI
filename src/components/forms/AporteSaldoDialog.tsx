@@ -120,8 +120,10 @@ export function AporteSaldoDialog({
             });
 
             await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
-            await queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] });
             await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
+            await queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] });
+            await queryClient.invalidateQueries({ queryKey: ["accounts"] });
             await queryClient.invalidateQueries({ queryKey: ["merchants"] });
 
             toast.success("Aporte registrado.");

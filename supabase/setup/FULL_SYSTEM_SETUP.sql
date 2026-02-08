@@ -201,18 +201,19 @@ CREATE TABLE IF NOT EXISTS public.ledger_audit_log (
 );
 
 -- 2.2 LEDGER VIEWS
-CREATE OR REPLACE VIEW public.ledger_balances AS
- SELECT account,
+DROP VIEW IF EXISTS public.ledger_balances CASCADE;
+CREATE VIEW public.ledger_balances AS
+ SELECT account_id,
     sum(delta_cents) AS balance_cents
-   FROM ( SELECT ledger_transactions.source_account AS account,
+   FROM ( SELECT ledger_transactions.source_account AS account_id,
             (- ledger_transactions.amount_cents) AS delta_cents
            FROM ledger_transactions
         UNION ALL
-         SELECT ledger_transactions.destination_account AS account,
+         SELECT ledger_transactions.destination_account AS account_id,
             ledger_transactions.amount_cents AS delta_cents
            FROM ledger_transactions
           WHERE (ledger_transactions.destination_account IS NOT NULL)) t
-  GROUP BY account;
+  GROUP BY account_id;
 
 -- 3. SECURITY (Helpers, RLS, Triggers)
 
@@ -353,21 +354,28 @@ DECLARE v_before jsonb; v_txn record; v_user_id uuid; BEGIN
 END; $$;
 
 CREATE OR REPLACE FUNCTION public.get_current_balances() RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
-DECLARE v_assoc uuid; v_cash uuid; v_pix uuid; v_virtual uuid; v_cofre uuid; BEGIN
+DECLARE v_assoc uuid; BEGIN
   SELECT id INTO v_assoc FROM entities WHERE type = 'associacao' LIMIT 1;
-  v_cash := public.get_primary_account(v_assoc, 'cash');
-  v_pix := public.get_primary_account(v_assoc, 'bank');
-  v_virtual := public.get_primary_account(v_assoc, 'virtual');
-  v_cofre := public.get_primary_account(v_assoc, 'cash_reserve');
   RETURN jsonb_build_object(
-    'especieBalance', COALESCE((SELECT balance FROM accounts WHERE id = v_cash), 0),
-    'pixBalance', COALESCE((SELECT balance FROM accounts WHERE id = v_pix), 0),
-    'contaDigitalBalance', COALESCE((SELECT balance FROM accounts WHERE id = v_virtual), 0),
-    'cofreBalance', COALESCE((SELECT balance FROM accounts WHERE id = v_cofre), 0),
-    'merchantBalances', (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', id, 'name', name, 'balance', balance)), '[]'::jsonb) FROM merchants WHERE active = true),
+    'especieBalance', COALESCE((SELECT balance_cents::numeric/100 FROM ledger_balances WHERE account_id = 'cash'), 0),
+    'pixBalance', COALESCE((SELECT balance_cents::numeric/100 FROM ledger_balances WHERE account_id = 'pix_bb'), 0),
+    'contaDigitalBalance', COALESCE((SELECT balance_cents::numeric/100 FROM ledger_balances WHERE account_id = 'digital_escolaweb'), 0),
+    'cofreBalance', COALESCE((SELECT balance_cents::numeric/100 FROM ledger_balances WHERE account_id = 'safe'), 0),
+    'merchantBalances', (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', id, 'name', name, 'balance', COALESCE(lb.balance_cents::numeric/100, 0))), '[]'::jsonb) 
+                         FROM merchants m 
+                         LEFT JOIN ledger_balances lb ON lb.account_id = m.id::text 
+                         WHERE active = true),
     'resourceBalances', jsonb_build_object(
-        'UE', (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', a.id, 'name', a.name, 'balance', a.balance)) , '[]'::jsonb) FROM accounts a JOIN entities e ON e.id = a.entity_id WHERE e.type = 'ue' AND a.active = true),
-        'CX', (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', a.id, 'name', a.name, 'balance', a.balance)) , '[]'::jsonb) FROM accounts a JOIN entities e ON e.id = a.entity_id WHERE e.type = 'cx' AND a.active = true)
+        'UE', (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', a.id, 'name', a.name, 'balance', COALESCE(lb.balance_cents::numeric/100, 0))) , '[]'::jsonb) 
+               FROM accounts a 
+               JOIN entities e ON e.id = a.entity_id 
+               LEFT JOIN ledger_balances lb ON lb.account_id = a.id::text
+               WHERE e.type = 'ue' AND a.active = true),
+        'CX', (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', a.id, 'name', a.name, 'balance', COALESCE(lb.balance_cents::numeric/100, 0))) , '[]'::jsonb) 
+               FROM accounts a 
+               JOIN entities e ON e.id = a.entity_id 
+               LEFT JOIN ledger_balances lb ON lb.account_id = a.id::text
+               WHERE e.type = 'cx' AND a.active = true)
     )
   );
 END; $$;

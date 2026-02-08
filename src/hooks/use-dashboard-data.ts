@@ -54,6 +54,8 @@ async function fetchReportSummary(startDate: string, endDate: string, entityId: 
     weeklyDeposits?: number;
     weeklyConsumption?: number;
     weeklyDirectPix?: number;
+    weeklyPixFees?: number;
+    weeklyEntriesPixNaoIdentificado?: number;
   };
 
   return {
@@ -65,6 +67,8 @@ async function fetchReportSummary(startDate: string, endDate: string, entityId: 
     weeklyDeposits: Number(result?.weeklyDeposits || 0),
     weeklyConsumption: Number(result?.weeklyConsumption || 0),
     weeklyDirectPix: Number(result?.weeklyDirectPix || 0),
+    weeklyPixFees: Number(result?.weeklyPixFees || 0),
+    weeklyEntriesPixNaoIdentificado: Number(result?.weeklyEntriesPixNaoIdentificado || 0),
   };
 }
 
@@ -78,7 +82,7 @@ export function useDashboardData() {
   const query = useQuery({
     queryKey: ["dashboard-data"],
     queryFn: fetchCurrentBalances,
-    staleTime: 1000 * 30,
+    staleTime: 0, // Ensure fresh data on invalidation
     refetchOnWindowFocus: true,
     enabled: !isDemo,
   });

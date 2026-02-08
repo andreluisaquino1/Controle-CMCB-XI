@@ -396,7 +396,7 @@ export default function AssociacaoPage() {
         shortcuts={expenseShortcuts}
         addShortcut={addShortcut}
         removeShortcut={removeShortcut}
-        onSubmit={async () => true}
+        onSubmit={handlers.handleGastoSubmit}
         isLoading={actionsLoading}
       />
 
@@ -443,11 +443,13 @@ export default function AssociacaoPage() {
       <PixFeeBatchDialog
         open={openDialog === "pix_batch"}
         onOpenChange={(o) => setOpenDialog(o ? "pix_batch" : null)}
+        entityId={associacaoEntity?.id || null}
       />
 
       <PixNaoIdentificadoDialog
         open={openDialog === "pix_nao_id"}
         onOpenChange={(o) => setOpenDialog(o ? "pix_nao_id" : null)}
+        entityId={associacaoEntity?.id || null}
       />
     </DashboardLayout >
   );

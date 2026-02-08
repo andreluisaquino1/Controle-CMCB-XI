@@ -129,9 +129,11 @@ export function ConsumoSaldoDialog({
             }
 
             await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
-            await queryClient.invalidateQueries({ queryKey: ["merchants"] }); // Balance update likely depends on this
-            // Legacy invalidation
             await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+            await queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
+            await queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] });
+            await queryClient.invalidateQueries({ queryKey: ["accounts"] });
+            await queryClient.invalidateQueries({ queryKey: ["merchants"] });
 
             toast.success(`${validItems.length} consumos registrados.`);
             setBatchItems([{ id: crypto.randomUUID(), amount: 0, description: "", date: state.date }]);

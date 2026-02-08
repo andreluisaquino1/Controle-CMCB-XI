@@ -3,7 +3,7 @@ import { Account, Entity, Transaction } from '@/types';
 import { useCreateTransaction } from '@/hooks/use-transactions';
 import { toast } from "sonner";
 import { formatCurrencyBRL } from '@/lib/currency';
-import { ACCOUNT_NAMES, ACCOUNT_NAME_TO_LEDGER_KEY } from '@/lib/constants';
+import { ACCOUNT_NAMES, ACCOUNT_NAME_TO_LEDGER_KEY, LEDGER_KEYS } from '@/lib/constants';
 import { getTodayString } from '@/lib/date-utils';
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
@@ -77,7 +77,7 @@ export function useAssociacaoActions(
     const cofreAccount = useMemo(() => accounts?.find(a => a.name === ACCOUNT_NAMES.COFRE), [accounts]);
     const contaDigitalAccount = useMemo(() => accounts?.find(a => a.name === ACCOUNT_NAMES.CONTA_DIGITAL), [accounts]);
 
-    const setters = {
+    const setters = useMemo(() => ({
         setMensalidadeDate: (date: string) => setState((s) => ({ ...s, mensalidade: { ...s.mensalidade, date } })),
         setMensalidadeTurno: (turno: string) => setState((s) => ({ ...s, mensalidade: { ...s.mensalidade, turno } })),
         setMensalidadeCash: (cash: number) => setState((s) => ({ ...s, mensalidade: { ...s.mensalidade, cash } })),
@@ -95,14 +95,12 @@ export function useAssociacaoActions(
         setMovTaxa: (taxa: number) => setState((s) => ({ ...s, mov: { ...s.mov, taxa } })),
         setMovDescricao: (descricao: string) => setState((s) => ({ ...s, mov: { ...s.mov, descricao } })),
         setMovObs: (obs: string) => setState((s) => ({ ...s, mov: { ...s.mov, obs } })),
-
-        // Unified Adjustment Setters
         setAjusteDate: (date: string) => setState((s) => ({ ...s, ajuste: { ...s.ajuste, date } })),
         setAjusteAccountId: (accountId: string) => setState((s) => ({ ...s, ajuste: { ...s.ajuste, accountId, valor: 0 } })),
         setAjusteValor: (valor: number) => setState((s) => ({ ...s, ajuste: { ...s.ajuste, valor } })),
         setAjusteMotivo: (motivo: string) => setState((s) => ({ ...s, ajuste: { ...s.ajuste, motivo } })),
         setAjusteObs: (obs: string) => setState((s) => ({ ...s, ajuste: { ...s.ajuste, obs } })),
-    };
+    }), []);
 
     const resetMensalidade = useCallback(() => {
         setState((s) => ({ ...s, mensalidade: { date: getTodayString(), turno: "", cash: 0, pix: 0, obs: "" } }));
@@ -145,17 +143,8 @@ export function useAssociacaoActions(
             if (state.mensalidade.cash > 0) {
                 await createLedgerTransaction({
                     type: "income",
-                    source_account: ACCOUNT_NAME_TO_LEDGER_KEY[ACCOUNT_NAMES.ESPECIE],
-                    // Entrada em Espécie não tem source externa no sistema atual, 
-                    // mas no Ledger "income" geralmente source=conta de destino (onde entra o dinheiro).
-                    // WAIT. The proposed Ledger `createLedgerTransaction` has `source_account` and `destination_account`.
-                    // For INCOME: source_account is the account RECEIVING the money? 
-                    // Let's check the instruction: "entrada/recebimento -> type: 'income'"
-                    // And example:
-                    // insert into ... (source_account='pix_bb', destination_account=null, amount=10000)
-                    // So for INCOME, source_account IS the account receiving the money. 
-                    // Correct.
-
+                    source_account: LEDGER_KEYS.EXTERNAL_INCOME,
+                    destination_account: ACCOUNT_NAME_TO_LEDGER_KEY[ACCOUNT_NAMES.ESPECIE],
                     amount_cents: toCents(state.mensalidade.cash),
                     description: `Mensalidade ${state.mensalidade.turno}`,
                     metadata: {
@@ -170,7 +159,8 @@ export function useAssociacaoActions(
             if (state.mensalidade.pix > 0) {
                 await createLedgerTransaction({
                     type: "income",
-                    source_account: ACCOUNT_NAME_TO_LEDGER_KEY[ACCOUNT_NAMES.PIX],
+                    source_account: LEDGER_KEYS.EXTERNAL_INCOME,
+                    destination_account: ACCOUNT_NAME_TO_LEDGER_KEY[ACCOUNT_NAMES.PIX],
                     amount_cents: toCents(state.mensalidade.pix),
                     description: `Mensalidade ${state.mensalidade.turno} (PIX)`,
                     metadata: {
@@ -182,8 +172,13 @@ export function useAssociacaoActions(
                 });
             }
 
-            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
-            await queryClient.invalidateQueries({ queryKey: ["account_balances"] }); // We will need this query key later
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["dashboard-data"] }),
+                queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] }),
+                queryClient.invalidateQueries({ queryKey: ["accounts"] })
+            ]);
 
             toast.success("Mensalidade registrada.");
             resetMensalidade();
@@ -218,6 +213,7 @@ export function useAssociacaoActions(
             await createLedgerTransaction({
                 type: "expense",
                 source_account: sourceKey,
+                destination_account: LEDGER_KEYS.EXTERNAL_EXPENSE,
                 amount_cents: toCents(state.gasto.valor),
                 description: state.gasto.descricao,
                 metadata: {
@@ -227,8 +223,13 @@ export function useAssociacaoActions(
                 }
             });
 
-            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
-            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["dashboard-data"] }),
+                queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] }),
+                queryClient.invalidateQueries({ queryKey: ["accounts"] })
+            ]);
 
             toast.success("Gasto registrado.");
             resetGasto();
@@ -306,6 +307,7 @@ export function useAssociacaoActions(
                 await createLedgerTransaction({
                     type: "fee",
                     source_account: sourceKey, // Fee leaves the source account
+                    destination_account: LEDGER_KEYS.EXTERNAL_EXPENSE,
                     amount_cents: toCents(state.mov.taxa),
                     description: `Taxa da movimentação: ${sourceAccount.name} -> ${destAccount.name}`,
                     metadata: {
@@ -315,8 +317,13 @@ export function useAssociacaoActions(
                 });
             }
 
-            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
-            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["dashboard-data"] }),
+                queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] }),
+                queryClient.invalidateQueries({ queryKey: ["accounts"] })
+            ]);
 
             toast.success("Movimentação registrada.");
             resetMov();
@@ -361,7 +368,8 @@ export function useAssociacaoActions(
 
             await createLedgerTransaction({
                 type: direction === 'in' ? 'income' : 'expense',
-                source_account: accountKey,
+                source_account: direction === 'in' ? LEDGER_KEYS.EXTERNAL_INCOME : accountKey,
+                destination_account: direction === 'in' ? accountKey : LEDGER_KEYS.EXTERNAL_EXPENSE,
                 amount_cents: toCents(absAmount),
                 description: `Ajuste: ${state.ajuste.motivo}`,
                 metadata: {
@@ -372,8 +380,13 @@ export function useAssociacaoActions(
                 }
             });
 
-            await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
-            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+                queryClient.invalidateQueries({ queryKey: ["dashboard-data"] }),
+                queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] }),
+                queryClient.invalidateQueries({ queryKey: ["accounts"] })
+            ]);
 
             toast.success(`Ajuste de ${account.name} registrado.`);
             resetAjuste();
@@ -388,19 +401,30 @@ export function useAssociacaoActions(
         }
     };
 
+    const handlers = useMemo(() => ({
+        handleMensalidadeSubmit,
+        handleGastoSubmit,
+        handleMovimentarSubmit,
+        handleAjusteSubmit,
+        resetMensalidade,
+        resetGasto,
+        resetMov,
+        resetAjuste
+    }), [
+        handleMensalidadeSubmit,
+        handleGastoSubmit,
+        handleMovimentarSubmit,
+        handleAjusteSubmit,
+        resetMensalidade,
+        resetGasto,
+        resetMov,
+        resetAjuste
+    ]);
+
     return {
         state,
         setters,
-        handlers: {
-            handleMensalidadeSubmit,
-            handleGastoSubmit,
-            handleMovimentarSubmit,
-            handleAjusteSubmit,
-            resetMensalidade,
-            resetGasto,
-            resetMov,
-            resetAjuste
-        },
+        handlers,
         isLoading: isSubmitting || createTransaction.isPending,
     };
 }
