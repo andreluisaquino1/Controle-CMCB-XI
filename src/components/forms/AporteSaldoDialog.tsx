@@ -88,19 +88,21 @@ export function AporteSaldoDialog({
             setIsSubmitting(true);
             const sourceAccountInfo = accounts.find(a => a.id === state.conta);
 
+            if (!sourceAccountInfo) throw new Error("Conta não selecionada.");
+
             // Determine Ledger Source Key
             let sourceKey = "";
-            if (sourceAccountInfo) {
+
+            if (state.origem === "ASSOC") {
+                // For Associação: use name mapping (Espécie, PIX, etc.)
                 sourceKey = ACCOUNT_NAME_TO_LEDGER_KEY[sourceAccountInfo.name];
+                if (!sourceKey) {
+                    throw new Error(`Conta "${sourceAccountInfo.name}" não está mapeada no Ledger.`);
+                }
+            } else {
+                // For UE/CX: use account ID (each account has its own balance)
+                sourceKey = sourceAccountInfo.id;
             }
-
-            // Fallback for Resources if not mapped by name
-            if (!sourceKey) {
-                if (state.origem === "UE") sourceKey = LEDGER_KEYS.UE;
-                else if (state.origem === "CX") sourceKey = LEDGER_KEYS.CX;
-            }
-
-            if (!sourceKey) throw new Error("Conta de origem não identificada no Ledger.");
 
             await createLedgerTransaction({
                 type: 'transfer',
@@ -112,15 +114,13 @@ export function AporteSaldoDialog({
                     modulo: "aporte_saldo",
                     notes: state.obs,
                     transaction_date: state.date,
-                    original_source_id: state.conta,
-                    capital_custeio: state.capitalCusteio,
-                    merchant_id: state.merchant // redundancy for metadata
+                    account_id: state.conta,
+                    merchant_id: state.merchant
                 }
             });
 
             await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
-            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
-            // Legacy invalidation
+            await queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] });
             await queryClient.invalidateQueries({ queryKey: ["transactions"] });
             await queryClient.invalidateQueries({ queryKey: ["merchants"] });
 
@@ -201,18 +201,7 @@ export function AporteSaldoDialog({
                         <Label htmlFor="aporte-obs">Observação</Label>
                         <Input id="aporte-obs" value={state.obs} onChange={(e) => setters.setObs(e.target.value)} placeholder="Opcional" />
                     </div>
-                    <div className="space-y-2">
-                        <Label>Capital/Custeio (opcional)</Label>
-                        <Select value={state.capitalCusteio} onValueChange={setters.setCapitalCusteio}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="capital">Capital</SelectItem>
-                                <SelectItem value="custeio">Custeio</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+
                     <Button
                         className="w-full"
                         onClick={handleSubmit}

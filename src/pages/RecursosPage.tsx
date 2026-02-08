@@ -127,39 +127,34 @@ export default function RecursosPage() {
   const handleEntradaSubmit = async () => {
     setActionsLoading(true);
     try {
-      // Determine Source Account Key for Ledger (Affected Account)
-      // Logic: If Entity is UE -> resource_ue. If CX -> resource_cx.
+      // Use account ID as ledger key for resources (each account has its own balance)
+      const selectedAccount = accounts.find(a => a.id === entrada.accountId);
       const selectedEntity = entities.find(e => e.id === entrada.entityId);
-      let accountKey = "";
 
-      if (selectedEntity?.type === 'ue') accountKey = LEDGER_KEYS.UE;
-      else if (selectedEntity?.type === 'cx') accountKey = LEDGER_KEYS.CX;
+      if (!selectedAccount) throw new Error("Conta não selecionada.");
 
-      if (!accountKey) {
-        // Fallback verify by account name if mapped
-        const acc = accounts.find(a => a.id === entrada.accountId);
-        if (acc) accountKey = ACCOUNT_NAME_TO_LEDGER_KEY[acc.name] || "";
-      }
-
-      if (!accountKey) throw new Error("Conta Ledger não identificada.");
+      // Use account ID as ledger key - this gives each account its own balance
+      const accountKey = selectedAccount.id;
 
       await createLedgerTransaction({
         type: "income",
-        source_account: accountKey,
+        source_account: "external_income", // Source sends money (external)
+        destination_account: accountKey,   // Destination receives money (increases balance)
         amount_cents: Math.round(entrada.amount * 100),
         description: entrada.description,
         metadata: {
-          modulo: "pix_direto_uecx", // Keeping module for consistency
+          modulo: "pix_direto_uecx",
           transaction_date: entrada.date,
           notes: entrada.notes,
           entity_id: entrada.entityId,
+          account_id: entrada.accountId,
           payment_method: "pix",
           origin_fund: selectedEntity?.type === "ue" ? "UE" : "CX"
         }
       });
 
       await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
-      await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+      await queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] });
       await queryClient.invalidateQueries({ queryKey: ["transactions"] });
 
       toast.success("Entrada registrada.");

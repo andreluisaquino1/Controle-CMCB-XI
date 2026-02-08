@@ -185,7 +185,7 @@ export function useAssociacaoActions(
             await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
             await queryClient.invalidateQueries({ queryKey: ["account_balances"] }); // We will need this query key later
 
-            toast.success("Mensalidade registrada (Ledger).");
+            toast.success("Mensalidade registrada.");
             resetMensalidade();
             if (onSuccess) onSuccess();
             return true;
@@ -230,7 +230,7 @@ export function useAssociacaoActions(
             await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
             await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
 
-            toast.success("Gasto registrado (Ledger).");
+            toast.success("Gasto registrado.");
             resetGasto();
             if (onSuccess) onSuccess();
             return true;
@@ -318,7 +318,7 @@ export function useAssociacaoActions(
             await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
             await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
 
-            toast.success("Movimentação registrada (Ledger).");
+            toast.success("Movimentação registrada.");
             resetMov();
             if (onSuccess) onSuccess();
             return true;
@@ -375,7 +375,7 @@ export function useAssociacaoActions(
             await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
             await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
 
-            toast.success(`Ajuste de ${account.name} registrado (Ledger).`);
+            toast.success(`Ajuste de ${account.name} registrado.`);
             resetAjuste();
             if (onSuccess) onSuccess();
             return true;

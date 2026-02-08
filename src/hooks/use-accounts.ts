@@ -361,23 +361,34 @@ async function fetchLedgerBalancesMap() {
 
   const map = new Map<string, number>();
   data?.forEach((row: any) => {
-    map.set(row.account_key, (row.balance_cents || 0) / 100);
+    // Handle potential column name variations (account vs account_key)
+    const key = row.account || row.account_key || row.account_id;
+    if (key) {
+      map.set(key, (row.balance_cents || 0) / 100);
+    }
   });
   return map;
 }
 
 function mergeBalances(accounts: Account[], ledgerMap: Map<string, number>): Account[] {
   return accounts.map(acc => {
+    // First, try to match by account name (for Associação accounts)
     const ledgerKey = ACCOUNT_NAME_TO_LEDGER_KEY[acc.name];
     if (ledgerKey && ledgerMap.has(ledgerKey)) {
       return { ...acc, balance: ledgerMap.get(ledgerKey)! };
     }
-    // If mapped but no balance found, assume 0 (Ledger authority)
+
+    // For resource accounts (UE/CX), check if ledger has balance using account ID
+    if (ledgerMap.has(acc.id)) {
+      return { ...acc, balance: ledgerMap.get(acc.id)! };
+    }
+
+    // If mapped by name but no balance found, assume 0 (Ledger authority)
     if (ledgerKey) {
       return { ...acc, balance: 0 };
     }
-    // If not mapped (e.g. unknown account), keep original (legacy) or 0? 
-    // Keeping original for safety during migration of non-standard accounts.
+
+    // For unmapped accounts without ledger data, keep original balance
     return acc;
   });
 }

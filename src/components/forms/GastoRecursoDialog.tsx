@@ -105,34 +105,27 @@ export function GastoRecursoDialog({
             return;
         }
 
-        const selectedEntity = entities.find(e => e.id === state.entityId);
+        if (!selectedAccount) {
+            toast.error("Conta não selecionada.");
+            return;
+        }
 
         try {
             setIsSubmitting(true);
             for (const item of validItems) {
-                // Determine Source Account Key
-                // Strategy: Use mapped key from Name, or derive from Entity Type
-                let sourceKey = ACCOUNT_NAME_TO_LEDGER_KEY[selectedAccount?.name || ""];
-
-                if (!sourceKey && selectedEntity) {
-                    if (selectedEntity.type === 'ue') sourceKey = LEDGER_KEYS.UE;
-                    else if (selectedEntity.type === 'cx') sourceKey = LEDGER_KEYS.CX;
-                }
-
-                if (!sourceKey) {
-                    throw new Error(`Não foi possível determinar a conta Ledger para ${selectedAccount?.name}`);
-                }
+                // Use account ID as ledger key (consistent with Entrada)
+                const sourceKey = selectedAccount.id;
 
                 await createLedgerTransaction({
-                    type: "expense", // 'pix_direto_uecx' is usually expense
+                    type: "expense",
                     source_account: sourceKey,
                     amount_cents: Math.round(item.amount * 100),
                     description: item.description,
                     metadata: {
                         modulo: "pix_direto_uecx",
-                        transaction_date: item.date, // Store date
+                        transaction_date: item.date,
                         merchant_id: state.merchantId,
-                        capital_custeio: state.capitalCusteio,
+                        account_id: state.accountId,
                         notes: state.notes,
                         entity_id: state.entityId
                     }
@@ -140,7 +133,7 @@ export function GastoRecursoDialog({
             }
 
             await queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
-            await queryClient.invalidateQueries({ queryKey: ["account_balances"] });
+            await queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] });
             await queryClient.invalidateQueries({ queryKey: ["transactions"] });
             await queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
 
@@ -270,18 +263,7 @@ export function GastoRecursoDialog({
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label>Capital/Custeio (opcional)</Label>
-                        <Select value={state.capitalCusteio} onValueChange={setters.setCapitalCusteio}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="capital">Capital</SelectItem>
-                                <SelectItem value="custeio">Custeio</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+
 
                     <div className="space-y-2">
                         <Label>Observação</Label>
