@@ -92,6 +92,7 @@ export function useAssociacaoTransactions() {
           description: ledgerTx.description,
           notes: (ledgerTx.metadata?.notes as string) || null,
           status: 'posted',
+          ledger_status: (ledgerTx as any).status,
           created_by: ledgerTx.created_by,
           created_at: ledgerTx.created_at,
 
@@ -236,6 +237,7 @@ export function useRecursosTransactions() {
           description: ledgerTx.description,
           notes: (ledgerTx.metadata?.notes as string) || null,
           status: 'posted',
+          ledger_status: (ledgerTx as any).status,
           created_by: ledgerTx.created_by,
           created_at: ledgerTx.created_at,
 
@@ -357,6 +359,7 @@ export function useSaldosTransactions() {
           description: ledgerTx.description,
           notes: (ledgerTx.metadata?.notes as string) || null,
           status: 'posted',
+          ledger_status: (ledgerTx as any).status,
           created_by: ledgerTx.created_by,
           created_at: ledgerTx.created_at,
 

@@ -26,6 +26,7 @@ export async function createLedgerTransaction(input: {
     amount_cents: number;
     description?: string | null;
     reference_id?: string | null;
+    status?: "pending" | "validated" | "voided";
     metadata?: Record<string, unknown>;
 }) {
     if (!Number.isInteger(input.amount_cents) || input.amount_cents <= 0) {
@@ -45,6 +46,7 @@ export async function createLedgerTransaction(input: {
         amount_cents: input.amount_cents,
         description: input.description ?? null,
         reference_id: input.reference_id ?? null,
+        status: input.status || "validated",
         metadata: input.metadata ?? {},
     });
 

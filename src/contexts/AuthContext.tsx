@@ -10,7 +10,7 @@ interface Profile {
   name: string;
   email: string;
   active: boolean;
-  role?: "admin" | "user" | "demo";
+  role?: "admin" | "user" | "demo" | "secretaria";
 }
 
 interface AuthContextType {
@@ -19,6 +19,7 @@ interface AuthContextType {
   profile: Profile | null;
   isAdmin: boolean;
   isDemo: boolean;
+  isSecretaria: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
@@ -157,6 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile,
         isAdmin: profile?.role === "admin",
         isDemo: profile?.role === "demo",
+        isSecretaria: profile?.role === "secretaria",
         loading,
         signIn,
         signUp,

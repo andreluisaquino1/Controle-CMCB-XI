@@ -9,7 +9,7 @@ BEGIN;
 
 -- 1. ENUMS & TYPES
 DO $$ BEGIN
-    CREATE TYPE public.app_role AS ENUM ('admin', 'user', 'demo');
+    CREATE TYPE public.app_role AS ENUM ('admin', 'user', 'demo', 'secretaria');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
@@ -74,11 +74,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS public.user_profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    role TEXT NOT NULL DEFAULT 'tesouraria' CHECK (role IN ('admin', 'tesouraria')),
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+-- (Tabela user_profiles removida por redundância, usando user_roles)
 
 CREATE TABLE IF NOT EXISTS public.entities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -175,7 +171,19 @@ CREATE TABLE IF NOT EXISTS public.transaction_items (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 2.1 IMMUTABLE LEDGER TABLES
+-- 2.1 SETTINGS TABLE
+CREATE TABLE IF NOT EXISTS public.settings (
+  key TEXT PRIMARY KEY,
+  value TEXT,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_by UUID NULL
+);
+
+COMMENT ON TABLE public.settings IS 'Configurações simples do sistema (key/value).';
+COMMENT ON COLUMN public.settings.key IS 'Chave única da configuração.';
+COMMENT ON COLUMN public.settings.value IS 'Valor textual da configuração.';
+
+-- 2.2 IMMUTABLE LEDGER TABLES
 CREATE TABLE IF NOT EXISTS public.ledger_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
@@ -186,6 +194,7 @@ CREATE TABLE IF NOT EXISTS public.ledger_transactions (
     amount_cents BIGINT NOT NULL CHECK (amount_cents > 0),
     description TEXT,
     reference_id UUID,
+    status TEXT NOT NULL DEFAULT 'validated' CHECK (status IN ('pending', 'validated', 'voided')),
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
@@ -205,20 +214,31 @@ DROP VIEW IF EXISTS public.ledger_balances CASCADE;
 CREATE VIEW public.ledger_balances AS
  SELECT account_id,
     sum(delta_cents) AS balance_cents
-   FROM ( SELECT ledger_transactions.source_account AS account_id,
-            (- ledger_transactions.amount_cents) AS delta_cents
-           FROM ledger_transactions
-        UNION ALL
-         SELECT ledger_transactions.destination_account AS account_id,
-            ledger_transactions.amount_cents AS delta_cents
-           FROM ledger_transactions
-          WHERE (ledger_transactions.destination_account IS NOT NULL)) t
+   FROM ( 
+     SELECT source_account AS account_id, (- amount_cents) AS delta_cents
+     FROM public.ledger_transactions WHERE status = 'validated'
+     UNION ALL
+     SELECT destination_account AS account_id, amount_cents AS delta_cents
+     FROM public.ledger_transactions WHERE destination_account IS NOT NULL AND status = 'validated'
+   ) t
   GROUP BY account_id;
 
 -- 3. SECURITY (Helpers, RLS, Triggers)
 
 CREATE OR REPLACE FUNCTION public.is_active_user(_user_id UUID) RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS 'SELECT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = _user_id AND active = true)';
 CREATE OR REPLACE FUNCTION public.is_admin_user(_user_id UUID) RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS 'SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = ''admin'')';
+
+CREATE OR REPLACE FUNCTION public.check_can_moderate_ledger() 
+RETURNS BOOLEAN 
+LANGUAGE plpgsql 
+SECURITY DEFINER AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.user_roles 
+    WHERE user_id = auth.uid() 
+    AND role IN ('admin', 'user')
+  );
+END; $$;
 
 CREATE OR REPLACE FUNCTION public.is_admin() RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
@@ -235,6 +255,7 @@ ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transaction_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ledger_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ledger_audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
 -- Profiles Policies
 DROP POLICY IF EXISTS "Profiles: Admins/Own view" ON public.profiles;
@@ -262,10 +283,16 @@ CREATE POLICY "Merchants: Active users view" ON public.merchants FOR SELECT TO a
 DROP POLICY IF EXISTS "Transactions: Active users view" ON public.transactions;
 CREATE POLICY "Transactions: Active users view" ON public.transactions FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
 
+-- Settings Policies
+DROP POLICY IF EXISTS "Settings: Read for all authenticated" ON public.settings;
+CREATE POLICY "Settings: Read for all authenticated" ON public.settings FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Settings: Write only admin" ON public.settings;
+CREATE POLICY "Settings: Write only admin" ON public.settings FOR ALL TO authenticated USING (public.check_can_moderate_ledger());
+
 -- Ledger Immutability
 CREATE OR REPLACE FUNCTION public.block_ledger_mutations() RETURNS trigger LANGUAGE plpgsql AS $$
 begin
-  if current_setting('app.allow_ledger_reset', true) = 'on' then return null; end if;
+  if current_setting('app.allow_ledger_reset', true) = 'on' then return new; end if;
   raise exception 'ledger_transactions is immutable (no UPDATE/DELETE allowed)';
 end; $$;
 
@@ -284,6 +311,9 @@ end; $$;
 
 DROP TRIGGER IF EXISTS audit_ledger_insert_tr ON public.ledger_transactions;
 CREATE TRIGGER audit_ledger_insert_tr AFTER INSERT ON public.ledger_transactions FOR EACH ROW EXECUTE FUNCTION public.audit_ledger_insert();
+
+-- Settings Updated At
+CREATE TRIGGER trg_settings_touch BEFORE UPDATE ON public.settings FOR EACH ROW EXECUTE FUNCTION public._touch_updated_at();
 
 -- 4. BUSINESS LOGIC (RPCs)
 
@@ -352,6 +382,28 @@ DECLARE v_before jsonb; v_txn record; v_user_id uuid; BEGIN
     VALUES (p_id, 'void', v_before, row_to_json(v_txn)::jsonb, p_reason, v_user_id);
     RETURN row_to_json(v_txn);
 END; $$;
+
+CREATE OR REPLACE FUNCTION public.get_ledger_balance_map()
+RETURNS TABLE (account_id text, balance_cents bigint)
+LANGUAGE sql SECURITY DEFINER SET search_path TO 'public' 
+AS $$ SELECT account_id, balance_cents FROM ledger_balances; $$;
+
+CREATE OR REPLACE FUNCTION public.approve_ledger_transaction(p_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF NOT public.check_can_moderate_ledger() THEN
+        RAISE EXCEPTION 'Acesso negado: Somente administradores ou usuários autorizados podem validar transações.';
+    END IF;
+
+    UPDATE public.ledger_transactions 
+    SET status = 'validated'
+    WHERE id = p_id AND status = 'pending';
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.get_current_balances() RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE v_assoc uuid; BEGIN
@@ -428,6 +480,40 @@ END; $$;
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- Nuclear Reset Function
+CREATE OR REPLACE FUNCTION public.reset_all_data()
+RETURNS void 
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Verificar se o usuário pode moderar o ledger (admin/usuário)
+  IF NOT public.check_can_moderate_ledger() THEN
+    RAISE EXCEPTION 'Acesso negado: Somente administradores ou usuários autorizados podem resetar os dados.';
+  END IF;
+
+  -- Bypass Immutability Trigger
+  PERFORM set_config('app.allow_ledger_reset', 'on', true);
+
+  -- Limpeza rápida com TRUNCATE CASCADE
+  TRUNCATE TABLE 
+    public.ledger_audit_log,
+    public.audit_logs,
+    public.transaction_items,
+    public.ledger_transactions,
+    public.transactions
+  RESTART IDENTITY CASCADE;
+
+  -- Zerar saldos legados (redundância para segurança)
+  UPDATE public.accounts SET balance = 0 WHERE true;
+  UPDATE public.merchants SET balance = 0 WHERE true;
+  
+  -- Resetar bypass
+  PERFORM set_config('app.allow_ledger_reset', 'off', true);
+END;
+$$;
+
 -- 5. SEED DATA
 
 INSERT INTO public.entities (name, cnpj, type) VALUES ('Associação CMCB-XI', '37.812.756/0001-45', 'associacao'), ('Unidade Executora CMCB-XI', '38.331.489/0001-57', 'ue'), ('Caixa Escolar CMCB-XI', '37.812.693/0001-27', 'cx') ON CONFLICT (cnpj) DO NOTHING;
@@ -457,6 +543,11 @@ VALUES
     ('aporte_estabelecimento_recurso', 'Aporte em Estabelecimento (Recurso)', 'transfer'), 
     ('taxa_pix_bb', 'Taxas PIX BB (Lote)', 'expense')
 ON CONFLICT (module_key) DO UPDATE SET label = EXCLUDED.label, category = EXCLUDED.category;
+
+-- Settings Seed
+INSERT INTO public.settings (key, value)
+VALUES ('support_contact_text', 'Entre em contato com a administração solicitando a ativação para acessar o sistema.')
+ON CONFLICT (key) DO NOTHING;
 
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
 

@@ -42,6 +42,7 @@ export interface Transaction {
     origin_fund: string | null;
     entity_id: string | null;
     parent_transaction_id: string | null;
+    ledger_status?: "pending" | "validated" | "voided";
     created_at: string;
 }
 

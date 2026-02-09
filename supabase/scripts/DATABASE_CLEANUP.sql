@@ -33,9 +33,9 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- Verificar se o usuário é admin (ajuste conforme sua lógica de auth)
-  IF current_setting('request.jwt.claim.role', true) != 'authenticated' THEN
-    RAISE EXCEPTION 'Acesso negado';
+  -- Verificar se o usuário pode moderar o ledger (admin/usuário)
+  IF NOT public.check_can_moderate_ledger() THEN
+    RAISE EXCEPTION 'Acesso negado: Somente administradores ou usuários autorizados podem resetar os dados.';
   END IF;
 
   -- Bypass Immutability Trigger
@@ -50,8 +50,12 @@ BEGIN
     public.transactions
   RESTART IDENTITY CASCADE;
 
+  -- Zerar saldos legados (redundância para segurança)
   UPDATE public.accounts SET balance = 0 WHERE true;
   UPDATE public.merchants SET balance = 0 WHERE true;
+  
+  -- Resetar bypass
+  PERFORM set_config('app.allow_ledger_reset', 'off', true);
 END;
 $$;
 

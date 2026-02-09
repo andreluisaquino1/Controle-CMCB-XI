@@ -7,7 +7,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, XCircle, FileText } from "lucide-react";
+import { Loader2, XCircle, FileText, CheckCircle2 } from "lucide-react";
 import { formatDateBR } from "@/lib/date-utils";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { MODULE_LABELS } from "@/lib/constants";
@@ -19,6 +19,8 @@ interface TransactionTableProps {
     transactions: TransactionWithCreator[] | undefined;
     isLoading: boolean;
     onVoid?: (id: string) => void;
+    onValidate?: (id: string) => void;
+    isValidating?: boolean;
     showMerchant?: boolean;
     showOrigin?: boolean;
     showAccount?: boolean;
@@ -28,6 +30,8 @@ export function TransactionTable({
     transactions,
     isLoading,
     onVoid,
+    onValidate,
+    isValidating = false,
     showMerchant = false,
     showOrigin = false,
     showAccount = false,
@@ -63,6 +67,7 @@ export function TransactionTable({
                         <TableHead className="text-right">Valor</TableHead>
                         <TableHead>Descrição</TableHead>
                         <TableHead>Registrado por</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead>Observação</TableHead>
                         {(onVoid || transactions.some(t => t.module === 'taxa_pix_bb')) && <TableHead className="w-[100px] text-right">Ações</TableHead>}
                     </TableRow>
@@ -105,6 +110,25 @@ export function TransactionTable({
                             <TableCell className="text-muted-foreground text-xs">
                                 {t.creator_name || "-"}
                             </TableCell>
+                            <TableCell>
+                                {t.ledger_status === 'pending' ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                                        Pendente
+                                    </span>
+                                ) : t.ledger_status === 'validated' ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                        Validado
+                                    </span>
+                                ) : t.status === 'voided' ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                        Anulado
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                        Efetivado
+                                    </span>
+                                )}
+                            </TableCell>
                             <TableCell className="max-w-xs truncate text-muted-foreground text-xs italic">
                                 {t.notes || "-"}
                             </TableCell>
@@ -122,7 +146,19 @@ export function TransactionTable({
                                                 <FileText className="h-4 w-4" />
                                             </Button>
                                         )}
-                                        {onVoid && t.status === 'posted' && (
+                                        {onValidate && t.ledger_status === 'pending' && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
+                                                onClick={() => onValidate(t.id)}
+                                                disabled={isValidating}
+                                                title="Validar Lançamento"
+                                            >
+                                                {isValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                                            </Button>
+                                        )}
+                                        {onVoid && (t.status === 'posted' || t.ledger_status === 'validated') && (
                                             <Button
                                                 variant="ghost"
                                                 size="icon"

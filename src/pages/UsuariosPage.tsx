@@ -55,13 +55,14 @@ interface Profile {
     email: string;
     active: boolean;
     created_at: string;
-    role?: "admin" | "user" | "demo";
+    role?: "admin" | "user" | "demo" | "secretaria";
 }
 
 const ROLE_LABELS = {
     admin: "Administrador",
     user: "Usuário",
     demo: "Demonstração",
+    secretaria: "Secretaria",
 };
 
 export default function UsuariosPage() {
@@ -121,7 +122,7 @@ export default function UsuariosPage() {
 
     // Update role mutation
     const updateRole = useMutation({
-        mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "user" | "demo" }) => {
+        mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "user" | "demo" | "secretaria" }) => {
             const { data: existingRole } = await supabase
                 .from("user_roles")
                 .select("*")
@@ -243,7 +244,7 @@ export default function UsuariosPage() {
                                     <TableCell>
                                         <Select
                                             value={p.role}
-                                            onValueChange={(value: "admin" | "user" | "demo") =>
+                                            onValueChange={(value: "admin" | "user" | "demo" | "secretaria") =>
                                                 updateRole.mutate({ userId: p.user_id, role: value })
                                             }
                                             disabled={updateRole.isPending || p.user_id === profile?.user_id}
@@ -254,6 +255,7 @@ export default function UsuariosPage() {
                                             <SelectContent>
                                                 <SelectItem value="user">{ROLE_LABELS.user}</SelectItem>
                                                 <SelectItem value="admin">{ROLE_LABELS.admin}</SelectItem>
+                                                <SelectItem value="secretaria">{ROLE_LABELS.secretaria}</SelectItem>
                                                 <SelectItem value="demo">{ROLE_LABELS.demo}</SelectItem>
                                             </SelectContent>
                                         </Select>

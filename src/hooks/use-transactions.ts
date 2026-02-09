@@ -288,3 +288,30 @@ export function useVoidTransaction() {
     },
   });
 }
+export function useApproveTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (transactionId: string) => {
+      const { data, error } = await supabase.rpc("approve_ledger_transaction", {
+        p_id: transactionId,
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["entities-with-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["all-transactions"] });
+      toast.success("Transação validada com sucesso.");
+    },
+    onError: (error: Error) => {
+      console.error("Approval error:", error);
+      toast.error(error.message || "Não foi possível validar a transação.");
+    },
+  });
+}

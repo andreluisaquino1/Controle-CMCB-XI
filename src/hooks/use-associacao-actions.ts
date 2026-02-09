@@ -15,6 +15,7 @@ import {
 } from "@/lib/schemas";
 import { createLedgerTransaction } from "@/domain/ledger";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AssociacaoState {
     mensalidade: {
@@ -55,7 +56,8 @@ export function useAssociacaoActions(
     onSuccess?: () => void
 ) {
     const queryClient = useQueryClient();
-    const createTransaction = useCreateTransaction(); // Keep for legacy or mix? Actually we want to replace it.
+    const { isSecretaria } = useAuth();
+    const createTransaction = useCreateTransaction();
     // We'll use local state for loading since we're calling async functions directly
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -146,6 +148,7 @@ export function useAssociacaoActions(
                     source_account: LEDGER_KEYS.EXTERNAL_INCOME,
                     destination_account: ACCOUNT_NAME_TO_LEDGER_KEY[ACCOUNT_NAMES.ESPECIE],
                     amount_cents: toCents(state.mensalidade.cash),
+                    status: isSecretaria ? "pending" : "validated",
                     description: `Mensalidade ${state.mensalidade.turno}`,
                     metadata: {
                         modulo: "mensalidade",
@@ -162,6 +165,7 @@ export function useAssociacaoActions(
                     source_account: LEDGER_KEYS.EXTERNAL_INCOME,
                     destination_account: ACCOUNT_NAME_TO_LEDGER_KEY[ACCOUNT_NAMES.PIX],
                     amount_cents: toCents(state.mensalidade.pix),
+                    status: isSecretaria ? "pending" : "validated",
                     description: `Mensalidade ${state.mensalidade.turno} (PIX)`,
                     metadata: {
                         modulo: "mensalidade_pix",
@@ -215,6 +219,7 @@ export function useAssociacaoActions(
                 source_account: sourceKey,
                 destination_account: LEDGER_KEYS.EXTERNAL_EXPENSE,
                 amount_cents: toCents(state.gasto.valor),
+                status: isSecretaria ? "pending" : "validated",
                 description: state.gasto.descricao,
                 metadata: {
                     modulo: "gasto_associacao",
