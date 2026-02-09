@@ -13,8 +13,11 @@ O sistema gerencia três entidades distintas para o CMCB-XI:
 3.  **Caixa Escolar (CX)**: Gere repasses estaduais e alimentação escolar (Merenda).
 
 **Perfis de Acesso:**
-*   **Admin**: Gestão de usuários e ativação de contas.
-*   **Usuário**: Operação diária (lançamentos e relatórios).
+*   **Admin**: Acesso total, gestão de usuários, ativação de contas e limpeza de dados (Reset).
+*   **Usuário**: Operação diária completa (lançamentos, anulações e relatórios) para todas as entidades (Assoc, UE, CX).
+*   **Secretária**: Perfil focado na secretaria escolar. 
+    *   *Restrições*: Visualiza apenas a aba **Associação** e seu **Perfil**. 
+    *   *Fluxo*: Todos os lançamentos realizados por este perfil entram como **Pendente** e precisam ser validados por um Admin ou Usuário para afetarem o saldo final. Não possui permissão para anular ou validar.
 *   **Visitante/Demonstração**: Modo simulação. Permite realizar lançamentos e testes que ficam salvos apenas no seu navegador, sem afetar os dados reais da escola e sem visualizar os dados reais.
     Login: teste@teste.com 
     Senha: teste1

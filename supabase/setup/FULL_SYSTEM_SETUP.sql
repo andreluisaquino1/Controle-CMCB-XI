@@ -5,12 +5,15 @@
 -- segurança (RLS), funções de auditoria e lógica de negócio (RPCs).
 -- Execute este script no SQL Editor do Supabase.
 
-BEGIN;
-
 -- 1. ENUMS & TYPES
 DO $$ BEGIN
     CREATE TYPE public.app_role AS ENUM ('admin', 'user', 'demo', 'secretaria');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Garantir que o valor 'secretaria' exista no enum caso ele já tenha sido criado antes
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'secretaria';
+
+BEGIN;
 
 DO $$ BEGIN
     CREATE TYPE public.fund_origin AS ENUM ('UE', 'CX');
@@ -252,6 +255,10 @@ CREATE OR REPLACE FUNCTION public.is_admin() RETURNS boolean LANGUAGE sql STABLE
   SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin');
 $$;
 
+CREATE OR REPLACE FUNCTION public.is_secretaria() RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role::text = 'secretaria');
+$$;
+
 -- Helper para atualização de data
 CREATE OR REPLACE FUNCTION public._touch_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
@@ -293,6 +300,32 @@ CREATE POLICY "Merchants: Active users view" ON public.merchants FOR SELECT TO a
 -- Transactions Policies
 DROP POLICY IF EXISTS "Transactions: Active users view" ON public.transactions;
 CREATE POLICY "Transactions: Active users view" ON public.transactions FOR SELECT TO authenticated USING (public.is_active_user(auth.uid()));
+
+-- Ledger Policies
+DROP POLICY IF EXISTS "Ledger: Active users view" ON public.ledger_transactions;
+CREATE POLICY "Ledger: Active users view" ON public.ledger_transactions 
+FOR SELECT TO authenticated 
+USING (
+  public.is_active_user(auth.uid()) 
+  AND (NOT public.is_secretaria() OR entity_id = (SELECT id FROM entities WHERE type = 'associacao' LIMIT 1))
+);
+
+DROP POLICY IF EXISTS "Ledger: Active users insert" ON public.ledger_transactions;
+CREATE POLICY "Ledger: Active users insert" ON public.ledger_transactions 
+FOR INSERT TO authenticated 
+WITH CHECK (
+  public.is_active_user(auth.uid())
+  AND (NOT public.is_secretaria() OR (
+    entity_id = (SELECT id FROM entities WHERE type = 'associacao' LIMIT 1)
+    AND status::text = 'pending'
+  ))
+);
+
+-- Ledger Audit Policies
+DROP POLICY IF EXISTS "Ledger Audit: View for all active" ON public.ledger_audit_log;
+CREATE POLICY "Ledger Audit: View for all active" ON public.ledger_audit_log 
+FOR SELECT TO authenticated 
+USING (public.is_active_user(auth.uid()));
 
 -- Settings Policies
 DROP POLICY IF EXISTS "Settings: Read for all authenticated" ON public.settings;

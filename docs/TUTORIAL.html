@@ -217,10 +217,12 @@
             </ul>
             <p><b>Perfis de Acesso:</b></p>
             <ul>
-                <li><b>Admin</b>: Gestão de usuários e ativação de contas.</li>
-                <li><b>Usuário</b>: Operação diária (lançamentos e relatórios).</li>
-                <li><b>Visitante/Demonstração</b>: Modo simulação. Permite realizar lançamentos e testes que ficam
-                    salvos apenas no seu navegador, sem afetar e sem visualizar os dados reais do colégio.
+                <li><b>Admin</b>: Acesso total, gestão de usuários, ativação e reset de dados.</li>
+                <li><b>Usuário</b>: Operação diária completa (lançamentos, anulações e relatórios) para todas as
+                    entidades.</li>
+                <li><b>Secretária</b>: Focado na secretaria escolar. Acesso restrito apenas à aba <b>Associação</b>.
+                    Lançamentos entram como <b>Pendentes</b> e exigem validação de um superior.</li>
+                <li><b>Visitante/Demonstração</b>: Modo simulação. Permite testes salvos apenas localmente no navegador.
                     <br><b>Login:</b> teste@teste.com | <b>Senha:</b> teste1
                 </li>
             </ul>
@@ -327,10 +329,14 @@
             </div>
 
             <div class="no-break">
-                <h3>2.8 Administração de Usuários</h3>
+                <h3>2.8 Administração de Usuários (Apenas Admin)</h3>
                 <ul>
                     <li><b>Ativação (Switch)</b>: Libera acesso para novos perfis cadastrados.</li>
                     <li><b>Alterar Função (Select)</b>: Define se o usuário é Admin, Usuário ou Visitante.</li>
+                    <li><b>Reset de Dados</b>: Função "Nuclear" disponível no menu Perfil para administradores.
+                        <div class="example-block">Atenção: Esta ação apaga todo o histórico e não pode ser desfeita.
+                        </div>
+                    </li>
                 </ul>
             </div>
 
@@ -338,6 +344,7 @@
                 <h3>2.9 Perfil e Segurança</h3>
                 <ul>
                     <li><b>Alterar Senha</b>: No menu Perfil, informe a senha atual e a nova.</li>
+                    <li><b>Zona de Perigo</b>: Local onde o Administrador pode realizar o Reset do banco.</li>
                     <li><b>Recuperação</b>: Link "Esqueci minha senha" na tela de login via e-mail.</li>
                 </ul>
             </div>
@@ -347,27 +354,29 @@
             <h2>3. Guia Operacional (Rotina)</h2>
             <div class="routine-step">
                 <div class="step-number">1</div>
-                <div><b>Conferência:</b> Cheque se o físico em espécie bate com o sistema no início do turno.</div>
+                <div><b>Conferência:</b> Cheque se o físico em espécie bate com o Dashboard no início do turno.</div>
             </div>
             <div class="routine-step">
                 <div class="step-number">2</div>
-                <div><b>Lançamentos:</b> Registre mensalidades e entradas assim que ocorrerem na secretaria.</div>
+                <div><b>Lançamentos:</b> Registre entradas imediatamente. O Ledger garante atualização em tempo real.
+                </div>
             </div>
             <div class="routine-step">
                 <div class="step-number">3</div>
-                <div><b>Autorização:</b> Verifique o Saldo do Estabelecimento antes de autorizar compras externas.</div>
+                <div><b>Autorização:</b> Verifique o Saldo do Estabelecimento antes de autorizar compras.</div>
             </div>
             <div class="routine-step">
                 <div class="step-number">4</div>
-                <div><b>Fechamento:</b> Gere o relatório semanal e informe os demais via Preview WhatsApp.</div>
+                <div><b>Fechamento:</b> Gere o relatório. Agora os dados vêm 100% do Ledger oficial.</div>
             </div>
         </section>
 
         <section>
             <h2>4. Auditoria e Segurança</h2>
             <ul>
-                <li><b>Não há Edição</b>: Valores são imutáveis para evitar fraudes.</li>
-                <li><b>Transparência</b>: Toda anulação exige justificativa e gera um log auditável em tempo real.</li>
+                <li><b>Fonte Única</b>: Relatórios e dashboards unificados via Ledger Transactions.</li>
+                <li><b>Imutabilidade</b>: Valores são imutáveis; correções apenas via Anulação com justificativa.</li>
+                <li><b>Logs em Tempo Real</b>: Todo Reset, Anulação ou Alteração gera um log auditável.</li>
             </ul>
         </section>
 
