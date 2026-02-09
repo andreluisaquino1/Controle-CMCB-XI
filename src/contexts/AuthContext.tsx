@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { env } from "@/lib/env";
+import { toast } from "sonner";
 
 interface Profile {
   id: string;
@@ -110,19 +112,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, name: string) => {
-    const origin = window.location.origin.includes("localhost")
-      ? "https://cmcb-xi.vercel.app"
-      : window.location.origin;
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${origin}/auth`,
-        data: { name },
-      },
-    });
-    return { error };
+    setLoading(true);
+    try {
+      const origin = env.VITE_PUBLIC_SITE_URL || window.location.origin;
+      console.log("Starting signup process for:", email);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${origin}/auth/callback`,
+        },
+      });
+      return { error };
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signOut = async () => {
@@ -133,14 +137,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetPassword = async (email: string) => {
-    const origin = window.location.origin.includes("localhost")
-      ? "https://cmcb-xi.vercel.app"
-      : window.location.origin;
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/auth/reset-password`,
-    });
-    return { error };
+    setLoading(true);
+    try {
+      const origin = env.VITE_PUBLIC_SITE_URL || window.location.origin;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${origin}/auth/update-password`,
+      });
+      return { error };
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

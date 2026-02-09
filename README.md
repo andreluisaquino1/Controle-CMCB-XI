@@ -41,7 +41,7 @@ npm run build
 - Variáveis de ambiente devem estar configuradas no Vercel
 - Migrações devem ser aplicadas manualmente no Supabase
 
-**Ver [DEPLOYMENT.md](./DEPLOYMENT.md) para instruções completas.**
+**VSee [Deployment Guide](docs/DEPLOYMENT.md) for detailed instructions. completas.**
 
 ## Últimas Atualizações (2026-02-03)
 - ✅ Removido sistema de Fiado completamente

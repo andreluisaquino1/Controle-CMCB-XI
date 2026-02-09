@@ -48,7 +48,7 @@ describe("getAccountBalanceCents", () => {
             })
         });
 
-        const balance = await getAccountBalanceCents("non-existent");
+        const balance = await getAccountBalanceCents("non-existent-id");
         expect(balance).toBe(0);
     });
 

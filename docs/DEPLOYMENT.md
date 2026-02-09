@@ -23,8 +23,9 @@ Acesse https://vercel.com/seu-projeto/settings/environment-variables e adicione:
 
 ```
 VITE_SUPABASE_PROJECT_ID=rqwbtlriiycirsukqmux
-VITE_SUPABASE_URL=https://rqwbtlriiycirsukqmux.supabase.co
-VITE_SUPABASE_ANON_KEY=<nova_chave_anon_key_aqui>
+- `VITE_SUPABASE_URL`: Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+- `VITE_PUBLIC_SITE_URL`: (Optional) URL for auth redirects (e.g. https://cmcb-xi.vercel.app)
 ```
 
 ### 4. Aplicar Migrações no Supabase
@@ -49,8 +50,8 @@ supabase db push
 **Opção B: Via Dashboard**
 1. Acesse https://supabase.com/dashboard/project/rqwbtlriiycirsukqmux/sql
 2. Copie e execute cada arquivo SQL na ordem:
-   - `20260203_phase1_current_balances.sql`
-   - `20260203_phase6_remove_fiado.sql`
+   - `2026-02-08_fix_ledger_balances.sql`
+   - `2026-02-09_settings_support_contact.sql`.sql`
    - `20260203_phase8_admin_role.sql`
 
 ### 5. Verificar Instalação

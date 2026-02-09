@@ -20,7 +20,6 @@ const UsuariosPage = lazy(() => import("./pages/UsuariosPage"));
 const LogPage = lazy(() => import("./pages/LogPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const IntegridadePage = lazy(() => import("./pages/IntegridadePage"));
 
 // Optimized QueryClient
 const queryClient = new QueryClient({
@@ -108,12 +107,6 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/integridade"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <IntegridadePage />
-                  </ProtectedRoute>
                 }
               />
               <Route path="*" element={<NotFound />} />

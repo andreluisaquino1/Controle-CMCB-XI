@@ -67,8 +67,8 @@ describe("MovimentarSaldoDialog component", () => {
         );
 
         expect(screen.getByText("Prévia de Impacto nos Saldos")).toBeDefined();
-        // Source projected: 1000 - (100 + 5) = 895
-        expect(screen.getByText("R$ 895,00")).toBeDefined();
+        // Source projected:    // 1000 - 100 = 900 (taxa é informativa)
+        expect(screen.getByText("R$ 900,00")).toBeDefined();
         // Destination projected: 500 + 100 = 600
         expect(screen.getByText("R$ 600,00")).toBeDefined();
     });

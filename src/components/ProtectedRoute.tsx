@@ -1,5 +1,7 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
@@ -10,6 +12,31 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
   const { user, profile, isAdmin, loading, signOut } = useAuth();
   const location = useLocation();
+
+  // Texto de suporte configurável via tabela `settings` (admin).
+  // Fallback neutro caso não exista configuração.
+  const { data: supportContactText } = useQuery({
+    queryKey: ["settings", "support_contact_text"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("settings")
+        .select("value")
+        .eq("key", "support_contact_text")
+        .maybeSingle();
+
+      if (error) {
+        // não bloqueia o acesso por falha de configuração
+        console.warn("Falha ao buscar settings:support_contact_text", error);
+        return null;
+      }
+
+      return (data?.value as string | null) ?? null;
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
+  });
 
   if (loading || (user && !profile)) {
     return (

@@ -256,10 +256,10 @@ export function useAssociacaoActions(
         const destAccount = accounts?.find(a => a.id === state.mov.para);
         if (!sourceAccount || !destAccount) return false;
 
-        const totalAmount = state.mov.valor + state.mov.taxa;
-
-        if (totalAmount > sourceAccount.balance) {
-            toast.error(`Saldo insuficiente em ${sourceAccount.name}. Necessário ${formatCurrencyBRL(totalAmount)}.`);
+        // DECISÃO (2026-02-09): taxa é apenas informativa e NÃO entra no ledger.
+        // Como o ledger é a fonte da verdade do saldo, só validamos saldo contra o valor transferido.
+        if (state.mov.valor > sourceAccount.balance) {
+            toast.error(`Saldo insuficiente em ${sourceAccount.name}. Necessário ${formatCurrencyBRL(state.mov.valor)}.`);
             return false;
         }
 
@@ -298,24 +298,10 @@ export function useAssociacaoActions(
                 description: state.mov.descricao,
                 metadata: {
                     modulo: "assoc_transfer",
-                    notes: state.mov.obs
-                }
+                    notes: state.mov.obs,
+                    taxa_informativa_cents: toCents(state.mov.taxa),
+                },
             });
-
-            // 2. Register Taxa (Fee) if exists
-            if (state.mov.taxa > 0) {
-                await createLedgerTransaction({
-                    type: "fee",
-                    source_account: sourceKey, // Fee leaves the source account
-                    destination_account: LEDGER_KEYS.EXTERNAL_EXPENSE,
-                    amount_cents: toCents(state.mov.taxa),
-                    description: `Taxa da movimentação: ${sourceAccount.name} -> ${destAccount.name}`,
-                    metadata: {
-                        modulo: "conta_digital_taxa",
-                        related_transfer: `Transfer to ${destKey}`
-                    }
-                });
-            }
 
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] }),

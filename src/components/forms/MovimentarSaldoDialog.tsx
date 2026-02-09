@@ -32,6 +32,7 @@ import { cleanAccountDisplayName } from "@/lib/account-display";
 import { ACCOUNT_NAMES, sortByAccountOrder } from "@/lib/constants";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { Account } from "@/types";
+import { cn } from "@/lib/utils";
 
 interface MovimentarSaldoDialogProps {
     open: boolean;
@@ -177,14 +178,25 @@ export function MovimentarSaldoDialog({
                                             <span className="text-muted-foreground">Saldo atual:</span>
                                             <span>{formatCurrencyBRL(sourceAccount.balance)}</span>
                                         </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Saída (+taxa):</span>
-                                            <span className="text-destructive">-{formatCurrencyBRL(state.valor + state.taxa)}</span>
+                                        <div className="flex justify-between font-medium">
+                                            <span className="text-muted-foreground">Saída:</span>
+                                            <span className="text-destructive">-{formatCurrencyBRL(state.valor)}</span>
                                         </div>
-                                        <div className="pt-1 border-t border-muted/50 flex justify-between text-sm font-bold">
-                                            <span>Projetado:</span>
-                                            <span className={sourceAccount.balance - (state.valor + state.taxa) < 0 ? "text-destructive" : "text-primary"}>
-                                                {formatCurrencyBRL(sourceAccount.balance - (state.valor + state.taxa))}
+
+                                        {state.taxa > 0 && (
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-muted-foreground">Taxa (informativa):</span>
+                                                <span className="text-muted-foreground">{formatCurrencyBRL(state.taxa)}</span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex justify-between border-t pt-2 mt-2">
+                                            <span className="text-muted-foreground">Saldo Projetado:</span>
+                                            <span className={cn(
+                                                "font-bold",
+                                                (sourceAccount.balance - state.valor) < 0 ? "text-destructive" : "text-primary"
+                                            )}>
+                                                {formatCurrencyBRL(sourceAccount.balance - state.valor)}
                                             </span>
                                         </div>
                                     </div>
