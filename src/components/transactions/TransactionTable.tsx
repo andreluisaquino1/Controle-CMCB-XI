@@ -24,6 +24,8 @@ interface TransactionTableProps {
     showMerchant?: boolean;
     showOrigin?: boolean;
     showAccount?: boolean;
+    showShift?: boolean;
+    showMethod?: boolean;
 }
 
 export function TransactionTable({
@@ -35,6 +37,8 @@ export function TransactionTable({
     showMerchant = false,
     showOrigin = false,
     showAccount = false,
+    showShift = false,
+    showMethod = false,
 }: TransactionTableProps) {
     const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
@@ -55,13 +59,15 @@ export function TransactionTable({
     }
 
     return (
-        <div className="overflow-x-auto max-h-[650px] overflow-y-auto border rounded-md shadow-inner">
+        <div className="overflow-x-auto max-h-[380px] overflow-y-auto border rounded-md shadow-inner relative bg-card custom-scrollbar">
             <Table>
                 <TableHeader>
                     <TableRow>
                         <TableHead>Data</TableHead>
                         <TableHead>Tipo</TableHead>
                         {showOrigin && <TableHead>Origem</TableHead>}
+                        {showMethod && <TableHead>Meio</TableHead>}
+                        {showShift && <TableHead>Turno</TableHead>}
                         {(showAccount || (!showOrigin && !showMerchant)) && <TableHead>Conta</TableHead>}
                         {showMerchant && <TableHead>Estabelecimento</TableHead>}
                         <TableHead className="text-right">Valor</TableHead>
@@ -80,26 +86,31 @@ export function TransactionTable({
                             </TableCell>
                             <TableCell>
                                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${t.direction === "in" || t.module === "aporte_saldo"
-                                    ? "bg-success/10 text-success"
-                                    : "bg-destructive/10 text-destructive"
+                                        ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                        : t.direction === "transfer"
+                                            ? "bg-blue-100 text-blue-700 border border-blue-200"
+                                            : "bg-rose-100 text-rose-700 border border-rose-200"
                                     }`}>
                                     {MODULE_LABELS[t.module] || t.module}
                                 </span>
                             </TableCell>
                             {showOrigin && (
                                 <TableCell>
-                                    <span className="font-semibold">
+                                    <span className="font-semibold text-xs">
                                         {t.origin_fund || t.entity_type?.toUpperCase()}
                                     </span>
                                 </TableCell>
                             )}
+                            {showMethod && <TableCell className="text-xs">{t.payment_method || "-"}</TableCell>}
+                            {showShift && <TableCell className="text-xs">{t.shift || "-"}</TableCell>}
                             {(showAccount || (!showOrigin && !showMerchant)) && (
                                 <TableCell className="text-sm">
                                     {t.source_account_name || t.destination_account_name || "-"}
                                 </TableCell>
                             )}
                             {showMerchant && <TableCell className="text-sm">{t.merchant_name || "-"}</TableCell>}
-                            <TableCell className={`text-right font-bold whitespace-nowrap ${t.direction === "in" || t.module === "aporte_saldo" ? "text-success" : "text-destructive"
+                            <TableCell className={`text-right font-bold whitespace-nowrap ${t.direction === "in" || t.module === "aporte_saldo" ? "text-emerald-600" :
+                                    t.direction === "transfer" ? "text-blue-600" : "text-rose-600"
                                 }`}>
                                 {t.direction === "in" || t.module === "aporte_saldo" ? "+" : "-"}
                                 {formatCurrencyBRL(Number(t.amount))}

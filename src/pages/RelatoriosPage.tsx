@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TransactionTable } from "@/components/transactions/TransactionTable";
 
 export default function RelatoriosPage() {
   // Date range state
@@ -202,85 +203,15 @@ export default function RelatoriosPage() {
                   <p className="text-muted-foreground font-medium">Nenhuma transação encontrada no período.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto max-h-[600px] overflow-y-auto rounded-md border shadow-inner">
-                  <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Módulo</TableHead>
-                        <TableHead>Meio</TableHead>
-                        <TableHead>Turno</TableHead>
-                        <TableHead>Origem / Conta</TableHead>
-                        <TableHead>Estabelecimento</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                        <TableHead>Descrição</TableHead>
-                        <TableHead>Observação</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Registrado por</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredTransactions.map((t) => (
-                        <TableRow key={t.id} className={t.status === 'voided' ? 'opacity-50 grayscale bg-muted/30' : ''}>
-                          <TableCell className="whitespace-nowrap font-medium">
-                            {formatDateBR(t.transaction_date)}
-                          </TableCell>
-                          <TableCell>
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary-foreground">
-                              {MODULE_LABELS[t.module] || t.module}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {t.payment_method || '-'}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {t.shift || '-'}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {t.source_account_name || t.destination_account_name || '-'}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {t.entity_name || '-'}
-                          </TableCell>
-                          <TableCell className={`text-right font-bold tabular-nums ${t.direction === "in" ? "text-success" :
-                            t.direction === "out" ? "text-destructive" : ""
-                            }`}>
-                            {t.direction === "in" ? "+" : t.direction === "out" ? "-" : ""}
-                            {formatCurrencyBRL(Number(t.amount))}
-                          </TableCell>
-                          <TableCell className="max-w-[200px] truncate text-sm" title={t.description || ""}>
-                            {t.description || "-"}
-                          </TableCell>
-                          <TableCell className="max-w-[150px] truncate text-muted-foreground text-[10px] italic" title={t.notes || ""}>
-                            {t.notes || "-"}
-                          </TableCell>
-                          <TableCell>
-                            {t.ledger_status === 'pending' ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">
-                                Pendente
-                              </span>
-                            ) : t.ledger_status === 'validated' ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                Validado
-                              </span>
-                            ) : t.status === 'voided' ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                                Anulado
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                                Efetivado
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                            {t.creator_name || "-"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <TransactionTable
+                  transactions={filteredTransactions}
+                  isLoading={transactionsLoading}
+                  showOrigin
+                  showAccount
+                  showMerchant
+                  showMethod
+                  showShift
+                />
               )}
             </CardContent>
           </Card>
