@@ -355,16 +355,17 @@ export function useActivateAccount() {
 
 // Helpers
 async function fetchLedgerBalancesMap() {
-  // @ts-ignore - view might not be in types yet
-  const { data, error } = await supabase.from("ledger_balances").select("*");
+  // @ts-ignore - RPC not in generated types yet, regenerate after migration is applied
+  const { data, error } = await supabase.rpc("get_ledger_balance_map") as {
+    data: { account_id: string; balance_cents: number }[] | null;
+    error: Error | null
+  };
   if (error) throw error;
 
   const map = new Map<string, number>();
-  data?.forEach((row: any) => {
-    // Handle potential column name variations (account vs account_key)
-    const key = row.account || row.account_key || row.account_id;
-    if (key) {
-      map.set(key, (row.balance_cents || 0) / 100);
+  (data ?? []).forEach((row) => {
+    if (row.account_id) {
+      map.set(row.account_id, (row.balance_cents || 0) / 100);
     }
   });
   return map;

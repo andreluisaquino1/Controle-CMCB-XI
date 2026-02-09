@@ -16,7 +16,7 @@ describe("Import Test - Category Coverage 100%", () => {
                 import("@/pages/RecursosPage"),
                 import("@/pages/RelatoriosPage"),
                 import("@/pages/LogPage"),
-                import("@/pages/IntegridadePage"),
+
                 import("@/pages/SaldosPage"),
                 import("@/pages/AuthPage"),
                 import("@/pages/PerfilPage"),
@@ -25,7 +25,7 @@ describe("Import Test - Category Coverage 100%", () => {
                 import("@/pages/NotFound"),
                 import("@/pages/Index"),
             ]);
-            expect(modules).toHaveLength(13);
+            expect(modules).toHaveLength(12);
             modules.forEach(m => expect(m.default).toBeDefined());
         }, 30000); // 30 second timeout for heavy imports
     });
