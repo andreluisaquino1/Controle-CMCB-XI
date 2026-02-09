@@ -35,11 +35,13 @@ O banco de dados agora segue uma arquitetura consolidada em um único arquivo de
 **Opção A: Instalação Inicial ou Reset (Recomendado)**
 1. Acesse o Supabase Dashboard SQL Editor.
 2. Execute o conteúdo de `supabase/setup/FULL_SYSTEM_SETUP.sql`.
-3. Este script cria todas as tabelas, enums, triggers e as políticas RLS.
+3. Este script cria todas as tabelas, enums, triggers e as políticas RLS. 
+   - *Nota: O script agora é **idempotente**, podendo ser executado repetidamente para aplicar atualizações sem causar erros de "objeto já existe".*
 
 **Opção B: Atualização de Sistema Existente**
 Se você já tem o sistema rodando e quer apenas aplicar as melhorias de Fevereiro de 2026:
-1. Execute `supabase/migrations/2026-02-09_ledger_unification.sql`.
+1. Execute `supabase/migrations/2026-02-09_ledger_unification.sql` (Unificação do Ledger).
+2. Execute `supabase/migrations/2026-02-09_sql_simplification.sql` (Limpeza de Legado e Reset Admin).
 2. Este script alinha o schema da `ledger_transactions` e atualiza as funções de resumo.
 
 ### 5. Verificar Instalação
