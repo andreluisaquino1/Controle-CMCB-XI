@@ -22,7 +22,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useEntities } from "@/hooks/use-accounts";
 // import { useCreateTransaction } from "@/hooks/use-transactions"; // Legacy
-import { createLedgerTransaction } from "@/domain/ledger";
+import { transactionService } from "@/services/transactionService";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ConsumoSaldoDialogProps {
@@ -114,9 +114,10 @@ export function ConsumoSaldoDialog({
         try {
             setIsSubmitting(true);
             for (const item of validItems) {
-                await createLedgerTransaction({
+                await transactionService.createLedgerTransaction({
                     type: 'expense',
                     source_account: state.merchant, // Merchant ID as Source (consuming balance)
+                    destination_account: "external_expense", // Consumed balance goes to external
                     amount_cents: Math.round(item.amount * 100),
                     description: item.description,
                     metadata: {

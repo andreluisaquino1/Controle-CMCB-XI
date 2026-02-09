@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
 import { Building2, Loader2, ArrowUpCircle, ArrowDownCircle, ScrollText, Pencil, Trash2, Plus, XCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { useCreateTransaction, useCreateResourceTransaction, useVoidTransaction } from "@/hooks/use-transactions";
+import { useVoidTransaction } from "@/hooks/use-transactions";
 import { useEntitiesWithAccounts, useCreateAccount, useUpdateAccount, useDeactivateAccount, useActivateAccount } from "@/hooks/use-accounts";
 import { useMerchants } from "@/hooks/use-merchants";
 import { useRecursosTransactions } from "@/hooks/use-entity-transactions";
@@ -16,7 +16,8 @@ import { GastoRecursoDialog } from "@/components/forms/GastoRecursoDialog";
 import { AccountDialog } from "@/components/forms/AccountDialog";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
 import { LEDGER_KEYS, ACCOUNT_NAME_TO_LEDGER_KEY } from "@/lib/constants";
-import { createLedgerTransaction } from "@/domain/ledger";
+import { transactionService } from "@/services/transactionService";
+import { accountService } from "@/services/accountService";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -136,7 +137,7 @@ export default function RecursosPage() {
       // Use account ID as ledger key - this gives each account its own balance
       const accountKey = selectedAccount.id;
 
-      await createLedgerTransaction({
+      await transactionService.createLedgerTransaction({
         type: "income",
         source_account: "external_income", // Source sends money (external)
         destination_account: accountKey,   // Destination receives money (increases balance)

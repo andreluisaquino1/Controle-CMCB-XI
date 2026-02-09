@@ -24,7 +24,7 @@ export interface TransactionItem {
     created_at: string;
 }
 
-import { createLedgerTransaction } from "@/domain/ledger";
+import { transactionService } from "@/services/transactionService";
 import { LEDGER_KEYS } from "@/lib/constants";
 
 export function useCreatePixFeeBatch() {
@@ -66,7 +66,7 @@ export function useCreatePixFeeBatch() {
             const itemCount = validItems.length;
             const summaryDescription = `Lote de Tarifas PIX (${itemCount} itens)${payload.reference ? ` - ${payload.reference}` : ""}`;
 
-            await createLedgerTransaction({
+            await transactionService.createLedgerTransaction({
                 type: 'fee',
                 source_account: LEDGER_KEYS.PIX,
                 amount_cents: totalAmountCents,

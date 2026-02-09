@@ -195,8 +195,17 @@ CREATE TABLE IF NOT EXISTS public.ledger_transactions (
     description TEXT,
     reference_id UUID,
     status TEXT NOT NULL DEFAULT 'validated' CHECK (status IN ('pending', 'validated', 'voided')),
+    module public.transaction_module,
+    entity_id UUID REFERENCES public.entities(id),
+    payment_method public.payment_method,
     metadata JSONB DEFAULT '{}'::jsonb
 );
+
+-- Garantir que colunas novas existam caso a tabela já tenha sido criada (Bug do IF NOT EXISTS)
+ALTER TABLE public.ledger_transactions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'validated' CHECK (status IN ('pending', 'validated', 'voided'));
+ALTER TABLE public.ledger_transactions ADD COLUMN IF NOT EXISTS module public.transaction_module;
+ALTER TABLE public.ledger_transactions ADD COLUMN IF NOT EXISTS entity_id UUID REFERENCES public.entities(id);
+ALTER TABLE public.ledger_transactions ADD COLUMN IF NOT EXISTS payment_method public.payment_method;
 
 CREATE TABLE IF NOT EXISTS public.ledger_audit_log (
     id BIGSERIAL PRIMARY KEY,
@@ -226,24 +235,26 @@ CREATE VIEW public.ledger_balances AS
 -- 3. SECURITY (Helpers, RLS, Triggers)
 
 CREATE OR REPLACE FUNCTION public.is_active_user(_user_id UUID) RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS 'SELECT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = _user_id AND active = true)';
-CREATE OR REPLACE FUNCTION public.is_admin_user(_user_id UUID) RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS 'SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = ''admin'')';
 
 CREATE OR REPLACE FUNCTION public.check_can_moderate_ledger() 
 RETURNS BOOLEAN 
-LANGUAGE plpgsql 
+LANGUAGE sql 
+STABLE
 SECURITY DEFINER AS $$
-BEGIN
-  RETURN EXISTS (
+  SELECT EXISTS (
     SELECT 1 FROM public.user_roles 
     WHERE user_id = auth.uid() 
     AND role IN ('admin', 'user')
   );
-END; $$;
+$$;
 
-CREATE OR REPLACE FUNCTION public.is_admin() RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
-  RETURN EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin');
-END; $$;
+CREATE OR REPLACE FUNCTION public.is_admin() RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin');
+$$;
+
+-- Helper para atualização de data
+CREATE OR REPLACE FUNCTION public._touch_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.entities ENABLE ROW LEVEL SECURITY;
@@ -259,13 +270,13 @@ ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
 -- Profiles Policies
 DROP POLICY IF EXISTS "Profiles: Admins/Own view" ON public.profiles;
-CREATE POLICY "Profiles: Admins/Own view" ON public.profiles FOR SELECT TO authenticated USING (public.is_admin_user(auth.uid()) OR auth.uid() = user_id);
+CREATE POLICY "Profiles: Admins/Own view" ON public.profiles FOR SELECT TO authenticated USING (public.is_admin() OR auth.uid() = user_id);
 DROP POLICY IF EXISTS "Profiles: Admins/Own update" ON public.profiles;
-CREATE POLICY "Profiles: Admins/Own update" ON public.profiles FOR UPDATE TO authenticated USING (public.is_admin_user(auth.uid()) OR auth.uid() = user_id) WITH CHECK (public.is_admin_user(auth.uid()) OR auth.uid() = user_id);
+CREATE POLICY "Profiles: Admins/Own update" ON public.profiles FOR UPDATE TO authenticated USING (public.is_admin() OR auth.uid() = user_id) WITH CHECK (public.is_admin() OR auth.uid() = user_id);
 
 -- User Roles Policies
 DROP POLICY IF EXISTS "User Roles: Admins only" ON public.user_roles;
-CREATE POLICY "User Roles: Admins only" ON public.user_roles FOR ALL TO authenticated USING (public.is_admin_user(auth.uid()));
+CREATE POLICY "User Roles: Admins only" ON public.user_roles FOR ALL TO authenticated USING (public.is_admin());
 
 -- Accounts Policies
 DROP POLICY IF EXISTS "Accounts: Active users view" ON public.accounts;
@@ -293,7 +304,17 @@ CREATE POLICY "Settings: Write only admin" ON public.settings FOR ALL TO authent
 CREATE OR REPLACE FUNCTION public.block_ledger_mutations() RETURNS trigger LANGUAGE plpgsql AS $$
 begin
   if current_setting('app.allow_ledger_reset', true) = 'on' then return new; end if;
-  raise exception 'ledger_transactions is immutable (no UPDATE/DELETE allowed)';
+  -- Allow status update (voiding) but block any other changes
+  if (TG_OP = 'UPDATE') then
+    if (old.* IS DISTINCT FROM new.*) then
+       if (old.status = 'pending' AND new.status = 'validated') OR (old.status IN ('pending', 'validated') AND new.status = 'voided') then
+          return new;
+       end if;
+       raise exception 'ledger_transactions is immutable. Only status transitions are allowed.';
+    end if;
+    return new;
+  end if;
+  raise exception 'ledger_transactions is immutable (no DELETE allowed)';
 end; $$;
 
 DROP TRIGGER IF EXISTS block_ledger_update ON public.ledger_transactions;
@@ -313,6 +334,7 @@ DROP TRIGGER IF EXISTS audit_ledger_insert_tr ON public.ledger_transactions;
 CREATE TRIGGER audit_ledger_insert_tr AFTER INSERT ON public.ledger_transactions FOR EACH ROW EXECUTE FUNCTION public.audit_ledger_insert();
 
 -- Settings Updated At
+DROP TRIGGER IF EXISTS trg_settings_touch ON public.settings;
 CREATE TRIGGER trg_settings_touch BEFORE UPDATE ON public.settings FOR EACH ROW EXECUTE FUNCTION public._touch_updated_at();
 
 -- 4. BUSINESS LOGIC (RPCs)
@@ -321,68 +343,27 @@ CREATE OR REPLACE FUNCTION public.get_primary_account(p_entity uuid, p_type acco
   SELECT id FROM public.accounts WHERE entity_id = p_entity AND type = p_type AND active = true ORDER BY created_at LIMIT 1;
 $$;
 
-CREATE OR REPLACE FUNCTION public.process_transaction(p_tx jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
-DECLARE v_amount numeric; v_direction text; v_src uuid; v_dst uuid; v_txn public.transactions; v_user_id uuid; BEGIN
-  v_user_id := auth.uid();
-  IF NOT public.is_active_user(v_user_id) THEN RAISE EXCEPTION 'Unauthorized'; END IF;
-  v_amount := (p_tx->>'amount')::numeric; v_direction := p_tx->>'direction';
-  v_src := (p_tx->>'source_account_id')::uuid; v_dst := (p_tx->>'destination_account_id')::uuid;
-  
-  INSERT INTO public.transactions (transaction_date, module, entity_id, source_account_id, destination_account_id, merchant_id, amount, direction, payment_method, origin_fund, capital_custeio, shift, description, notes, created_by, status, parent_transaction_id)
-  VALUES (COALESCE((p_tx->>'transaction_date')::date, CURRENT_DATE), (p_tx->>'module')::public.transaction_module, (p_tx->>'entity_id')::uuid, v_src, v_dst, (p_tx->>'merchant_id')::uuid, v_amount, v_direction::public.transaction_direction, (p_tx->>'payment_method')::public.payment_method, (p_tx->>'origin_fund')::public.fund_origin, (p_tx->>'capital_custeio')::public.capital_custeio, (p_tx->>'shift')::public.shift_type, p_tx->>'description', p_tx->>'notes', v_user_id, 'posted', (p_tx->>'parent_transaction_id')::uuid) RETURNING * INTO v_txn;
-  
-  IF v_direction = 'in' THEN UPDATE public.accounts SET balance = balance + v_amount WHERE id = v_txn.destination_account_id;
-  ELSIF v_direction = 'out' THEN UPDATE public.accounts SET balance = balance - v_amount WHERE id = v_txn.source_account_id;
-  ELSIF v_direction = 'transfer' THEN UPDATE public.accounts SET balance = balance - v_amount WHERE id = v_txn.source_account_id; UPDATE public.accounts SET balance = balance + v_amount WHERE id = v_txn.destination_account_id; END IF;
-  
-  IF v_txn.merchant_id IS NOT NULL THEN
-    IF v_txn.module = 'aporte_saldo' THEN UPDATE public.merchants SET balance = balance + v_amount WHERE id = v_txn.merchant_id;
-    ELSIF v_txn.module = 'consumo_saldo' THEN UPDATE public.merchants SET balance = balance - v_amount WHERE id = v_txn.merchant_id; END IF;
-  END IF;
-  
-  INSERT INTO public.audit_logs (transaction_id, action, before_json, after_json, reason, user_id) 
-  VALUES (v_txn.id, 'create', '{}'::jsonb, row_to_json(v_txn)::jsonb, 'Criação de transação', v_user_id);
-  
-  RETURN row_to_json(v_txn);
-END; $$;
-
-CREATE OR REPLACE FUNCTION public.process_resource_transaction(p_tx jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
-DECLARE v_acc uuid; v_type text; BEGIN
-  IF NOT public.is_active_user(auth.uid()) THEN RAISE EXCEPTION 'Unauthorized'; END IF;
-  v_acc := (p_tx->>'source_account_id')::uuid;
-  IF v_acc IS NULL THEN RAISE EXCEPTION 'Source account ID is required for resource transactions'; END IF;
-  SELECT e.type INTO v_type FROM public.accounts a JOIN public.entities e ON e.id = a.entity_id WHERE a.id = v_acc;
-  IF v_type NOT IN ('ue', 'cx') THEN RAISE EXCEPTION 'Access Denied: Resource entities (UE/CX) only'; END IF;
-  RETURN public.process_transaction(p_tx);
-END; $$;
-
+-- Voiding Logic for Immutable Ledger
 CREATE OR REPLACE FUNCTION public.void_transaction(p_id uuid, p_reason text) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE v_before jsonb; v_txn record; v_user_id uuid; BEGIN
     v_user_id := auth.uid();
-    IF NOT public.is_active_user(v_user_id) THEN RAISE EXCEPTION 'Unauthorized'; END IF;
-    SELECT row_to_json(t)::jsonb INTO v_before FROM public.transactions t WHERE id = p_id FOR UPDATE;
-    IF v_before IS NULL THEN RAISE EXCEPTION 'Transaction not found'; END IF;
+    IF NOT public.check_can_moderate_ledger() THEN RAISE EXCEPTION 'Unauthorized'; END IF;
+    
+    SELECT to_jsonb(t) INTO v_before FROM public.ledger_transactions t WHERE id = p_id FOR UPDATE;
+    IF v_before IS NULL THEN RAISE EXCEPTION 'Transaction not found in ledger'; END IF;
     IF (v_before->>'status') = 'voided' THEN RAISE EXCEPTION 'Already voided'; END IF;
     
-    IF (v_before->>'direction') = 'in' THEN UPDATE public.accounts SET balance = balance - (v_before->>'amount')::numeric WHERE id = (v_before->>'destination_account_id')::uuid;
-    ELSIF (v_before->>'direction') = 'out' THEN UPDATE public.accounts SET balance = balance + (v_before->>'amount')::numeric WHERE id = (v_before->>'source_account_id')::uuid;
-    ELSIF (v_before->>'direction') = 'transfer' THEN
-      UPDATE public.accounts SET balance = balance + (v_before->>'amount')::numeric WHERE id = (v_before->>'source_account_id')::uuid;
-      UPDATE public.accounts SET balance = balance - (v_before->>'amount')::numeric WHERE id = (v_before->>'destination_account_id')::uuid;
-    END IF;
+    -- In an immutable ledger, we mark as voided so the balance view excludes it.
+    -- We also log the action.
+    UPDATE public.ledger_transactions SET status = 'voided', metadata = metadata || jsonb_build_object('void_reason', p_reason, 'voided_at', now(), 'voided_by', v_user_id) WHERE id = p_id RETURNING * INTO v_txn;
     
-    IF (v_before->>'merchant_id') IS NOT NULL THEN
-      IF (v_before->>'module') = 'aporte_saldo' THEN UPDATE public.merchants SET balance = balance - (v_before->>'amount')::numeric WHERE id = (v_before->>'merchant_id')::uuid;
-      ELSIF (v_before->>'module') = 'consumo_saldo' THEN UPDATE public.merchants SET balance = balance + (v_before->>'amount')::numeric WHERE id = (v_before->>'merchant_id')::uuid;
-      END IF;
-    END IF;
+    INSERT INTO public.ledger_audit_log (actor, action, entity, entity_id, before, after) 
+    VALUES (v_user_id, 'VOID_LEDGER', 'ledger_transactions', p_id::text, v_before, to_jsonb(v_txn));
     
-    UPDATE public.transactions SET status = 'voided', notes = COALESCE(notes, '') || ' | VOID: ' || p_reason WHERE id = p_id RETURNING * INTO v_txn;
-    INSERT INTO public.audit_logs (transaction_id, action, before_json, after_json, reason, user_id) 
-    VALUES (p_id, 'void', v_before, row_to_json(v_txn)::jsonb, p_reason, v_user_id);
-    RETURN row_to_json(v_txn);
+    RETURN to_jsonb(v_txn);
 END; $$;
 
+DROP FUNCTION IF EXISTS public.get_ledger_balance_map();
 CREATE OR REPLACE FUNCTION public.get_ledger_balance_map()
 RETURNS TABLE (account_id text, balance_cents bigint)
 LANGUAGE sql SECURITY DEFINER SET search_path TO 'public' 
@@ -434,40 +415,94 @@ END; $$;
 
 CREATE OR REPLACE FUNCTION public.get_dashboard_summary(start_date date, end_date date) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE result jsonb; weekly_expenses_cash numeric := 0; weekly_expenses_pix numeric := 0; weekly_entries_cash numeric := 0; weekly_entries_pix numeric := 0; weekly_deposits numeric := 0; weekly_consumption numeric := 0; weekly_direct_pix numeric := 0; BEGIN
-  SELECT COALESCE(SUM(CASE WHEN module = 'gasto_associacao' AND payment_method = 'cash' THEN amount ELSE 0 END), 0), COALESCE(SUM(CASE WHEN module = 'gasto_associacao' AND payment_method = 'pix' THEN amount ELSE 0 END), 0), COALESCE(SUM(CASE WHEN module = 'mensalidade' AND payment_method = 'cash' THEN amount ELSE 0 END), 0), COALESCE(SUM(CASE WHEN (module = 'mensalidade' AND payment_method = 'pix') OR module = 'mensalidade_pix' THEN amount ELSE 0 END), 0), COALESCE(SUM(CASE WHEN module = 'aporte_saldo' THEN amount ELSE 0 END), 0), COALESCE(SUM(CASE WHEN module = 'consumo_saldo' THEN amount ELSE 0 END), 0), COALESCE(SUM(CASE WHEN module = 'pix_direto_uecx' THEN amount ELSE 0 END), 0)
-  INTO weekly_expenses_cash, weekly_expenses_pix, weekly_entries_cash, weekly_entries_pix, weekly_deposits, weekly_consumption, weekly_direct_pix FROM transactions WHERE transaction_date >= start_date AND transaction_date <= end_date AND status = 'posted';
+  SELECT 
+    COALESCE(SUM(CASE WHEN module = 'gasto_associacao' AND payment_method = 'cash' THEN amount_cents::numeric/100 ELSE 0 END), 0), 
+    COALESCE(SUM(CASE WHEN module = 'gasto_associacao' AND payment_method = 'pix' THEN amount_cents::numeric/100 ELSE 0 END), 0), 
+    COALESCE(SUM(CASE WHEN module = 'mensalidade' AND payment_method = 'cash' THEN amount_cents::numeric/100 ELSE 0 END), 0), 
+    COALESCE(SUM(CASE WHEN (module = 'mensalidade' AND payment_method = 'pix') OR module = 'mensalidade_pix' THEN amount_cents::numeric/100 ELSE 0 END), 0), 
+    COALESCE(SUM(CASE WHEN module = 'aporte_saldo' THEN amount_cents::numeric/100 ELSE 0 END), 0), 
+    COALESCE(SUM(CASE WHEN module = 'consumo_saldo' THEN amount_cents::numeric/100 ELSE 0 END), 0), 
+    COALESCE(SUM(CASE WHEN module = 'pix_direto_uecx' THEN amount_cents::numeric/100 ELSE 0 END), 0)
+  INTO weekly_expenses_cash, weekly_expenses_pix, weekly_entries_cash, weekly_entries_pix, weekly_deposits, weekly_consumption, weekly_direct_pix 
+  FROM ledger_transactions 
+  WHERE created_at::date >= start_date AND created_at::date <= end_date AND status = 'validated';
+  
   RETURN jsonb_build_object('weeklyExpensesCash', weekly_expenses_cash, 'weeklyExpensesPix', weekly_expenses_pix, 'weeklyEntriesCash', weekly_entries_cash, 'weeklyEntriesPix', weekly_entries_pix, 'weeklyDeposits', weekly_deposits, 'weeklyConsumption', weekly_consumption, 'weeklyDirectPix', weekly_direct_pix);
 END; $$;
 
 CREATE OR REPLACE FUNCTION public.get_report_summary(p_start_date date, p_end_date date, p_entity_id uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
-DECLARE v_cd_id uuid; v_pix_id uuid; v_summary record; BEGIN
+DECLARE v_cd_id text; v_pix_id text; v_summary record; BEGIN
   IF NOT public.is_active_user(auth.uid()) THEN RAISE EXCEPTION 'Unauthorized'; END IF;
-  SELECT id INTO v_cd_id FROM accounts WHERE entity_id = p_entity_id AND name = 'Conta Digital (Escolaweb)' LIMIT 1;
-  SELECT id INTO v_pix_id FROM accounts WHERE entity_id = p_entity_id AND name = 'PIX (Conta BB)' LIMIT 1;
-  SELECT COALESCE(SUM(CASE WHEN t.module = 'gasto_associacao' AND t.payment_method = 'cash' THEN t.amount ELSE 0 END), 0) as expenses_cash, COALESCE(SUM(CASE WHEN t.module = 'gasto_associacao' AND t.payment_method = 'pix' THEN t.amount ELSE 0 END), 0) as expenses_pix, COALESCE(SUM(CASE WHEN (c.category = 'transfer' OR t.module = 'conta_digital_taxa') AND t.source_account_id = v_cd_id THEN t.amount ELSE 0 END), 0) as expenses_digital, COALESCE(SUM(CASE WHEN t.module = 'taxa_pix_bb' THEN t.amount ELSE 0 END), 0) as pix_fees, COALESCE(SUM(CASE WHEN t.module = 'mensalidade' AND t.payment_method = 'cash' THEN t.amount ELSE 0 END), 0) as entries_cash, COALESCE(SUM(CASE WHEN (t.module = 'mensalidade' AND t.payment_method = 'pix') OR t.module = 'mensalidade_pix' THEN t.amount ELSE 0 END), 0) as entries_pix, COALESCE(SUM(CASE WHEN t.module = 'pix_nao_identificado' THEN t.amount ELSE 0 END), 0) as entries_pix_nao_identificado, COALESCE(SUM(CASE WHEN t.module = 'aporte_saldo' THEN t.amount ELSE 0 END), 0) as deposits, COALESCE(SUM(CASE WHEN t.module = 'consumo_saldo' THEN t.amount ELSE 0 END), 0) as consumption, COALESCE(SUM(CASE WHEN t.module = 'pix_direto_uecx' THEN t.amount ELSE 0 END), 0) as direct_pix
-  INTO v_summary FROM transactions t JOIN transaction_modules_config c ON c.module_key = t.module WHERE transaction_date >= p_start_date AND transaction_date <= p_end_date AND status = 'posted' AND t.entity_id = p_entity_id;
+  
+  -- Account IDs in ledger are stored as strings (uuids or keys like 'cash')
+  SELECT id::text INTO v_cd_id FROM accounts WHERE entity_id = p_entity_id AND name = 'Conta Digital (Escolaweb)' LIMIT 1;
+  SELECT id::text INTO v_pix_id FROM accounts WHERE entity_id = p_entity_id AND name = 'PIX (Conta BB)' LIMIT 1;
+  
+  SELECT 
+    COALESCE(SUM(CASE WHEN t.module = 'gasto_associacao' AND t.payment_method = 'cash' THEN t.amount_cents::numeric/100 ELSE 0 END), 0) as expenses_cash, 
+    COALESCE(SUM(CASE WHEN t.module = 'gasto_associacao' AND t.payment_method = 'pix' THEN t.amount_cents::numeric/100 ELSE 0 END), 0) as expenses_pix, 
+    COALESCE(SUM(CASE WHEN (c.category = 'transfer' OR t.module = 'conta_digital_taxa') AND t.source_account = v_cd_id THEN t.amount_cents::numeric/100 ELSE 0 END), 0) as expenses_digital, 
+    COALESCE(SUM(CASE WHEN t.module = 'taxa_pix_bb' THEN t.amount_cents::numeric/100 ELSE 0 END), 0) as pix_fees, 
+    COALESCE(SUM(CASE WHEN t.module = 'mensalidade' AND t.payment_method = 'cash' THEN t.amount_cents::numeric/100 ELSE 0 END), 0) as entries_cash, 
+    COALESCE(SUM(CASE WHEN (t.module = 'mensalidade' AND t.payment_method = 'pix') OR t.module = 'mensalidade_pix' THEN t.amount_cents::numeric/100 ELSE 0 END), 0) as entries_pix, 
+    COALESCE(SUM(CASE WHEN t.module = 'pix_nao_identificado' THEN t.amount_cents::numeric/100 ELSE 0 END), 0) as entries_pix_nao_identificado, 
+    COALESCE(SUM(CASE WHEN t.module = 'aporte_saldo' THEN t.amount_cents::numeric/100 ELSE 0 END), 0) as deposits, 
+    COALESCE(SUM(CASE WHEN t.module = 'consumo_saldo' THEN t.amount_cents::numeric/100 ELSE 0 END), 0) as consumption, 
+    COALESCE(SUM(CASE WHEN t.module = 'pix_direto_uecx' THEN t.amount_cents::numeric/100 ELSE 0 END), 0) as direct_pix
+  INTO v_summary 
+  FROM ledger_transactions t 
+  JOIN transaction_modules_config c ON c.module_key = t.module 
+  WHERE t.created_at::date >= p_start_date AND t.created_at::date <= p_end_date AND status = 'validated' AND t.entity_id = p_entity_id;
+  
   RETURN jsonb_build_object('weeklyExpensesCash', v_summary.expenses_cash, 'weeklyExpensesPix', v_summary.expenses_pix, 'weeklyExpensesDigital', v_summary.expenses_digital, 'weeklyPixFees', v_summary.pix_fees, 'weeklyEntriesCash', v_summary.entries_cash, 'weeklyEntriesPix', v_summary.entries_pix, 'weeklyEntriesPixNaoIdentificado', v_summary.entries_pix_nao_identificado, 'weeklyDeposits', v_summary.deposits, 'weeklyConsumption', v_summary.consumption, 'weeklyDirectPix', v_summary.direct_pix);
 END; $$;
 
-CREATE OR REPLACE FUNCTION public.process_pix_fee_batch(p_entity_id uuid, p_payload jsonb) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
-DECLARE v_user_id uuid; v_source_account_id uuid; v_total numeric := 0; v_item jsonb; v_txn_id uuid; v_txn public.transactions; v_items_count int := 0; v_occurred_at timestamptz; BEGIN
-  v_user_id := auth.uid();
-  IF v_user_id IS NULL OR NOT public.is_active_user(v_user_id) THEN RAISE EXCEPTION 'Unauthorized'; END IF;
-  SELECT id INTO v_source_account_id FROM public.accounts WHERE entity_id = p_entity_id AND name = 'PIX (Conta BB)' AND active = true;
-  IF v_source_account_id IS NULL THEN RAISE EXCEPTION 'Conta PIX BB não encontrada.'; END IF;
-  FOR v_item IN SELECT * FROM jsonb_array_elements(p_payload->'items') LOOP v_total := v_total + (v_item->>'amount')::numeric; v_items_count := v_items_count + 1; END LOOP;
-  v_occurred_at := COALESCE((p_payload->>'occurred_at')::timestamptz, now());
-  INSERT INTO public.transactions (transaction_date, module, entity_id, source_account_id, amount, direction, payment_method, description, notes, created_by, status)
-  VALUES (v_occurred_at::date, 'taxa_pix_bb', p_entity_id, v_source_account_id, v_total, 'out', 'cash', 'Taxas PIX (Lote)', 'Referência: ' || COALESCE(p_payload->>'reference', 'N/A') || ' | Itens: ' || v_items_count, v_user_id, 'posted') RETURNING * INTO v_txn;
-  v_txn_id := v_txn.id;
-  UPDATE public.accounts SET balance = balance - v_total WHERE id = v_source_account_id;
-  INSERT INTO public.transaction_items (parent_transaction_id, amount, occurred_at, description, created_by)
-  SELECT v_txn_id, (item->>'amount')::numeric, COALESCE((item->>'occurred_at')::timestamptz, v_occurred_at), item->>'description', v_user_id FROM jsonb_array_elements(p_payload->'items') AS item;
-  RETURN v_txn_id;
-END; $$;
+-- RPC obsoleta removida (process_pix_fee_batch). O frontend agora usa createLedgerTransaction.
 
-CREATE OR REPLACE FUNCTION public.get_transaction_items(p_parent_transaction_id uuid) RETURNS SETOF transaction_items LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
-  SELECT * FROM public.transaction_items WHERE parent_transaction_id = p_parent_transaction_id AND public.is_active_user(auth.uid()) ORDER BY occurred_at DESC NULLS LAST, created_at ASC;
+DROP FUNCTION IF EXISTS public.get_transaction_items(uuid);
+CREATE OR REPLACE FUNCTION public.get_transaction_items(p_parent_transaction_id uuid) 
+RETURNS TABLE (
+    id UUID,
+    parent_transaction_id UUID,
+    amount NUMERIC(12,2),
+    occurred_at TIMESTAMPTZ,
+    description TEXT,
+    created_by UUID,
+    created_at TIMESTAMPTZ
+) 
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        ti.id, 
+        ti.parent_transaction_id, 
+        ti.amount, 
+        ti.occurred_at, 
+        ti.description, 
+        ti.created_by, 
+        ti.created_at
+    FROM public.transaction_items ti
+    WHERE ti.parent_transaction_id = p_parent_transaction_id 
+      AND public.is_active_user(auth.uid())
+    
+    UNION ALL
+    
+    SELECT 
+        NULL::uuid as id,
+        lt.id as parent_transaction_id,
+        (item->>'amount')::numeric as amount,
+        COALESCE((item->>'occurred_at')::timestamptz, lt.created_at) as occurred_at,
+        item->>'description' as description,
+        lt.created_by,
+        lt.created_at
+    FROM public.ledger_transactions lt,
+         jsonb_array_elements(lt.metadata->'items') as item
+    WHERE lt.id = p_parent_transaction_id
+      AND public.is_active_user(auth.uid())
+      AND lt.metadata ? 'items'
+    
+    ORDER BY occurred_at DESC NULLS LAST, created_at ASC;
+END;
 $$;
 
 CREATE OR REPLACE FUNCTION public.handle_new_user() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
@@ -488,9 +523,9 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- Verificar se o usuário pode moderar o ledger (admin/usuário)
-  IF NOT public.check_can_moderate_ledger() THEN
-    RAISE EXCEPTION 'Acesso negado: Somente administradores ou usuários autorizados podem resetar os dados.';
+  -- Verificar se o usuário é administrador (Limpeza de dados restrita)
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Acesso negado: Somente administradores podem resetar os dados do sistema.';
   END IF;
 
   -- Bypass Immutability Trigger

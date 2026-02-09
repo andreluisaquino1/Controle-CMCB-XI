@@ -8,6 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { User, KeyRound, LogOut, Loader2, Mail, AlertTriangle } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { profileService } from "@/services/profileService";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +24,7 @@ import {
 
 export default function PerfilPage() {
   const { profile, signOut, user } = useAuth();
+  const queryClient = useQueryClient();
 
   const [name, setName] = useState(profile?.name || "");
   const [isUpdatingName, setIsUpdatingName] = useState(false);
@@ -42,12 +45,8 @@ export default function PerfilPage() {
     setIsUpdatingName(true);
 
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ name: name.trim() })
-        .eq("user_id", user?.id);
-
-      if (error) throw error;
+      await profileService.updateProfileName(user!.id, name.trim());
+      await queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
 
       toast.success("Nome atualizado.");
     } catch (error: unknown) {
@@ -246,64 +245,66 @@ export default function PerfilPage() {
           </CardContent>
         </Card>
 
-        {/* Danger Zone */}
-        <div className="pt-6 border-t">
-          <h2 className="text-lg font-semibold text-destructive mb-4">Zona de Perigo</h2>
-          <Card className="border-destructive/20 bg-destructive/5">
-            <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <h3 className="font-medium text-destructive">Resetar Banco de Dados</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Apaga todas as transações, limpa o histórico e zera todos os saldos.
-                    <br />
-                    <span className="font-bold">Atenção: Esta ação não pode ser desfeita.</span>
-                    <br />
-                    <span className="text-xs font-mono opacity-70 mt-1 block">
-                      Proj: {(supabase as any).supabaseUrl?.split('.')[0].replace('https://', '')} |
-                      Role: {profile?.role || 'user'} |
-                      Demo: {String(profile?.role === 'demo')}
-                    </span>
-                  </p>
+        {/* Danger Zone - Admin Only */}
+        {profile?.role === "admin" && (
+          <div className="pt-6 border-t">
+            <h2 className="text-lg font-semibold text-destructive mb-4">Zona de Perigo</h2>
+            <Card className="border-destructive/20 bg-destructive/5">
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-medium text-destructive">Resetar Banco de Dados</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Apaga todas as transações, limpa o histórico e zera todos os saldos.
+                      <br />
+                      <span className="font-bold">Atenção: Esta ação não pode ser desfeita.</span>
+                      <br />
+                      <span className="text-xs font-mono opacity-70 mt-1 block">
+                        Proj: {(supabase as any).supabaseUrl?.split('.')[0].replace('https://', '')} |
+                        Role: {profile?.role || 'user'} |
+                        Demo: {String(profile?.role === 'demo')}
+                      </span>
+                    </p>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive">Resetar Dados</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação irá apagar permanentemente todas as transações financeiras,
+                          logs de auditoria e zerar os saldos de todas as contas e estabelecimentos.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={async () => {
+                            try {
+                              // @ts-ignore - Function exists in updated schema but types are not regenerated
+                              const { error } = await supabase.rpc('reset_all_data' as any);
+                              if (error) throw error;
+                              toast.success("Banco de dados resetado com sucesso.");
+                              setTimeout(() => window.location.reload(), 1500);
+                            } catch (error: any) {
+                              console.error(error);
+                              toast.error(`Erro ao resetar: ${error.message || "Erro desconhecido"}`);
+                            }
+                          }}
+                        >
+                          Sim, apagar tudo
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive">Resetar Dados</Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta ação irá apagar permanentemente todas as transações financeiras,
-                        logs de auditoria e zerar os saldos de todas as contas e estabelecimentos.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={async () => {
-                          try {
-                            // @ts-ignore - Function exists in updated schema but types are not regenerated
-                            const { error } = await supabase.rpc('reset_all_data' as any);
-                            if (error) throw error;
-                            toast.success("Banco de dados resetado com sucesso.");
-                            setTimeout(() => window.location.reload(), 1500);
-                          } catch (error: any) {
-                            console.error(error);
-                            toast.error(`Erro ao resetar: ${error.message || "Erro desconhecido"}`);
-                          }
-                        }}
-                      >
-                        Sim, apagar tudo
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Logout */}
         <Card>

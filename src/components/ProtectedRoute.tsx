@@ -54,7 +54,7 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
   }
 
   // Check if user has active profile
-  if (!profile.active) {
+  if (!profile || !profile.active) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="max-w-md text-center">

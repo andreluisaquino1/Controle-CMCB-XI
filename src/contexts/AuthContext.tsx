@@ -3,15 +3,8 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { env } from "@/lib/env";
 import { toast } from "sonner";
-
-interface Profile {
-  id: string;
-  user_id: string;
-  name: string;
-  email: string;
-  active: boolean;
-  role?: "admin" | "user" | "demo" | "secretaria";
-}
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { profileService, Profile } from "@/services/profileService";
 
 interface AuthContextType {
   user: User | null;
@@ -32,77 +25,47 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchProfile = async (userId: string) => {
-    // Fetch profile
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (profileError) {
-      console.error("Error fetching profile:", profileError);
-      return null;
-    }
-
-    if (!profileData) return null;
-
-    // Fetch role
-    const { data: roleData, error: roleError } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    return {
-      ...profileData,
-      role: roleData?.role || "user"
-    } as Profile;
-  };
+  // Profile management via React Query
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    isInitialLoading: profileInitialLoading
+  } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: () => profileService.getProfile(user!.id),
+    enabled: !!user,
+    staleTime: 1000 * 60 * 15, // 15 minutes
+  });
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // 1. Initial manual check for session
+    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      setSession(existingSession);
+      setUser(existingSession?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    // 2. Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
-        if (event === "PASSWORD_RECOVERY") {
-          // Force redirect to reset password page when the event is detected
-          window.location.href = "/auth/reset-password";
+        if (event === "SIGNED_OUT") {
+          queryClient.clear(); // Clear all queries on sign out
         }
 
-        // Defer profile fetch
-        if (currentSession?.user) {
-          setTimeout(() => {
-            fetchProfile(currentSession.user.id).then(setProfile);
-          }, 0);
-        } else {
-          setProfile(null);
+        if (event === "PASSWORD_RECOVERY") {
+          window.location.href = "/auth/reset-password";
         }
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
-      setSession(existingSession);
-      setUser(existingSession?.user ?? null);
-
-      if (existingSession?.user) {
-        fetchProfile(existingSession.user.id).then((p) => {
-          setProfile(p);
-          setLoading(false);
-        });
-      } else {
-        setLoading(false);
-      }
-    });
-
     return () => subscription.unsubscribe();
-  }, []);
+  }, [queryClient]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -113,10 +76,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, name: string) => {
-    setLoading(true);
+    setAuthLoading(true);
     try {
       const origin = env.VITE_PUBLIC_SITE_URL || window.location.origin;
-      console.log("Starting signup process for:", email);
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -126,19 +88,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       return { error };
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setProfile(null);
+    queryClient.clear();
   };
 
   const resetPassword = async (email: string) => {
-    setLoading(true);
+    setAuthLoading(true);
     try {
       const origin = env.VITE_PUBLIC_SITE_URL || window.location.origin;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -146,20 +106,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       return { error };
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
+
+  const isLoading = authLoading || (!!user && profileInitialLoading);
 
   return (
     <AuthContext.Provider
       value={{
         user,
         session,
-        profile,
+        profile: profile || null,
         isAdmin: profile?.role === "admin",
         isDemo: profile?.role === "demo",
         isSecretaria: profile?.role === "secretaria",
-        loading,
+        loading: isLoading,
         signIn,
         signUp,
         signOut,

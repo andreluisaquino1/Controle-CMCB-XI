@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Merchant, Entity, Account } from "@/types";
 import { toast } from "sonner";
-import { useCreateTransaction } from "@/hooks/use-transactions";
+// import { useCreateTransaction } from "@/hooks/use-transactions"; // REMOVED - Using transactionService via Dialogs
 import { useCreateMerchant, useUpdateMerchant, useDeactivateMerchant, useActivateMerchant } from "@/hooks/use-merchants";
 import { getTodayString } from "@/lib/date-utils";
 import { formatCurrencyBRL } from "@/lib/currency";
@@ -12,7 +12,7 @@ export function useSaldosActions(
     entities: Entity[] | undefined,
     onSuccess?: () => void
 ) {
-    const createTransaction = useCreateTransaction();
+    // const createTransaction = useCreateTransaction(); // REMOVED
     const createMerchant = useCreateMerchant();
     const updateMerchant = useUpdateMerchant();
     const deactivateMerchant = useDeactivateMerchant();
@@ -169,6 +169,6 @@ export function useSaldosActions(
             resetAporte,
             resetGasto
         },
-        isLoading: createTransaction.isPending || createMerchant.isPending || updateMerchant.isPending || deactivateMerchant.isPending || activateMerchant.isPending
+        isLoading: createMerchant.isPending || updateMerchant.isPending || deactivateMerchant.isPending || activateMerchant.isPending
     };
 }

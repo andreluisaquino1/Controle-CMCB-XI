@@ -22,7 +22,7 @@ import { cleanAccountDisplayName } from "@/lib/account-display";
 import { sortByAccountOrder } from "@/lib/constants";
 import { Account, Merchant, Entity } from "@/types";
 // import { useCreateTransaction } from "@/hooks/use-transactions"; // Legacy
-import { createLedgerTransaction } from "@/domain/ledger";
+import { transactionService } from "@/services/transactionService";
 import { LEDGER_KEYS, ACCOUNT_NAME_TO_LEDGER_KEY } from "@/lib/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -104,7 +104,7 @@ export function AporteSaldoDialog({
                 sourceKey = sourceAccountInfo.id;
             }
 
-            await createLedgerTransaction({
+            await transactionService.createLedgerTransaction({
                 type: 'transfer',
                 source_account: sourceKey,
                 destination_account: state.merchant, // Merchant ID as Ledger Account

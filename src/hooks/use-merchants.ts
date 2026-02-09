@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Merchant } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDemoData } from "@/demo/useDemoData";
+import { merchantService } from "@/services/merchantService";
 
 export function useMerchants(includeInactive = false) {
   const { isDemo } = useAuth();
@@ -11,52 +11,7 @@ export function useMerchants(includeInactive = false) {
 
   const query = useQuery({
     queryKey: ["merchants", includeInactive],
-    queryFn: async () => {
-      // 1. Fetch Merchants
-      let baseQuery = supabase
-        .from("merchants")
-        .select("*")
-        .order("name");
-
-      if (!includeInactive) {
-        baseQuery = baseQuery.eq("active", true);
-      }
-
-      const { data: merchantsData, error: merchantsError } = await baseQuery;
-      if (merchantsError) throw merchantsError;
-
-      // 2. Fetch Ledger Balances for these merchants
-      // We assume the Ledger Account ID for a merchant IS the merchant.id
-      const merchantIds = merchantsData.map(m => m.id);
-
-      // Fetch all columns to be safe about column names (account vs account_key)
-      const { data: balancesData, error: balancesError } = await supabase
-        .from("ledger_balances")
-        .select("*")
-        .in("account", merchantIds); // Try 'account' first as per SQL file
-
-      if (balancesError) {
-        // If 'account' column fails, maybe try generic select if needed, but for now log warning
-        console.warn("Could not fetch ledger balances for merchants", balancesError);
-      }
-
-      const balanceMap = new Map();
-      if (balancesData) {
-        balancesData.forEach((b: any) => {
-          // Handle potential column name differences
-          const accountId = b.account || b.account_key || b.account_id;
-          const balance = (b.balance_cents || 0) / 100;
-          if (accountId) {
-            balanceMap.set(accountId, balance);
-          }
-        });
-      }
-
-      return merchantsData.map(m => ({
-        ...m,
-        balance: balanceMap.has(m.id) ? balanceMap.get(m.id) : (Number(m.balance) || 0) // Prefer Ledger, fallback to table
-      })) as Merchant[];
-    },
+    queryFn: () => merchantService.getAllMerchants(includeInactive),
     enabled: !isDemo,
   });
 
@@ -82,14 +37,7 @@ export function useCreateMerchant() {
       if (isDemo) {
         return createMerchant(name);
       }
-      const { data, error } = await supabase
-        .from("merchants")
-        .insert({ name })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return merchantService.createMerchant(name);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["merchants"] });
@@ -113,12 +61,7 @@ export function useUpdateMerchant() {
         updateMerchant(id, name);
         return;
       }
-      const { error } = await supabase
-        .from("merchants")
-        .update({ name })
-        .eq("id", id);
-
-      if (error) throw error;
+      return merchantService.updateMerchant(id, name);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["merchants"] });
@@ -142,12 +85,7 @@ export function useDeactivateMerchant() {
         setMerchantActive(id, false);
         return;
       }
-      const { error } = await supabase
-        .from("merchants")
-        .update({ active: false })
-        .eq("id", id);
-
-      if (error) throw error;
+      return merchantService.setMerchantActive(id, false);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["merchants"] });
@@ -170,12 +108,7 @@ export function useActivateMerchant() {
         setMerchantActive(id, true);
         return;
       }
-      const { error } = await supabase
-        .from("merchants")
-        .update({ active: true })
-        .eq("id", id);
-
-      if (error) throw error;
+      return merchantService.setMerchantActive(id, true);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["merchants"] });

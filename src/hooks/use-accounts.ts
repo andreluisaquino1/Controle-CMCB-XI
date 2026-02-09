@@ -7,6 +7,7 @@ import { useDemoData } from "@/demo/useDemoData";
 import { MOCK_ENTITIES } from "@/demo/demoSeed";
 import { demoStore } from "@/demo/demoStore";
 import { ACCOUNT_NAME_TO_LEDGER_KEY } from "@/lib/constants";
+import { accountService } from "@/services/accountService";
 
 export function useAccounts(includeInactive = false) {
   const { isDemo } = useAuth();
@@ -15,20 +16,9 @@ export function useAccounts(includeInactive = false) {
   const query = useQuery({
     queryKey: ["accounts", includeInactive],
     queryFn: async () => {
-      let baseQuery = supabase
-        .from("accounts")
-        .select("*")
-        .order("name");
-
-      if (!includeInactive) {
-        baseQuery = baseQuery.eq("active", true);
-      }
-
-      const { data: accountsData, error: accountsError } = await baseQuery;
-      if (accountsError) throw accountsError;
-
+      const { accounts: accountsData } = await accountService.getEntitiesWithAccounts(includeInactive);
       const ledgerMap = await fetchLedgerBalancesMap();
-      return mergeBalances(accountsData as Account[], ledgerMap);
+      return mergeBalances(accountsData, ledgerMap);
     },
     enabled: !isDemo,
   });
@@ -51,31 +41,17 @@ export function useAccountsByEntityType(entityType: "associacao" | "ue" | "cx" |
     queryFn: async () => {
       if (!entityType) return [];
 
-      const { data: entities, error: entityError } = await supabase
-        .from("entities")
-        .select("id")
-        .eq("type", entityType);
+      const { entities } = await accountService.getEntitiesWithAccounts(includeInactive);
+      const filteredEntities = entities.filter(e => e.type === entityType);
 
-      if (entityError) throw entityError;
-      if (!entities || entities.length === 0) return [];
+      if (filteredEntities.length === 0) return [];
+      const entityIds = filteredEntities.map(e => e.id);
 
-      const entityIds = entities.map(e => e.id);
-
-      let baseQuery = supabase
-        .from("accounts")
-        .select("*")
-        .in("entity_id", entityIds)
-        .order("name");
-
-      if (!includeInactive) {
-        baseQuery = baseQuery.eq("active", true);
-      }
-
-      const { data: accountsData, error: accountsError } = await baseQuery;
-      if (accountsError) throw accountsError;
+      const { accounts: accountsData } = await accountService.getEntitiesWithAccounts(includeInactive);
+      const filteredAccounts = accountsData.filter(a => entityIds.includes(a.entity_id));
 
       const ledgerMap = await fetchLedgerBalancesMap();
-      return mergeBalances(accountsData as Account[], ledgerMap);
+      return mergeBalances(filteredAccounts, ledgerMap);
     },
     enabled: !!entityType && !isDemo,
   });
@@ -96,15 +72,7 @@ export function useEntities() {
 
   const query = useQuery({
     queryKey: ["entities"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("entities")
-        .select("*")
-        .order("name");
-
-      if (error) throw error;
-      return data as Entity[];
-    },
+    queryFn: () => accountService.getEntities(),
     enabled: !isDemo,
   });
 
@@ -122,30 +90,12 @@ export function useEntitiesWithAccounts(includeInactive = false) {
   const query = useQuery({
     queryKey: ["entities-with-accounts", includeInactive],
     queryFn: async () => {
-      const { data: entities, error: entitiesError } = await supabase
-        .from("entities")
-        .select("*")
-        .order("name");
-
-      if (entitiesError) throw entitiesError;
-
-      let accQuery = supabase
-        .from("accounts")
-        .select("*")
-        .order("name");
-
-      if (!includeInactive) {
-        accQuery = accQuery.eq("active", true);
-      }
-
-      const { data: accountsData, error: accountsError } = await accQuery;
-      if (accountsError) throw accountsError;
-
+      const { entities, accounts: accountsData } = await accountService.getEntitiesWithAccounts(includeInactive);
       const ledgerMap = await fetchLedgerBalancesMap();
-      const mergedAccounts = mergeBalances(accountsData as Account[], ledgerMap);
+      const mergedAccounts = mergeBalances(accountsData, ledgerMap);
 
       return {
-        entities: entities as Entity[],
+        entities,
         accounts: mergedAccounts,
       };
     },
@@ -172,25 +122,16 @@ export function useAssociacaoAccounts() {
   const query = useQuery({
     queryKey: ["accounts", "associacao"],
     queryFn: async () => {
-      const { data: entity, error: entityError } = await supabase
-        .from("entities")
-        .select("id")
-        .eq("type", "associacao")
-        .single();
+      const entities = await accountService.getEntities();
+      const entity = entities.find(e => e.type === "associacao");
 
-      if (entityError) throw entityError;
+      if (!entity) return [];
 
-      const { data: accountsData, error: accountsError } = await supabase
-        .from("accounts")
-        .select("*")
-        .eq("entity_id", entity.id)
-        .eq("active", true)
-        .order("name");
-
-      if (accountsError) throw accountsError;
+      const { accounts: accountsData } = await accountService.getEntitiesWithAccounts(false);
+      const filteredAccounts = accountsData.filter(a => a.entity_id === entity.id);
 
       const ledgerMap = await fetchLedgerBalancesMap();
-      return mergeBalances(accountsData as Account[], ledgerMap);
+      return mergeBalances(filteredAccounts, ledgerMap);
     },
     enabled: !isDemo,
   });
@@ -225,21 +166,7 @@ export function useCreateAccount() {
       if (isDemo) {
         return createAccount(name, entity_id, account_number);
       }
-      const { data, error } = await supabase
-        .from("accounts")
-        .insert({
-          name,
-          account_number: account_number || null,
-          entity_id,
-          active: true,
-          balance: 0,
-          type: 'bank' // Using a valid bank type
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return accountService.createAccount({ name, account_number, entity_id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
@@ -272,15 +199,7 @@ export function useUpdateAccount() {
         updateAccount(id, name, account_number);
         return;
       }
-      const { error } = await supabase
-        .from("accounts")
-        .update({
-          name,
-          account_number: account_number || null,
-        })
-        .eq("id", id);
-
-      if (error) throw error;
+      return accountService.updateAccount(id, { name, account_number });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
@@ -305,12 +224,7 @@ export function useDeactivateAccount() {
         setAccountActive(id, false);
         return;
       }
-      const { error } = await supabase
-        .from("accounts")
-        .update({ active: false })
-        .eq("id", id);
-
-      if (error) throw error;
+      return accountService.setAccountActive(id, false);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
@@ -334,12 +248,7 @@ export function useActivateAccount() {
         setAccountActive(id, true);
         return;
       }
-      const { error } = await supabase
-        .from("accounts")
-        .update({ active: true })
-        .eq("id", id);
-
-      if (error) throw error;
+      return accountService.setAccountActive(id, true);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounts"] });

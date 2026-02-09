@@ -16,7 +16,9 @@ Sistema de controle financeiro operacional do Colégio Militar 02 de Julho – U
 ## Tecnologias
 - React + TypeScript + Vite
 - Supabase (PostgreSQL + Auth)
-- TanStack Query
+- TanStack Query (Gerenciamento de Estado Reativo)
+- Camada de Serviços Centralizada (Desacoplamento da UI)
+- Sistema de Ledger Imutável (Partidas Dobradas para integridade financeira)
 - Shadcn/ui + Tailwind CSS
 
 ## Desenvolvimento Local
@@ -39,13 +41,15 @@ npm run build
 ## Deploy
 - Deploy automático via Vercel
 - Variáveis de ambiente devem estar configuradas no Vercel
-- Migrações devem ser aplicadas manualmente no Supabase
+- **Setup Recomendado**: Executar `supabase/setup/FULL_SYSTEM_SETUP.sql` para inicializar o esquema completo.
 
-**VSee [Deployment Guide](docs/DEPLOYMENT.md) for detailed instructions. completas.**
+**Veja o [Guia de Implantação](docs/DEPLOYMENT.md) para instruções detalhadas.**
 
-## Últimas Atualizações (2026-02-03)
-- ✅ Removido sistema de Fiado completamente
-- ✅ Separação clara entre saldos atuais e relatórios por período
-- ✅ Implementado lazy loading para exportações (redução de bundle)
-- ✅ Corrigido sistema de permissões (role-based em vez de hardcoded)
-- ✅ Renomeação de contas: Espécie, Cofre, PIX
+## Últimas Atualizações (Fevereiro 2026)
+- ✅ **Unificação do Ledger**: Toda a lógica financeira agora utiliza um sistema de partidas dobradas imutável.
+- ✅ **Camada de Serviços**: Desacoplamento total da lógica de negócio da interface do usuário.
+- ✅ **Tipagem Forte**: Implementada extensão de tipos para o Supabase, eliminando o uso de `any`.
+- ✅ **Auditoria Completa**: Sistema de logs de auditoria nativo para todas as mutações financeiras.
+- ✅ **Simplificação SQL**: Remoção de RPCs legadas e consolidação de segurança e permissões.
+- ✅ **Reset Nuclear**: Funcionalidade de limpeza total de dados restrita a administradores.
+- ✅ **Deploy Idempotente**: Script de setup robusto que permite múltiplas execuções sem conflitos.

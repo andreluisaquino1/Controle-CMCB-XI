@@ -1,76 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDemoData } from "@/demo/useDemoData";
 import { ACCOUNT_NAMES } from "@/lib/constants";
-
-import { MerchantBalance, DashboardData, ReportData, Account } from "@/types";
-
-async function fetchCurrentBalances(): Promise<DashboardData> {
-  const { data, error } = await supabase.rpc("get_current_balances");
-
-  if (error) {
-    console.error("Error fetching current balances:", error);
-    throw error;
-  }
-
-  const result = data as {
-    especieBalance?: number;
-    cofreBalance?: number;
-    pixBalance?: number;
-    contaDigitalBalance?: number;
-    merchantBalances?: MerchantBalance[];
-    resourceBalances?: { UE: Account[]; CX: Account[] };
-  };
-
-  return {
-    especieBalance: Number(result?.especieBalance ?? 0),
-    cofreBalance: Number(result?.cofreBalance ?? 0),
-    pixBalance: Number(result?.pixBalance ?? 0),
-    contaDigitalBalance: Number(result?.contaDigitalBalance ?? 0),
-    merchantBalances: Array.isArray(result?.merchantBalances) ? result.merchantBalances : [],
-    resourceBalances: result?.resourceBalances ?? { UE: [], CX: [] },
-  };
-}
-
-async function fetchReportSummary(startDate: string, endDate: string, entityId: string): Promise<ReportData> {
-  const { data, error } = await supabase.rpc("get_report_summary", {
-    p_start_date: startDate,
-    p_end_date: endDate,
-    p_entity_id: entityId,
-  });
-
-  if (error) {
-    console.error("Error fetching report summary:", error);
-    throw error;
-  }
-
-  const result = data as {
-    weeklyExpensesCash?: number;
-    weeklyExpensesPix?: number;
-    weeklyExpensesDigital?: number;
-    weeklyEntriesCash?: number;
-    weeklyEntriesPix?: number;
-    weeklyDeposits?: number;
-    weeklyConsumption?: number;
-    weeklyDirectPix?: number;
-    weeklyPixFees?: number;
-    weeklyEntriesPixNaoIdentificado?: number;
-  };
-
-  return {
-    weeklyExpensesCash: Number(result?.weeklyExpensesCash || 0),
-    weeklyExpensesPix: Number(result?.weeklyExpensesPix || 0),
-    weeklyExpensesDigital: Number(result?.weeklyExpensesDigital || 0),
-    weeklyEntriesCash: Number(result?.weeklyEntriesCash || 0),
-    weeklyEntriesPix: Number(result?.weeklyEntriesPix || 0),
-    weeklyDeposits: Number(result?.weeklyDeposits || 0),
-    weeklyConsumption: Number(result?.weeklyConsumption || 0),
-    weeklyDirectPix: Number(result?.weeklyDirectPix || 0),
-    weeklyPixFees: Number(result?.weeklyPixFees || 0),
-    weeklyEntriesPixNaoIdentificado: Number(result?.weeklyEntriesPixNaoIdentificado || 0),
-  };
-}
+import { DashboardData, Account, MerchantBalance } from "@/types";
+import { dashboardService } from "@/services/dashboardService";
 
 /**
  * Hook for Dashboard page - returns only current balances (no period)
@@ -81,7 +14,7 @@ export function useDashboardData() {
 
   const query = useQuery({
     queryKey: ["dashboard-data"],
-    queryFn: fetchCurrentBalances,
+    queryFn: () => dashboardService.getDashboardBalances(),
     staleTime: 0, // Ensure fresh data on invalidation
     refetchOnWindowFocus: true,
     enabled: !isDemo,
@@ -121,7 +54,7 @@ export function useReportData(startDate: string, endDate: string, entityId?: str
 
   const query = useQuery({
     queryKey: ["report-data", startDate, endDate, entityId],
-    queryFn: () => fetchReportSummary(startDate, endDate, entityId!),
+    queryFn: () => dashboardService.getReportSummary(startDate, endDate, entityId!),
     staleTime: 1000 * 60,
     enabled: !!startDate && !!endDate && !!entityId && !isDemo,
   });

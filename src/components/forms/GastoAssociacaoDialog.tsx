@@ -20,7 +20,7 @@ import { PlusCircle, X, Plus, Trash2, ListPlus, User } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 // import { useCreateTransaction } from "@/hooks/use-transactions"; // Legacy
-import { createLedgerTransaction } from "@/domain/ledger";
+import { transactionService } from "@/services/transactionService";
 import { useAssociacaoAccounts, useEntities } from "@/hooks/use-accounts";
 import { ACCOUNT_NAMES, ACCOUNT_NAME_TO_LEDGER_KEY } from "@/lib/constants";
 import { useQueryClient } from "@tanstack/react-query";
@@ -128,7 +128,7 @@ export function GastoAssociacaoDialog({
                 const sourceKey = ACCOUNT_NAME_TO_LEDGER_KEY[sourceAccount.name];
                 if (!sourceKey) throw new Error(`Chave Ledger não encontrada para ${sourceAccount.name}`);
 
-                await createLedgerTransaction({
+                await transactionService.createLedgerTransaction({
                     type: "expense",
                     source_account: sourceKey,
                     amount_cents: Math.round(item.amount * 100),

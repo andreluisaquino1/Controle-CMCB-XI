@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { profileService, Profile } from "@/services/profileService";
+// ... (imports remain the same)
 import {
     Table,
     TableBody,
@@ -48,16 +49,6 @@ import { Loader2, UserCheck, UserX, Trash2, ShieldAlert, Pencil } from "lucide-r
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-interface Profile {
-    id: string;
-    user_id: string;
-    name: string;
-    email: string;
-    active: boolean;
-    created_at: string;
-    role?: "admin" | "user" | "demo" | "secretaria";
-}
-
 const ROLE_LABELS = {
     admin: "Administrador",
     user: "Usuário",
@@ -74,127 +65,58 @@ export default function UsuariosPage() {
     // Fetch all profiles and their roles
     const { data: profiles, isLoading } = useQuery({
         queryKey: ["profiles-admin"],
-        queryFn: async () => {
-            // First fetch profiles
-            const { data: profilesData, error: profilesError } = await supabase
-                .from("profiles")
-                .select("*")
-                .order("created_at", { ascending: false });
-
-            if (profilesError) throw profilesError;
-
-            // Then fetch roles
-            const { data: rolesData, error: rolesError } = await supabase
-                .from("user_roles")
-                .select("user_id, role");
-
-            if (rolesError) throw rolesError;
-
-            // Map roles to profiles
-            const profilesWithRoles = profilesData.map((p) => ({
-                ...p,
-                role: rolesData.find((r) => r.user_id === p.user_id)?.role || "user",
-            }));
-
-            return profilesWithRoles as Profile[];
-        },
+        queryFn: () => profileService.getAllProfiles(),
         enabled: !!isAdmin, // Only fetch if admin
     });
 
     // Toggle activation mutation
     const toggleActivation = useMutation({
-        mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-            const { error } = await supabase
-                .from("profiles")
-                .update({ active })
-                .eq("id", id);
-
-            if (error) throw error;
-        },
+        mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+            profileService.toggleActivation(id, active),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["profiles-admin"] });
             toast.success("Status do usuário atualizado.");
         },
-        onError: (error) => {
+        onError: (error: any) => {
             toast.error(`Erro ao atualizar: ${error.message}`);
         },
     });
 
     // Update role mutation
     const updateRole = useMutation({
-        mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "user" | "demo" | "secretaria" }) => {
-            const { data: existingRole } = await supabase
-                .from("user_roles")
-                .select("*")
-                .eq("user_id", userId)
-                .maybeSingle();
-
-            if (existingRole) {
-                const { error } = await supabase
-                    .from("user_roles")
-                    .update({ role: role as "admin" | "user" }) // Cast to satisfy TS if the DB type isn't updated yet in frontend types
-                    .eq("user_id", userId);
-                if (error) throw error;
-            } else {
-                const { error } = await supabase
-                    .from("user_roles")
-                    .insert({ user_id: userId, role: role as "admin" | "user" }); // Cast to satisfy TS
-                if (error) throw error;
-            }
-        },
+        mutationFn: ({ userId, role }: { userId: string; role: string }) =>
+            profileService.updateRole(userId, role),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["profiles-admin"] });
             toast.success("Função do usuário atualizada.");
         },
-        onError: (error) => {
+        onError: (error: any) => {
             toast.error(`Erro ao atualizar função: ${error.message}`);
         },
     });
 
     // Delete user mutation
     const deleteUser = useMutation({
-        mutationFn: async (userId: string) => {
-            // In a real app, you might want to call a Supabase Edge Function to delete from auth.users too
-            // For now, we delete from public.profiles and public.user_roles which RLS allows
-            const { error: profileError } = await supabase
-                .from("profiles")
-                .delete()
-                .eq("user_id", userId);
-
-            if (profileError) throw profileError;
-
-            const { error: roleError } = await supabase
-                .from("user_roles")
-                .delete()
-                .eq("user_id", userId);
-
-            if (roleError) throw roleError;
-        },
+        mutationFn: (userId: string) => profileService.deleteUser(userId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["profiles-admin"] });
             toast.success("Usuário removido com sucesso.");
         },
-        onError: (error) => {
+        onError: (error: any) => {
             toast.error(`Erro ao remover: ${error.message}`);
         },
     });
 
     // Update profile name mutation
     const updateProfile = useMutation({
-        mutationFn: async ({ userId, name }: { userId: string; name: string }) => {
-            const { error } = await supabase
-                .from("profiles")
-                .update({ name })
-                .eq("user_id", userId);
-
-            if (error) throw error;
-        },
+        mutationFn: ({ userId, name }: { userId: string; name: string }) =>
+            profileService.updateProfileName(userId, name),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["profiles-admin"] });
             toast.success("Nome do usuário atualizado.");
             setEditingUser(null);
         },
-        onError: (error) => {
+        onError: (error: any) => {
             toast.error(`Erro ao atualizar nome: ${error.message}`);
         },
     });

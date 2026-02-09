@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 // import { useCreateTransaction } from "@/hooks/use-transactions"; // Legacy
-import { createLedgerTransaction } from "@/domain/ledger";
+import { transactionService } from "@/services/transactionService";
 import { LEDGER_KEYS } from "@/lib/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,14 +59,14 @@ export function PixNaoIdentificadoDialog({ open, onOpenChange, entityId }: PixNa
 
         try {
             setIsSubmitting(true);
-            await createLedgerTransaction({
+            await transactionService.createLedgerTransaction({
                 type: 'income',
                 source_account: LEDGER_KEYS.PIX,
                 amount_cents: Math.round(amount * 100),
-                description: `PIX Não Identificado: ${description}`,
+                description: description,
                 metadata: {
                     modulo: "pix_nao_identificado",
-                    notes: `Lançamento de PIX não identificado - ${description}`,
+                    notes: description,
                     payment_method: "pix",
                     occurred_at: date // Store date in metadata as Ledger uses created_at by default
                 }

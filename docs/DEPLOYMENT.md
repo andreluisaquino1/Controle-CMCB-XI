@@ -28,121 +28,72 @@ VITE_SUPABASE_PROJECT_ID=rqwbtlriiycirsukqmux
 - `VITE_PUBLIC_SITE_URL`: (Optional) URL for auth redirects (e.g. https://cmcb-xi.vercel.app)
 ```
 
-### 4. Aplicar Migrações no Supabase
+### 4. Aplicar Estrutura no Supabase
 
-As migrações estão em `supabase/migrations/`. Você precisa aplicá-las na ordem:
+O banco de dados agora segue uma arquitetura consolidada em um único arquivo de setup.
 
-**Opção A: Via Supabase CLI (Recomendado)**
-```powershell
-# Instalar Supabase CLI se não tiver
-npm install -g supabase
+**Opção A: Instalação Inicial ou Reset (Recomendado)**
+1. Acesse o Supabase Dashboard SQL Editor.
+2. Execute o conteúdo de `supabase/setup/FULL_SYSTEM_SETUP.sql`.
+3. Este script cria todas as tabelas, enums, triggers e as políticas RLS.
 
-# Fazer login
-supabase login
-
-# Link com seu projeto
-supabase link --project-ref rqwbtlriiycirsukqmux
-
-# Aplicar todas as migrações pendentes
-supabase db push
-```
-
-**Opção B: Via Dashboard**
-1. Acesse https://supabase.com/dashboard/project/rqwbtlriiycirsukqmux/sql
-2. Copie e execute cada arquivo SQL na ordem:
-   - `2026-02-08_fix_ledger_balances.sql`
-   - `2026-02-09_settings_support_contact.sql`.sql`
-   - `20260203_phase8_admin_role.sql`
+**Opção B: Atualização de Sistema Existente**
+Se você já tem o sistema rodando e quer apenas aplicar as melhorias de Fevereiro de 2026:
+1. Execute `supabase/migrations/2026-02-09_ledger_unification.sql`.
+2. Este script alinha o schema da `ledger_transactions` e atualiza as funções de resumo.
 
 ### 5. Verificar Instalação
 
-Após aplicar as migrações, verifique:
+Após o setup, valide a integridade do Ledger:
 
 ```sql
--- Verificar se as RPCs existem
-SELECT routine_name FROM information_schema.routines 
-WHERE routine_schema = 'public' 
-AND routine_name IN ('get_current_balances', 'get_report_summary');
+-- 1. Verificar se a visualização de saldos está online
+SELECT * FROM public.ledger_balances;
 
--- Verificar nomes das contas
-SELECT name FROM accounts WHERE entity_id IN (
-  SELECT id FROM entities WHERE type = 'associacao'
-);
--- Deve retornar: Espécie, Cofre, PIX
+-- 2. Validar que as funções de resumo usam o ledger
+-- O resultado deve mostrar referências à tabela 'ledger_transactions'
+SELECT routine_definition 
+FROM information_schema.routines 
+WHERE routine_name = 'get_dashboard_summary';
 
--- Verificar role do admin
-SELECT u.email, ur.role 
-FROM user_roles ur 
-JOIN auth.users u ON u.id = ur.user_id
-WHERE ur.role = 'admin';
+-- 3. Verificar presença de metadados críticos
+SELECT column_name, data_type 
+FROM information_schema.columns 
+WHERE table_name = 'ledger_transactions' 
+AND column_name IN ('module', 'entity_id', 'payment_method');
 ```
 
 ### 6. Deploy no Vercel
 
 ```powershell
-# Commit das mudanças
+# Commit das mudanças arquiteturais
 git add .
-git commit -m "feat: implement all improvement phases - security, architecture, permissions"
+git commit -m "chore: architecture unification - immutable ledger and service layer"
 
 # Push para o repositório
 git push origin main
 ```
 
-O Vercel vai fazer deploy automaticamente.
+O Vercel processará o build e o deploy automaticamente.
 
-## ✅ Mudanças Implementadas
+## ✅ Arquitetura e Melhorias (Fev/2026)
 
-### Fase 0 - Segurança
-- ✅ Lazy loading para bibliotecas de exportação (xlsx, jspdf, html2canvas)
-- ✅ Code splitting no vite.config.ts
-- ✅ Arquivo .env removido
+### Sistema de Ledger (Partidas Dobradas)
+- **Imutabilidade**: Transações no ledger não podem ser alteradas ou excluídas (protegidas por triggers).
+- **Consistência**: Saldo das contas é uma **view calculada** em tempo real a partir do histórico de lançamentos.
+- **Anulação**: Erros são corrigidos via `void_transaction`, que cria um contra-lançamento negativo para histórico auditável.
 
-### Fase 1 - Arquitetura do Banco
-- ✅ RPC `get_current_balances()` criada
-- ✅ RPC `get_report_summary(start_date, end_date)` criada
-- ✅ Contas renomeadas: Bolsinha → Espécie, Reserva → Cofre, BB Associação → PIX
-- ✅ Enums atualizados (especie_transfer, cofre_ajuste, etc.)
+### Camada de Serviços (Desacoplamento)
+- A lógica de negócio reside exclusivamente em `src/services/`.
+- A UI consome apenas serviços, ignorando detalhes de implementação do Supabase ou RPCs.
 
-### Fase 2 - Dashboard
-- ✅ Hook `useDashboardData()` agora retorna apenas saldos atuais
-- ✅ Hook `useReportData(start, end)` criado para relatórios
-- ✅ Removida dependência de período do Dashboard
+### Resumos e Relatórios
+- **Fonte Única**: O Dashboard e Relatórios agora leem 100% da `ledger_transactions`.
+- **Desempenho**: Metadados indexados para filtragem rápida por módulo e entidade.
 
-### Fase 6 - Remover Fiado
-- ✅ Enum `merchant_mode` agora aceita apenas 'saldo'
-- ✅ Enums `transaction_module` sem fiado_registro/fiado_pagamento
-- ✅ Merchants com mode='fiado' desativados
-- ✅ Transações de fiado marcadas como voided
-
-### Fase 8 - Permissões
-- ✅ UsuariosPage usa `isAdmin` do contexto (não mais hardcoded)
-- ✅ RLS policy para admins visualizarem todos os perfis
-- ✅ Seed do role admin para andreluis_57@hotmail.com
-
-## 📝 Notas Importantes
-
-1. **Saldo negativo em estabelecimentos**: Sistema vai PERMITIR com aviso visual
-2. **Admin único**: Apenas seu usuário terá role de admin por enquanto
-3. **Fiado**: Completamente removido do sistema
-4. **Build version**: NÃO exibida (sem rodapé)
-
-## 🐛 Troubleshooting
-
-### Build falha no Vercel
-- Verifique se as variáveis de ambiente estão configuradas
-- Confirme que as novas chaves do Supabase estão corretas
-
-### Erro "RPC not found"
-- Execute as migrações do Phase 1 primeiro
-- Verifique se aplicou via `supabase db push` ou manualmente no dashboard
-
-### Usuário não consegue acessar página de Usuários
-- Execute a migração do Phase 8
-- Verifique se o email está correto na migração
-- Role admin só é atribuído após a migração
 
 ## 🔗 Links Úteis
 
 - Dashboard Supabase: https://supabase.com/dashboard/project/rqwbtlriiycirsukqmux
 - Vercel Dashboard: https://vercel.com
-- Documentação Supabase: https://supabase.com/docs
+- Documentação do Projeto: Veja o [README.md](../README.md)

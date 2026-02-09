@@ -1,19 +1,17 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Account, Entity, Transaction } from '@/types';
-import { useCreateTransaction } from '@/hooks/use-transactions';
+// import { useCreateTransaction } from '@/hooks/use-transactions'; // REMOVED - Using transactionService instead
 import { toast } from "sonner";
 import { formatCurrencyBRL } from '@/lib/currency';
 import { ACCOUNT_NAMES, ACCOUNT_NAME_TO_LEDGER_KEY, LEDGER_KEYS } from '@/lib/constants';
 import { getTodayString } from '@/lib/date-utils';
-import { supabase } from "@/integrations/supabase/client";
-import { Database } from "@/integrations/supabase/types";
+import { transactionService } from "@/services/transactionService";
 import {
     mensalidadeSchema,
     gastoAssociacaoSchema,
     movimentarSaldoSchema,
     ajusteSchema
 } from "@/lib/schemas";
-import { createLedgerTransaction } from "@/domain/ledger";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -57,7 +55,7 @@ export function useAssociacaoActions(
 ) {
     const queryClient = useQueryClient();
     const { isSecretaria } = useAuth();
-    const createTransaction = useCreateTransaction();
+    // const createTransaction = useCreateTransaction(); // REMOVED
     // We'll use local state for loading since we're calling async functions directly
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -143,7 +141,7 @@ export function useAssociacaoActions(
             // For now, let's just create.
 
             if (state.mensalidade.cash > 0) {
-                await createLedgerTransaction({
+                await transactionService.createLedgerTransaction({
                     type: "income",
                     source_account: LEDGER_KEYS.EXTERNAL_INCOME,
                     destination_account: ACCOUNT_NAME_TO_LEDGER_KEY[ACCOUNT_NAMES.ESPECIE],
@@ -160,7 +158,7 @@ export function useAssociacaoActions(
             }
 
             if (state.mensalidade.pix > 0) {
-                await createLedgerTransaction({
+                await transactionService.createLedgerTransaction({
                     type: "income",
                     source_account: LEDGER_KEYS.EXTERNAL_INCOME,
                     destination_account: ACCOUNT_NAME_TO_LEDGER_KEY[ACCOUNT_NAMES.PIX],
@@ -214,7 +212,7 @@ export function useAssociacaoActions(
 
         try {
             setIsSubmitting(true);
-            await createLedgerTransaction({
+            await transactionService.createLedgerTransaction({
                 type: "expense",
                 source_account: sourceKey,
                 destination_account: LEDGER_KEYS.EXTERNAL_EXPENSE,
@@ -295,7 +293,7 @@ export function useAssociacaoActions(
             // We can add .select() to ledger.ts later if needed. 
             // For now, we'll just insert both.
 
-            await createLedgerTransaction({
+            await transactionService.createLedgerTransaction({
                 type: "transfer",
                 source_account: sourceKey,
                 destination_account: destKey,
@@ -357,7 +355,7 @@ export function useAssociacaoActions(
         try {
             setIsSubmitting(true);
 
-            await createLedgerTransaction({
+            await transactionService.createLedgerTransaction({
                 type: direction === 'in' ? 'income' : 'expense',
                 source_account: direction === 'in' ? LEDGER_KEYS.EXTERNAL_INCOME : accountKey,
                 destination_account: direction === 'in' ? accountKey : LEDGER_KEYS.EXTERNAL_EXPENSE,
@@ -416,6 +414,6 @@ export function useAssociacaoActions(
         state,
         setters,
         handlers,
-        isLoading: isSubmitting || createTransaction.isPending,
+        isLoading: isSubmitting,
     };
 }

@@ -24,7 +24,8 @@ import { AlertCircle, Plus, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useState } from "react";
 import { toast } from "sonner";
-import { createLedgerTransaction } from "@/domain/ledger";
+import { accountService } from "@/services/accountService";
+import { transactionService } from "@/services/transactionService";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface GastoRecursoDialogProps {
@@ -116,9 +117,10 @@ export function GastoRecursoDialog({
                 // Use account ID as ledger key (consistent with Entrada)
                 const sourceKey = selectedAccount.id;
 
-                await createLedgerTransaction({
+                await transactionService.createLedgerTransaction({
                     type: "expense",
                     source_account: sourceKey,
+                    destination_account: LEDGER_KEYS.EXTERNAL_EXPENSE,
                     amount_cents: Math.round(item.amount * 100),
                     description: item.description,
                     metadata: {
