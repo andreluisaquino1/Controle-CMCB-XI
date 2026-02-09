@@ -55,7 +55,7 @@ export function TransactionTable({
     }
 
     return (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[650px] overflow-y-auto border rounded-md shadow-inner">
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -67,8 +67,8 @@ export function TransactionTable({
                         <TableHead className="text-right">Valor</TableHead>
                         <TableHead>Descrição</TableHead>
                         <TableHead>Registrado por</TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead>Observação</TableHead>
+                        <TableHead>Status</TableHead>
                         {(onVoid || transactions.some(t => t.module === 'taxa_pix_bb')) && <TableHead className="w-[100px] text-right">Ações</TableHead>}
                     </TableRow>
                 </TableHeader>
@@ -110,6 +110,9 @@ export function TransactionTable({
                             <TableCell className="text-muted-foreground text-xs">
                                 {t.creator_name || "-"}
                             </TableCell>
+                            <TableCell className="max-w-xs truncate text-muted-foreground text-[10px] italic" title={t.notes || ""}>
+                                {t.notes || "-"}
+                            </TableCell>
                             <TableCell>
                                 {t.ledger_status === 'pending' ? (
                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">
@@ -128,9 +131,6 @@ export function TransactionTable({
                                         Efetivado
                                     </span>
                                 )}
-                            </TableCell>
-                            <TableCell className="max-w-xs truncate text-muted-foreground text-xs italic">
-                                {t.notes || "-"}
                             </TableCell>
                             {(onVoid || t.module === 'taxa_pix_bb') && (
                                 <TableCell className="text-right">

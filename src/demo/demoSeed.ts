@@ -33,8 +33,8 @@ export interface DemoAuditLog {
     created_at: string;
     action: string;
     reason: string | null;
-    before_json: any;
-    after_json: any;
+    before_json?: any;
+    after_json?: any;
     profiles: { name: string | null } | null;
     transactions: {
         description: string | null;

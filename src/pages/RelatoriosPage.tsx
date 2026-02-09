@@ -202,7 +202,7 @@ export default function RelatoriosPage() {
                   <p className="text-muted-foreground font-medium">Nenhuma transação encontrada no período.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-md border">
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto rounded-md border shadow-inner">
                   <Table>
                     <TableHeader className="bg-muted/50">
                       <TableRow>
@@ -214,7 +214,8 @@ export default function RelatoriosPage() {
                         <TableHead>Estabelecimento</TableHead>
                         <TableHead className="text-right">Valor</TableHead>
                         <TableHead>Descrição</TableHead>
-                        <TableHead className="w-[150px]">Observação</TableHead>
+                        <TableHead>Observação</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead>Registrado por</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -250,8 +251,27 @@ export default function RelatoriosPage() {
                           <TableCell className="max-w-[200px] truncate text-sm" title={t.description || ""}>
                             {t.description || "-"}
                           </TableCell>
-                          <TableCell className="max-w-[150px] truncate text-muted-foreground text-xs" title={t.notes || ""}>
+                          <TableCell className="max-w-[150px] truncate text-muted-foreground text-[10px] italic" title={t.notes || ""}>
                             {t.notes || "-"}
+                          </TableCell>
+                          <TableCell>
+                            {t.ledger_status === 'pending' ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                                Pendente
+                              </span>
+                            ) : t.ledger_status === 'validated' ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Validado
+                              </span>
+                            ) : t.status === 'voided' ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                Anulado
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                Efetivado
+                              </span>
+                            )}
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                             {t.creator_name || "-"}

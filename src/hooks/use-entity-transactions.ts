@@ -164,19 +164,39 @@ export function useAllTransactionsWithCreator(startDate?: string, endDate?: stri
   const query = useQuery({
     queryKey: ["transactions", "all-with-creator", startDate, endDate],
     queryFn: async () => {
-      let queryFn = supabase
+      // Fetch Legacy Transactions
+      let legacyQuery = supabase
         .from("transactions")
         .select("*")
         .eq("status", "posted")
         .order("transaction_date", { ascending: false });
 
-      if (startDate) queryFn = queryFn.gte("transaction_date", startDate);
-      if (endDate) queryFn = queryFn.lte("transaction_date", endDate);
+      if (startDate) legacyQuery = legacyQuery.gte("transaction_date", startDate);
+      if (endDate) legacyQuery = legacyQuery.lte("transaction_date", endDate);
 
-      const { data: transactions, error } = await queryFn;
-      if (error) throw error;
+      // Fetch Ledger Transactions
+      let ledgerQuery = (supabase as any)
+        .from("ledger_transactions")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-      return (transactions || []).map((t) => mapLegacyTransaction(t as any, meta as MapperMetadata));
+      if (startDate) ledgerQuery = ledgerQuery.gte("created_at", `${startDate}T00:00:00`);
+      if (endDate) ledgerQuery = ledgerQuery.lte("created_at", `${endDate}T23:59:59`);
+
+      const [legacyRes, ledgerRes] = await Promise.all([legacyQuery, ledgerQuery]);
+
+      if (legacyRes.error) throw legacyRes.error;
+      if (ledgerRes.error) throw ledgerRes.error;
+
+      const legacyMapped = (legacyRes.data || []).map((t) => mapLegacyTransaction(t as any, meta as MapperMetadata));
+      const ledgerMapped = (ledgerRes.data || []).map((l: any) => mapLedgerTransaction(l, meta as MapperMetadata));
+
+      // Combine and Sort
+      return [...legacyMapped, ...ledgerMapped]
+        .sort((a, b) =>
+          new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime() ||
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
     },
     enabled: !isDemo && !!meta,
   });

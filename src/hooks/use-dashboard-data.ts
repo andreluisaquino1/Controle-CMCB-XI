@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDemoData } from "@/demo/useDemoData";
 import { ACCOUNT_NAMES } from "@/lib/constants";
-import { DashboardData, Account, MerchantBalance } from "@/types";
+import { DashboardData, Account, MerchantBalance, ReportData } from "@/types";
 import { dashboardService } from "@/services/dashboardService";
 
 /**
@@ -60,7 +60,7 @@ export function useReportData(startDate: string, endDate: string, entityId?: str
   });
 
   if (isDemo && startDate && endDate) {
-    const data = getReportSummary(startDate, endDate);
+    const data = getReportSummary(startDate, endDate) as ReportData;
     return { ...query, data, isLoading: false, isError: false, error: null };
   }
 

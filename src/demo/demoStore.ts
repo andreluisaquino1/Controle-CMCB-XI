@@ -351,8 +351,10 @@ export const demoStore = {
             weeklyExpensesCash: sum(expensesCash),
             weeklyExpensesPix: sum(expensesPix),
             weeklyExpensesDigital: sum(expensesDigital),
+            weeklyPixFees: 0,
             weeklyEntriesCash: sum(entriesCash),
             weeklyEntriesPix: sum(entriesPix),
+            weeklyEntriesPixNaoIdentificado: 0,
             weeklyDeposits: sum(deposits),
             weeklyConsumption: sum(consumption),
             weeklyDirectPix: 0
