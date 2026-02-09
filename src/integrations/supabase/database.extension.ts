@@ -9,6 +9,30 @@ import { Json } from "@/integrations/supabase/types";
 export interface ExtendedDatabase extends Database {
     public: Database["public"] & {
         Tables: Database["public"]["Tables"] & {
+            /**
+             * Tabela `settings` não veio no types gerado.
+             */
+            settings: {
+                Row: {
+                    key: string;
+                    value: string | null;
+                    created_at: string;
+                    updated_at: string | null;
+                };
+                Insert: {
+                    key: string;
+                    value?: string | null;
+                    created_at?: string;
+                    updated_at?: string | null;
+                };
+                Update: {
+                    key?: string;
+                    value?: string | null;
+                    created_at?: string;
+                    updated_at?: string | null;
+                };
+                Relationships: [];
+            };
             ledger_transactions: {
                 Row: Database["public"]["Tables"]["ledger_transactions"]["Row"] & {
                     status: "pending" | "validated" | "voided";
@@ -21,9 +45,24 @@ export interface ExtendedDatabase extends Database {
                 };
             };
         };
+        Views: Database["public"]["Views"] & {
+            ledger_balances: {
+                Row: {
+                    account_id: string;
+                    balance_cents: number;
+                };
+            };
+        };
         Functions: Database["public"]["Functions"] & {
             approve_ledger_transaction: {
                 Args: { p_id: string };
+                Returns: Json;
+            };
+            /**
+             * RPC para reset de dados (demo/admin).
+             */
+            reset_all_data: {
+                Args: Record<string, never>;
                 Returns: Json;
             };
         };

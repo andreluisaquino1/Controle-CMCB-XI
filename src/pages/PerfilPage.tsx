@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
+import { env } from "@/lib/env";
 import { toast } from "sonner";
 import { User, KeyRound, LogOut, Loader2, Mail, AlertTriangle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -260,9 +262,9 @@ export default function PerfilPage() {
                       <span className="font-bold">Atenção: Esta ação não pode ser desfeita.</span>
                       <br />
                       <span className="text-xs font-mono opacity-70 mt-1 block">
-                        Proj: {(supabase as any).supabaseUrl?.split('.')[0].replace('https://', '')} |
+                        Proj: {env.VITE_SUPABASE_URL.split(".")[0].replace("https://", "")} |
                         Role: {profile?.role || 'user'} |
-                        Demo: {String(profile?.role === 'demo')}
+                        Demo: {String((profile?.role as string) === 'demo')}
                       </span>
                     </p>
                   </div>
@@ -284,8 +286,7 @@ export default function PerfilPage() {
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           onClick={async () => {
                             try {
-                              // @ts-ignore - Function exists in updated schema but types are not regenerated
-                              const { error } = await supabase.rpc('reset_all_data' as any);
+                              const { error } = await extendedSupabase.rpc("reset_all_data", {});
                               if (error) throw error;
                               toast.success("Banco de dados resetado com sucesso.");
                               setTimeout(() => window.location.reload(), 1500);

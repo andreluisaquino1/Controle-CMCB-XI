@@ -1,7 +1,7 @@
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
@@ -18,8 +18,7 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
   const { data: supportContactText } = useQuery({
     queryKey: ["settings", "support_contact_text"],
     queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error = null } = await extendedSupabase
         .from("settings")
         .select("value")
         .eq("key", "support_contact_text")
@@ -65,8 +64,16 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
             Aguardando Ativação
           </h1>
           <p className="text-muted-foreground mb-4">
-            Sua conta ainda não foi ativada ou o perfil foi removido. Entre em contato com o <strong>Tenente Aquino</strong>{" "}
-            solicitando a ativação para acessar o sistema.
+            Sua conta ainda não foi ativada ou o perfil foi removido.{" "}
+            {supportContactText ? (
+              <>
+                Entre em contato: <strong>{supportContactText}</strong>
+              </>
+            ) : (
+              <>
+                Entre em contato com o <strong>Tenente Aquino</strong> solicitando a ativação para acessar o sistema.
+              </>
+            )}
           </p>
           <button
             onClick={() => signOut()}

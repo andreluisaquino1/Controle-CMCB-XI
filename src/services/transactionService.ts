@@ -1,9 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { LedgerType, LedgerTransaction } from "@/domain/ledger";
-import { ExtendedDatabase } from "@/integrations/supabase/database.extension";
-import { type SupabaseClient } from "@supabase/supabase-js";
-
-const extendedSupabase = supabase as unknown as SupabaseClient<ExtendedDatabase>;
 
 export const transactionService = {
     /**

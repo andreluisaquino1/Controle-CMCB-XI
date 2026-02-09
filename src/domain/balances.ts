@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 
 /**
  * Busca saldo em centavos a partir da view `ledger_balances`.
@@ -8,12 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
  * da Associação, pode ser uma key (ex: 'cash', 'pix_bb', etc).
  */
 export async function getAccountBalanceCents(accountId: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
+    const { data, error } = await extendedSupabase
         .from("ledger_balances")
         .select("balance_cents")
         .eq("account_id", accountId)
         .maybeSingle();
+
 
     if (error) {
         console.error(`Erro ao buscar saldo da conta ${accountId}:`, error);

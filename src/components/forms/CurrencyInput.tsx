@@ -50,9 +50,11 @@ export function CurrencyInput({
     } else {
       setDisplayValue("");
     }
-    // Final sync
-    lastProcessedValue.current = numericValue;
-    onChange(numericValue);
+    // Final sync (evita disparar onChange duas vezes com o mesmo valor)
+    if (numericValue !== lastProcessedValue.current) {
+      lastProcessedValue.current = numericValue;
+      onChange(numericValue);
+    }
   };
 
   return (
