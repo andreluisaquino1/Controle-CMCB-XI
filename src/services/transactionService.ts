@@ -13,6 +13,7 @@ export const transactionService = {
         description?: string | null;
         reference_id?: string | null;
         status?: "pending" | "validated" | "voided";
+        created_at?: string;
         metadata?: Record<string, unknown>;
     }): Promise<void> {
         if (!Number.isInteger(input.amount_cents) || input.amount_cents <= 0) {
@@ -24,6 +25,7 @@ export const transactionService = {
         if (!userId || userError) throw new Error("Usuário não autenticado no Supabase.");
 
         const { error } = await extendedSupabase.from("ledger_transactions").insert({
+            created_at: input.created_at ? new Date(input.created_at).toISOString() : undefined,
             created_by: userId,
             type: input.type,
             source_account: input.source_account,
@@ -32,7 +34,7 @@ export const transactionService = {
             description: input.description ?? null,
             reference_id: input.reference_id ?? null,
             status: input.status || "validated",
-            module: (input.metadata as any)?.module ?? null,
+            module: (input.metadata as any)?.module ?? (input.metadata as any)?.modulo ?? null,
             entity_id: (input.metadata as any)?.entity_id ?? null,
             payment_method: (input.metadata as any)?.payment_method ?? null,
             metadata: (input.metadata as any) ?? {},
@@ -72,12 +74,13 @@ export const transactionService = {
      */
     async checkExistingMonthlyFee(date: string, turno: string, method: "cash" | "pix") {
         const module = method === "cash" ? "mensalidade" : "mensalidade_pix";
-        return await extendedSupabase
+        return await (extendedSupabase as any)
             .from("ledger_transactions")
             .select("id")
             .eq("module", module)
             .eq("status", "validated")
             .eq("metadata->>shift", turno)
-            .raw(`created_at::date = '${date}'`);
+            .gte("created_at", `${date}T00:00:00`)
+            .lte("created_at", `${date}T23:59:59.999`);
     }
 };

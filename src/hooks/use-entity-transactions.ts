@@ -22,7 +22,7 @@ export function useAssociacaoTransactions() {
       const { data: ledgerData, error } = await (supabase as any)
         .from("ledger_transactions")
         .select("*")
-        .or('metadata->>modulo.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual"),metadata->>original_module.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual")')
+        .or('metadata->>module.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual"),metadata->>modulo.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual"),metadata->>original_module.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual")')
         .order("created_at", { ascending: false })
         .limit(100);
 
@@ -121,7 +121,7 @@ export function useSaldosTransactions() {
       const ledgerPromise = (supabase as any)
         .from("ledger_transactions")
         .select("*")
-        .or('metadata->>modulo.in.("aporte_saldo","consumo_saldo"),metadata->>original_module.in.("aporte_saldo","consumo_saldo")')
+        .or('metadata->>module.in.("aporte_saldo","consumo_saldo"),metadata->>modulo.in.("aporte_saldo","consumo_saldo"),metadata->>original_module.in.("aporte_saldo","consumo_saldo")')
         .order("created_at", { ascending: false })
         .limit(100);
 

@@ -64,7 +64,7 @@ export const mapLedgerTransaction = (
         displayDestName = displaySourceName;
     }
 
-    const mod = (ledgerTx.metadata?.modulo || ledgerTx.metadata?.original_module || 'outros') as string;
+    const mod = (ledgerTx.metadata?.module || ledgerTx.metadata?.modulo || ledgerTx.metadata?.original_module || 'outros') as string;
 
     return {
         id: ledgerTx.id,
@@ -85,9 +85,9 @@ export const mapLedgerTransaction = (
         source_account_id: null,
         destination_account_id: null,
         merchant_id: (ledgerTx.metadata?.merchant_id as string) || null,
-        entity_id: null,
-        payment_method: null,
-        shift: null,
+        entity_id: (ledgerTx as any).entity_id || (ledgerTx.metadata?.entity_id as string) || null,
+        payment_method: (ledgerTx as any).payment_method || (ledgerTx.metadata?.payment_method as string) || null,
+        shift: (ledgerTx.metadata?.shift as string) || (ledgerTx.metadata?.turno as string) || null,
         origin_fund: null,
         parent_transaction_id: null
     } as TransactionWithCreator;

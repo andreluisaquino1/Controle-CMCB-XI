@@ -185,8 +185,8 @@ export function MovimentarSaldoDialog({
 
                                         {state.taxa > 0 && (
                                             <div className="flex justify-between text-xs">
-                                                <span className="text-muted-foreground">Taxa (informativa):</span>
-                                                <span className="text-muted-foreground">{formatCurrencyBRL(state.taxa)}</span>
+                                                <span className="text-muted-foreground">Taxa:</span>
+                                                <span className="text-destructive">-{formatCurrencyBRL(state.taxa)}</span>
                                             </div>
                                         )}
 
@@ -194,9 +194,9 @@ export function MovimentarSaldoDialog({
                                             <span className="text-muted-foreground">Saldo Projetado:</span>
                                             <span className={cn(
                                                 "font-bold",
-                                                (sourceAccount.balance - state.valor) < 0 ? "text-destructive" : "text-primary"
+                                                (sourceAccount.balance - state.valor - state.taxa) < 0 ? "text-destructive" : "text-primary"
                                             )}>
-                                                {formatCurrencyBRL(sourceAccount.balance - state.valor)}
+                                                {formatCurrencyBRL(sourceAccount.balance - state.valor - state.taxa)}
                                             </span>
                                         </div>
                                     </div>

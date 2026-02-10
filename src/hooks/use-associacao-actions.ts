@@ -161,8 +161,9 @@ export function useAssociacaoActions(
                     amount_cents: toCents(state.mensalidade.cash),
                     status: isSecretaria ? "pending" : "validated",
                     description: `Mensalidade ${state.mensalidade.turno}`,
+                    created_at: `${state.mensalidade.date}T12:00:00`, // Set to noon to avoid timezone edge cases
                     metadata: {
-                        modulo: "mensalidade",
+                        module: "mensalidade",
                         payment_method: "cash",
                         shift: state.mensalidade.turno,
                         notes: state.mensalidade.obs
@@ -191,8 +192,9 @@ export function useAssociacaoActions(
                     amount_cents: toCents(state.mensalidade.pix),
                     status: isSecretaria ? "pending" : "validated",
                     description: `Mensalidade ${state.mensalidade.turno} (PIX)`,
+                    created_at: `${state.mensalidade.date}T12:00:00`,
                     metadata: {
-                        modulo: "mensalidade_pix",
+                        module: "mensalidade_pix",
                         payment_method: "pix",
                         shift: state.mensalidade.turno,
                         notes: state.mensalidade.obs
@@ -285,10 +287,10 @@ export function useAssociacaoActions(
         const destAccount = accounts?.find(a => a.id === state.mov.para);
         if (!sourceAccount || !destAccount) return false;
 
-        // DECISÃO (2026-02-09): taxa é apenas informativa e NÃO entra no ledger.
-        // Como o ledger é a fonte da verdade do saldo, só validamos saldo contra o valor transferido.
-        if (state.mov.valor > sourceAccount.balance) {
-            toast.error(`Saldo insuficiente em ${sourceAccount.name}. Necessário ${formatCurrencyBRL(state.mov.valor)}.`);
+        // Validação de saldo (Valor + Taxa)
+        const totalAmount = state.mov.valor + state.mov.taxa;
+        if (totalAmount > sourceAccount.balance) {
+            toast.error(`Saldo insuficiente em ${sourceAccount.name}. Necessário ${formatCurrencyBRL(totalAmount)} (Valor + Taxa).`);
             return false;
         }
 
@@ -326,11 +328,32 @@ export function useAssociacaoActions(
                 amount_cents: toCents(state.mov.valor),
                 description: state.mov.descricao,
                 metadata: {
-                    modulo: "assoc_transfer",
+                    module: "assoc_transfer",
                     notes: state.mov.obs,
-                    taxa_informativa_cents: toCents(state.mov.taxa),
+                    taxa_informativa: state.mov.taxa > 0 ? formatCurrencyBRL(state.mov.taxa) : null,
                 },
             });
+
+            // 2. Create Fee Transaction (if applicable)
+            if (state.mov.taxa > 0) {
+                let feeModule = "gasto_associacao";
+                // Determine module based on source
+                if (sourceAccount.name === ACCOUNT_NAMES.PIX) feeModule = "taxa_pix_bb";
+                if (sourceAccount.name === ACCOUNT_NAMES.CONTA_DIGITAL) feeModule = "conta_digital_taxa";
+
+                await transactionService.createLedgerTransaction({
+                    type: "expense",
+                    source_account: sourceKey,
+                    destination_account: LEDGER_KEYS.EXTERNAL_EXPENSE,
+                    amount_cents: toCents(state.mov.taxa),
+                    description: `Taxa: ${state.mov.descricao}`,
+                    metadata: {
+                        module: feeModule,
+                        original_module: "movimentacao_taxa", // for tracking
+                        notes: `Taxa referente à movimentação de ${formatCurrencyBRL(state.mov.valor)}`
+                    }
+                });
+            }
 
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ["ledger_transactions"] }),
