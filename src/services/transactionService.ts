@@ -65,5 +65,19 @@ export const transactionService = {
         });
 
         if (error) throw error;
+    },
+
+    /**
+     * Verifica se já existe uma mensalidade para o turno e método na data
+     */
+    async checkExistingMonthlyFee(date: string, turno: string, method: "cash" | "pix") {
+        const module = method === "cash" ? "mensalidade" : "mensalidade_pix";
+        return await extendedSupabase
+            .from("ledger_transactions")
+            .select("id")
+            .eq("module", module)
+            .eq("status", "validated")
+            .eq("metadata->>shift", turno)
+            .raw(`created_at::date = '${date}'`);
     }
 };

@@ -318,6 +318,8 @@ export default function AssociacaoPage() {
               onVoid={(id) => setVoidingId(id)}
               onValidate={!isSecretaria ? (id) => approveTransaction.mutate(id) : undefined}
               isValidating={approveTransaction.isPending}
+              showShift={true}
+              showMethod={true}
             />
           </CardContent>
         </Card>

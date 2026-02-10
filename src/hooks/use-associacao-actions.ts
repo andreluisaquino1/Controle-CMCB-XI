@@ -140,7 +140,20 @@ export function useAssociacaoActions(
             // TODO: Check for existing transactions in Ledger? 
             // For now, let's just create.
 
+            // 1. Check for existing monthly fee (Cash) if cash > 0
             if (state.mensalidade.cash > 0) {
+                const { data: existingCash } = await transactionService.checkExistingMonthlyFee(
+                    state.mensalidade.date,
+                    state.mensalidade.turno,
+                    "cash"
+                );
+
+                if (existingCash && existingCash.length > 0) {
+                    toast.error(`Já existe lançamento de mensalidade (Espécie) para o turno ${state.mensalidade.turno} nesta data.`);
+                    setIsSubmitting(false);
+                    return false;
+                }
+
                 await transactionService.createLedgerTransaction({
                     type: "income",
                     source_account: LEDGER_KEYS.EXTERNAL_INCOME,
@@ -157,7 +170,20 @@ export function useAssociacaoActions(
                 });
             }
 
+            // 2. Check for existing monthly fee (PIX) if pix > 0
             if (state.mensalidade.pix > 0) {
+                const { data: existingPix } = await transactionService.checkExistingMonthlyFee(
+                    state.mensalidade.date,
+                    state.mensalidade.turno,
+                    "pix"
+                );
+
+                if (existingPix && existingPix.length > 0) {
+                    toast.error(`Já existe lançamento de mensalidade (PIX) para o turno ${state.mensalidade.turno} nesta data.`);
+                    setIsSubmitting(false);
+                    return false;
+                }
+
                 await transactionService.createLedgerTransaction({
                     type: "income",
                     source_account: LEDGER_KEYS.EXTERNAL_INCOME,
