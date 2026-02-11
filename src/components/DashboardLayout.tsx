@@ -43,7 +43,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { profile, isAdmin, isDemo, signOut } = useAuth();
+  const { profile, isAdmin, isDemo, isSecretaria, signOut } = useAuth();
   const location = useLocation();
 
   const handleSignOut = async () => {

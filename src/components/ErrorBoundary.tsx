@@ -38,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
                             Ocorreu um erro inesperado que impediu o carregamento da página.
                         </p>
 
-                        {process.env.NODE_ENV === "development" && (
+                        {import.meta.env.DEV && (
                             <div className="mb-6 p-3 bg-muted rounded text-left overflow-auto max-h-40">
                                 <p className="text-xs font-mono text-destructive break-all">
                                     {this.state.error?.toString()}
