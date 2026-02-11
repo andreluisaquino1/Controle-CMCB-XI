@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { useState, useEffect, ChangeEvent, FocusEvent, useRef } from "react";
-import { parseCurrencyBRL, formatCurrencyBRL } from "@/lib/currency";
+import { parseCurrencyBRL } from "@/lib/currency";
 
 interface CurrencyInputProps {
   value: number;

@@ -61,7 +61,8 @@ export function PixNaoIdentificadoDialog({ open, onOpenChange, entityId }: PixNa
             setIsSubmitting(true);
             await transactionService.createLedgerTransaction({
                 type: 'income',
-                source_account: LEDGER_KEYS.PIX,
+                source_account: LEDGER_KEYS.EXTERNAL_INCOME,
+                destination_account: LEDGER_KEYS.PIX,
                 amount_cents: Math.round(amount * 100),
                 description: description,
                 metadata: {

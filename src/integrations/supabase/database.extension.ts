@@ -58,6 +58,10 @@ export interface ExtendedDatabase extends Database {
                 Args: { p_id: string };
                 Returns: Json;
             };
+            get_ledger_balance_map: {
+                Args: Record<string, never>;
+                Returns: { account_id: string; balance_cents: number }[];
+            };
             /**
              * RPC para reset de dados (demo/admin).
              */

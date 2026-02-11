@@ -32,7 +32,7 @@ import { sortByAccountOrder } from "@/lib/constants";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { Account } from "@/types";
 import { useState, useEffect } from "react";
-import { XCircle } from "lucide-react";
+
 
 interface AjustarSaldoDialogProps {
     open: boolean;
@@ -65,59 +65,52 @@ export function AjustarSaldoDialog({
     onSubmit,
     isLoading,
 }: AjustarSaldoDialogProps) {
+    const { setDate, setAccountId, setValor, setMotivo, setObs } = setters;
     const selectedAccount = accounts.find(a => a.id === state.accountId);
     const currentBalance = selectedAccount?.balance || 0;
     const [confirmOpen, setConfirmOpen] = useState(false);
 
-    // Track which field is physically active to implement exclusive locking
-    const [activeField, setActiveField] = useState<'adjustment' | 'finalBalance' | null>(null);
+    /**
+     * Fonte de verdade local para evitar disputa entre:
+     * - state.valor (controlado pelo pai)
+     * - valor digitado/cálculo instantâneo no diálogo
+     *
+     * Isso ajuda a evitar “voltar valor” enquanto o usuário digita e reduz flakiness de teste.
+     */
+    const [mode, setMode] = useState<"adjustment" | "finalBalance" | null>(null);
+    const [adjustment, setAdjustment] = useState<number>(state.valor || 0);
+    const [finalBalance, setFinalBalance] = useState<number>(currentBalance + (state.valor || 0));
 
-    // Local state for the "Final Balance" calculation
-    const [finalBalance, setFinalBalance] = useState(currentBalance + state.valor);
-
-    // Sync calculated field when active one changes
+    // Quando trocar a conta, reseta o diálogo de forma previsível
     useEffect(() => {
-        if (activeField === 'adjustment') {
-            setFinalBalance(currentBalance + state.valor);
-        } else if (activeField === 'finalBalance') {
-            // setters.setValor(finalBalance - currentBalance) is handled in handleFinalBalanceChange
-        } else {
-            // Neither is active, keep them in sync with current state
-            setFinalBalance(currentBalance + state.valor);
-        }
-    }, [state.valor, currentBalance, activeField]);
-
-    // Cleanup and Reset when account changes
-    useEffect(() => {
-        setActiveField(null);
-        setters.setValor(0);
+        setMode(null);
+        setAdjustment(0);
         setFinalBalance(currentBalance);
-    }, [state.accountId, currentBalance]);
+        if (state.valor !== 0) setValor(0);
+    }, [state.accountId, currentBalance, state.valor, setValor]);
+
+    // Se o pai resetar valor enquanto não há campo ativo, refletir aqui
+    useEffect(() => {
+        if (mode === null) {
+            const v = state.valor || 0;
+            setAdjustment(v);
+            setFinalBalance(currentBalance + v);
+        }
+    }, [state.valor, currentBalance, mode]);
 
     const handleAdjustmentChange = (val: number) => {
-        if (val === 0) {
-            setActiveField(null);
-        } else if (!activeField) {
-            setActiveField('adjustment');
-        }
-        setters.setValor(val);
+        setMode(val === 0 ? null : "adjustment");
+        setAdjustment(val);
         setFinalBalance(currentBalance + val);
+        setValor(val);
     };
 
     const handleFinalBalanceChange = (val: number) => {
-        if (val === currentBalance) {
-            setActiveField(null);
-        } else if (!activeField) {
-            setActiveField('finalBalance');
-        }
+        const delta = val - currentBalance;
+        setMode(delta === 0 ? null : "finalBalance");
         setFinalBalance(val);
-        setters.setValor(val - currentBalance);
-    };
-
-    const handleClearValues = () => {
-        setActiveField(null);
-        setters.setValor(0);
-        setFinalBalance(currentBalance);
+        setAdjustment(delta);
+        setValor(delta);
     };
 
     return (
@@ -132,12 +125,12 @@ export function AjustarSaldoDialog({
                 <div className="space-y-4 pt-4">
                     <div className="space-y-2">
                         <Label htmlFor="adj-date">Data *</Label>
-                        <DateInput id="adj-date" value={state.date} onChange={setters.setDate} />
+                        <DateInput id="adj-date" value={state.date} onChange={setDate} />
                     </div>
 
                     <div className="space-y-2">
                         <Label>Conta a Ajustar *</Label>
-                        <Select value={state.accountId} onValueChange={setters.setAccountId}>
+                        <Select value={state.accountId} onValueChange={setAccountId}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Selecione a conta" />
                             </SelectTrigger>
@@ -165,13 +158,13 @@ export function AjustarSaldoDialog({
                                 <Label htmlFor="adj-amount" className="text-xs text-muted-foreground">Valor do Ajuste (R$)</Label>
                                 <CurrencyInput
                                     id="adj-amount"
-                                    value={state.valor}
+                                    value={adjustment}
                                     onChange={handleAdjustmentChange}
                                     placeholder="Ex: +10 ou -5"
-                                    disabled={activeField === 'finalBalance'}
+                                    disabled={mode === "finalBalance"}
                                 />
                                 <p className="text-[10px] text-muted-foreground leading-tight">
-                                    {activeField === 'finalBalance' ? 'Calculado' : 'Somar ou subtrair'}
+                                    {mode === "finalBalance" ? "Calculado" : "Somar ou subtrair"}
                                 </p>
                             </div>
                             <div className="space-y-2">
@@ -181,10 +174,10 @@ export function AjustarSaldoDialog({
                                     value={finalBalance}
                                     onChange={handleFinalBalanceChange}
                                     placeholder="Saldo desejado"
-                                    disabled={activeField === 'adjustment'}
+                                    disabled={mode === "adjustment"}
                                 />
                                 <p className="text-[10px] text-muted-foreground leading-tight">
-                                    {activeField === 'adjustment' ? 'Calculado' : 'Qual será o saldo'}
+                                    {mode === "adjustment" ? "Calculado" : "Qual será o saldo"}
                                 </p>
                             </div>
                         </div>
@@ -195,7 +188,7 @@ export function AjustarSaldoDialog({
                         <Input
                             id="adj-reason"
                             value={state.motivo}
-                            onChange={(e) => setters.setMotivo(e.target.value)}
+                            onChange={(e) => setMotivo(e.target.value)}
                             placeholder="Ex: Saldo inicial, correção, etc"
                         />
                     </div>
@@ -205,7 +198,7 @@ export function AjustarSaldoDialog({
                         <Input
                             id="adj-obs"
                             value={state.obs}
-                            onChange={(e) => setters.setObs(e.target.value)}
+                            onChange={(e) => setObs(e.target.value)}
                             placeholder="Informações adicionais"
                         />
                     </div>
@@ -220,7 +213,7 @@ export function AjustarSaldoDialog({
                         <AlertDialogTrigger asChild>
                             <Button
                                 className="w-full"
-                                disabled={isLoading || !state.accountId || !state.motivo || state.motivo.length < 5 || state.valor === 0}
+                                disabled={isLoading || !state.accountId || !state.motivo || state.motivo.length < 5 || adjustment === 0}
                             >
                                 {isLoading ? "Salvando..." : "Registrar Ajuste"}
                             </Button>
@@ -229,7 +222,7 @@ export function AjustarSaldoDialog({
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Confirmar Ajuste de Saldo?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    Esta ação alterará o saldo de <strong>{selectedAccount ? cleanAccountDisplayName(selectedAccount.name) : ""}</strong> de {formatCurrencyBRL(currentBalance)} para <strong>{formatCurrencyBRL(currentBalance + state.valor)}</strong>.
+                                    Esta ação alterará o saldo de <strong>{selectedAccount ? cleanAccountDisplayName(selectedAccount.name) : ""}</strong> de {formatCurrencyBRL(currentBalance)} para <strong>{formatCurrencyBRL(finalBalance)}</strong>.
                                     Esta operação será registrada na trilha de auditoria.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>

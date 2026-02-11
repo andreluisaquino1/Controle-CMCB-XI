@@ -262,13 +262,11 @@ export function useActivateAccount() {
   });
 }
 
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
+
 // Helpers
 async function fetchLedgerBalancesMap() {
-  // @ts-ignore - RPC not in generated types yet, regenerate after migration is applied
-  const { data, error } = await supabase.rpc("get_ledger_balance_map") as {
-    data: { account_id: string; balance_cents: number }[] | null;
-    error: Error | null
-  };
+  const { data, error } = await extendedSupabase.rpc("get_ledger_balance_map");
   if (error) throw error;
 
   const map = new Map<string, number>();
