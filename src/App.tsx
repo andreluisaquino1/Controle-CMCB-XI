@@ -8,18 +8,19 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PageLoader } from "@/components/PageLoader";
 
 // Lazy Pages
+// Lazy Pages
 const AuthPage = lazy(() => import("./pages/AuthPage"));
-// Direct imports for instant navigation
-import DashboardPage from "./pages/DashboardPage";
-import AssociacaoPage from "./pages/AssociacaoPage";
-import SaldosPage from "./pages/SaldosPage";
-import RecursosPage from "./pages/RecursosPage";
-import RelatoriosPage from "./pages/RelatoriosPage";
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const AssociacaoPage = lazy(() => import("./pages/AssociacaoPage"));
+const SaldosPage = lazy(() => import("./pages/SaldosPage"));
+const RecursosPage = lazy(() => import("./pages/RecursosPage"));
+const RelatoriosPage = lazy(() => import("./pages/RelatoriosPage"));
 const PerfilPage = lazy(() => import("./pages/PerfilPage"));
 const UsuariosPage = lazy(() => import("./pages/UsuariosPage"));
 const LogPage = lazy(() => import("./pages/LogPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+
 
 // Optimized QueryClient
 const queryClient = new QueryClient({
