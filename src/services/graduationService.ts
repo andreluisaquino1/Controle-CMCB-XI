@@ -6,12 +6,28 @@ import ExcelJS from "exceljs";
 export type GraduationInstallmentStatus = 'EM_ABERTO' | 'PAGO' | 'ISENTO' | 'CANCELADO';
 export type GraduationExtraType = 'RIFA' | 'BINGO' | 'ALIMENTOS' | 'EVENTO' | 'DOACAO' | 'OUTROS';
 export type PaymentMethod = Database["public"]["Enums"]["payment_method"];
+export type GraduationTreasuryType = 'RECEBIMENTO_TURMA' | 'DESPESA' | 'REPASSE_ASSOCIACAO' | 'MOVIMENTACAO_INTERNA' | 'AJUSTE';
+export type GraduationMoneyLocation = 'CONTA' | 'ESPECIE';
+
+export interface GraduationTreasuryEntry {
+    id: string;
+    graduation_id: string;
+    class_id?: string;
+    type: GraduationTreasuryType;
+    location: GraduationMoneyLocation;
+    date: string;
+    value: number;
+    notes?: string;
+    created_by?: string;
+    created_at: string;
+}
 
 export interface Graduation {
     id: string;
     name: string;
     year: number;
     active: boolean;
+    slug: string;
     created_at: string;
 }
 
@@ -20,6 +36,7 @@ export interface GraduationClass {
     graduation_id: string;
     name: string;
     active: boolean;
+    slug: string;
     created_at: string;
 }
 
@@ -57,11 +74,16 @@ export interface GraduationInstallment {
 }
 
 export interface GraduationFinancialSummary {
-    totalPaid: number;
-    totalExtras: number;
-    totalExpenses: number;
-    totalTransfers: number;
-    balanceInHand: number;
+    totalPaid: number;      // Total arrecadado pelos alunos (com tesoureiros de turma)
+    totalExtras: number;    // Arrecadações extras
+    totalExpenses: number;  // Despesas pagas
+    balanceInHand: number;  // Saldo Total Estimado
+
+    // Visão do Custodiante (Tesouraria Central)
+    treasuryBalance: number;    // Total em posse do custodiante
+    treasuryBank: number;       // Saldo em Conta/Pix
+    treasuryCash: number;       // Saldo em Dinheiro físico
+    pendingFromClasses: number; // Saldo que ainda está com os tesoureiros de turma
 }
 
 export const graduationService = {
@@ -75,6 +97,16 @@ export const graduationService = {
         return data as unknown as Graduation[];
     },
 
+    async getGraduationBySlug(slug: string): Promise<Graduation> {
+        const { data, error } = await supabase
+            .from("graduations" as any)
+            .select("*")
+            .eq("slug", slug)
+            .single();
+        if (error) throw error;
+        return data as unknown as Graduation;
+    },
+
     async getClasses(graduationId: string): Promise<GraduationClass[]> {
         const { data, error } = await supabase
             .from("graduation_classes" as any)
@@ -83,6 +115,17 @@ export const graduationService = {
             .order("name");
         if (error) throw error;
         return data as unknown as GraduationClass[];
+    },
+
+    async getClassBySlug(graduationId: string, slug: string): Promise<GraduationClass> {
+        const { data, error } = await supabase
+            .from("graduation_classes" as any)
+            .select("*")
+            .eq("graduation_id", graduationId)
+            .eq("slug", slug)
+            .single();
+        if (error) throw error;
+        return data as unknown as GraduationClass;
     },
 
     // Students
@@ -226,19 +269,37 @@ export const graduationService = {
         if (error) throw error;
     },
 
-    // Extras & Expenses & Transfers
-    async registerTransfer(transfer: { graduation_id: string; value: number; pay_method: PaymentMethod; notes?: string }): Promise<void> {
-        const summary = await this.getFinancialSummary(transfer.graduation_id);
-        if (transfer.value > summary.balanceInHand) {
-            throw new Error(`Saldo insuficiente: R$ ${summary.balanceInHand.toFixed(2)} disponível.`);
+    async bulkUpdateInstallmentStatus(
+        classId: string,
+        installmentNumber: number,
+        status: GraduationInstallmentStatus
+    ): Promise<void> {
+        // 1. Get all student IDs for the class
+        const students = await this.getStudentsByClass(classId);
+        const studentIds = students.map(s => s.id);
+
+        if (studentIds.length === 0) return;
+
+        const updateData: any = { status };
+        if (status === 'PAGO') {
+            updateData.paid_at = new Date().toISOString();
+            updateData.pay_method = 'cash';
+        } else {
+            updateData.paid_at = null;
+            updateData.pay_method = null;
         }
 
-        const { data: { user } } = await supabase.auth.getUser();
         const { error } = await supabase
-            .from("graduation_transfers" as any)
-            .insert({ ...transfer, created_by: user?.id });
+            .from("graduation_installments" as any)
+            .update(updateData)
+            .in("student_id", studentIds)
+            .eq("installment_number", installmentNumber);
+
         if (error) throw error;
     },
+
+    // Extras & Expenses & Transfers
+
 
     async registerExtraIncome(income: { graduation_id: string; class_id?: string; type: GraduationExtraType; gross_value: number; costs: number; notes?: string }): Promise<void> {
         const { data: { user } } = await supabase.auth.getUser();
@@ -268,7 +329,10 @@ export const graduationService = {
         const classIds = (classes as any[] || []).map(c => c.id);
 
         if (classIds.length === 0) {
-            return { totalPaid: 0, totalExtras: 0, totalExpenses: 0, totalTransfers: 0, balanceInHand: 0 };
+            return {
+                totalPaid: 0, totalExtras: 0, totalExpenses: 0, balanceInHand: 0,
+                treasuryBalance: 0, treasuryBank: 0, treasuryCash: 0, pendingFromClasses: 0
+            };
         }
 
         // 2. Get all student IDs for these classes
@@ -281,7 +345,10 @@ export const graduationService = {
         const studentIds = (students as any[] || []).map(s => s.id);
 
         if (studentIds.length === 0) {
-            return { totalPaid: 0, totalExtras: 0, totalExpenses: 0, totalTransfers: 0, balanceInHand: 0 };
+            return {
+                totalPaid: 0, totalExtras: 0, totalExpenses: 0, balanceInHand: 0,
+                treasuryBalance: 0, treasuryBank: 0, treasuryCash: 0, pendingFromClasses: 0
+            };
         }
 
         // 3. Get total paid installments for these students
@@ -313,24 +380,59 @@ export const graduationService = {
         if (expensesError) throw expensesError;
         const totalExpenses = (expenses as any[] || []).reduce((acc, curr) => acc + Number(curr.value), 0);
 
-        // Total Transfers
-        const { data: transfers, error: transfersError } = await supabase
-            .from("graduation_transfers" as any)
-            .select("value")
+
+
+        // Treasury Summary (Custodian)
+        const { data: treasuryEntries, error: treasuryError } = await supabase
+            .from("graduation_treasury_entries" as any)
+            .select("type, location, value")
             .eq("graduation_id", graduationId);
 
-        if (transfersError) throw transfersError;
-        const totalTransfers = (transfers as any[] || []).reduce((acc, curr) => acc + Number(curr.value), 0);
+        if (treasuryError) throw treasuryError;
 
-        const balanceInHand = (totalPaid + totalExtras) - totalExpenses - totalTransfers;
+        let treasuryBank = 0;
+        let treasuryCash = 0;
+        let totalReceivedByCustodian = 0;
+
+        (treasuryEntries as any[] || []).forEach(entry => {
+            const val = Number(entry.value);
+            if (entry.location === 'CONTA') treasuryBank += val;
+            if (entry.location === 'ESPECIE') treasuryCash += val;
+            if (entry.type === 'RECEBIMENTO_TURMA') totalReceivedByCustodian += val;
+        });
+
+        const treasuryBalance = treasuryBank + treasuryCash;
+        const pendingFromClasses = totalPaid - totalReceivedByCustodian;
+        const balanceInHand = (totalPaid + totalExtras) - totalExpenses;
 
         return {
             totalPaid,
             totalExtras,
             totalExpenses,
-            totalTransfers,
-            balanceInHand
+            balanceInHand,
+            treasuryBalance,
+            treasuryBank,
+            treasuryCash,
+            pendingFromClasses
         };
+    },
+
+    async registerTreasuryEntry(entry: Omit<GraduationTreasuryEntry, 'id' | 'created_at'>): Promise<void> {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { error } = await supabase
+            .from("graduation_treasury_entries" as any)
+            .insert({ ...entry, created_by: user?.id });
+        if (error) throw error;
+    },
+
+    async getTreasuryEntries(graduationId: string): Promise<GraduationTreasuryEntry[]> {
+        const { data, error } = await supabase
+            .from("graduation_treasury_entries" as any)
+            .select("*")
+            .eq("graduation_id", graduationId)
+            .order("date", { ascending: false });
+        if (error) throw error;
+        return data as unknown as GraduationTreasuryEntry[];
     },
 
     async importStudentsFromExcel(classId: string, file: File): Promise<{ count: number }> {

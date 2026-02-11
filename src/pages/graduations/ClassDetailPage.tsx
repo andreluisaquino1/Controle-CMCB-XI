@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
-import { graduationService, GraduationStudent, GraduationInstallment } from "@/services/graduationService";
+import { graduationService, GraduationStudent, GraduationInstallment, GraduationInstallmentStatus } from "@/services/graduationService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import {
     Table as TableIcon,
     Upload
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -56,7 +56,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 export default function ClassDetailPage() {
-    const { classId } = useParams<{ classId: string }>();
+    const { slug, classSlug } = useParams<{ slug: string, classSlug: string }>();
     const queryClient = useQueryClient();
     const [openAddStudent, setOpenAddStudent] = useState(false);
     const [openImportExcel, setOpenImportExcel] = useState(false);
@@ -64,22 +64,20 @@ export default function ClassDetailPage() {
     const [selectedInstallment, setSelectedInstallment] = useState<GraduationInstallment | null>(null);
 
     // Queries
-    const { data: graduations, isLoading: loadingGrads } = useQuery({
-        queryKey: ["graduations"],
-        queryFn: () => graduationService.getGraduations(),
+    // Queries
+    const { data: graduation, isLoading: loadingGrad } = useQuery({
+        queryKey: ["graduation", slug],
+        queryFn: () => graduationService.getGraduationBySlug(slug!),
+        enabled: !!slug,
     });
 
-    const { data: classes } = useQuery({
-        queryKey: ["all-classes"],
-        queryFn: async () => {
-            const grads = await graduationService.getGraduations();
-            const allCls = await Promise.all(grads.map(g => graduationService.getClasses(g.id)));
-            return allCls.flat();
-        }
+    const { data: currentClass, isLoading: loadingClass } = useQuery({
+        queryKey: ["class", graduation?.id, classSlug],
+        queryFn: () => graduationService.getClassBySlug(graduation!.id, classSlug!),
+        enabled: !!graduation?.id && !!classSlug,
     });
 
-    const currentClass = classes?.find(c => c.id === classId);
-    const graduation = graduations?.find(g => g.id === currentClass?.graduation_id);
+    const classId = currentClass?.id;
 
     const { data: students, isLoading: loadingStudents } = useQuery({
         queryKey: ["class-students", classId],
@@ -99,6 +97,17 @@ export default function ClassDetailPage() {
         },
         enabled: !!students && students.length > 0,
     });
+
+    useEffect(() => {
+        if (currentClass && graduation) {
+            document.title = `${graduation.name} - ${currentClass.name} | CMCB-XI`;
+        } else if (currentClass) {
+            document.title = `${currentClass.name} | CMCB-XI`;
+        } else {
+            document.title = "Turma | CMCB-XI";
+        }
+        return () => { document.title = "CMCB-XI"; };
+    }, [currentClass, graduation]);
 
     // Mutations
     const mutationCreateStudent = useMutation({
@@ -128,9 +137,20 @@ export default function ClassDetailPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["class-installments", classId] });
             queryClient.invalidateQueries({ queryKey: ["graduation-summary", graduation?.id] });
-            toast.success("Pagamento atualizado!");
-            setSelectedInstallment(null);
+            // Remove selection only if it was a manual update from dialog
+            // No toast here to keep it fast, or a very subtle one
         },
+    });
+
+    const mutationBulkPayment = useMutation({
+        mutationFn: ({ installmentNumber, status }: { installmentNumber: number, status: GraduationInstallmentStatus }) =>
+            graduationService.bulkUpdateInstallmentStatus(classId!, installmentNumber, status),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["class-installments", classId] });
+            queryClient.invalidateQueries({ queryKey: ["graduation-summary", graduation?.id] });
+            toast.success("Mês atualizado com sucesso!");
+        },
+        onError: (error: any) => toast.error(`Erro ao atualizar turma: ${error.message}`),
     });
 
     const mutationImportExcel = useMutation({
@@ -143,7 +163,7 @@ export default function ClassDetailPage() {
         onError: (error: any) => toast.error(`Erro na importação: ${error.message}`),
     });
 
-    if (loadingGrads || loadingStudents) {
+    if (loadingGrad || loadingClass || loadingStudents) {
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center min-h-[60vh]">
@@ -180,7 +200,7 @@ export default function ClassDetailPage() {
         <DashboardLayout>
             <div className="space-y-6 animate-fade-in">
                 <header className="flex flex-col gap-4">
-                    <Link to={`/formaturas/${graduation?.id}`} className="flex items-center text-sm text-muted-foreground hover:text-primary transition-colors">
+                    <Link to={`/formaturas/${graduation?.slug}`} className="flex items-center text-sm text-muted-foreground hover:text-primary transition-colors">
                         <ChevronLeft className="h-4 w-4 mr-1" /> Voltar para {graduation?.name}
                     </Link>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -270,9 +290,21 @@ export default function ClassDetailPage() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead className="sticky left-0 bg-card/80 backdrop-blur-sm z-10 min-w-[150px]">Aluno</TableHead>
-                                            {/* Estimate headers based on max installments */}
                                             {Array.from({ length: 12 }, (_, i) => (
-                                                <TableHead key={i} className="text-center">P{i + 1}</TableHead>
+                                                <TableHead key={i} className="text-center p-2">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <span className="text-xs font-bold">P{i + 1}</span>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-6 w-6 text-[8px] hover:bg-primary/10 hover:text-primary transition-all"
+                                                            title="Marcar todos como pago"
+                                                            onClick={() => mutationBulkPayment.mutate({ installmentNumber: i + 1, status: 'PAGO' })}
+                                                        >
+                                                            <CheckCircle2 className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                </TableHead>
                                             ))}
                                         </TableRow>
                                     </TableHeader>
@@ -291,21 +323,26 @@ export default function ClassDetailPage() {
                                                             <TableCell key={i} className="text-center">
                                                                 <button
                                                                     onClick={() => {
+                                                                        const newStatus = ins.status === 'PAGO' ? 'EM_ABERTO' : 'PAGO';
+                                                                        mutationUpdatePayment.mutate({ id: ins.id, status: newStatus });
+                                                                    }}
+                                                                    onContextMenu={(e) => {
+                                                                        e.preventDefault();
                                                                         setSelectedStudentForPayment(student);
                                                                         setSelectedInstallment(ins);
                                                                     }}
                                                                     className={cn(
-                                                                        "w-6 h-6 rounded-full flex items-center justify-center transition-all hover:scale-110",
-                                                                        ins.status === 'PAGO' ? "bg-emerald-100 text-emerald-600" :
-                                                                            ins.status === 'ISENTO' ? "bg-blue-100 text-blue-600" :
-                                                                                ins.status === 'CANCELADO' ? "bg-slate-100 text-slate-400" :
-                                                                                    "bg-amber-50 text-amber-500 border border-amber-200"
+                                                                        "w-6 h-6 rounded-full flex items-center justify-center transition-all hover:scale-125 hover:shadow-md",
+                                                                        ins.status === 'PAGO' ? "bg-emerald-500 text-white shadow-sm" :
+                                                                            ins.status === 'ISENTO' ? "bg-blue-500 text-white" :
+                                                                                ins.status === 'CANCELADO' ? "bg-slate-300 text-white" :
+                                                                                    "bg-white text-slate-300 border-2 border-slate-100 hover:border-amber-200"
                                                                     )}
                                                                 >
                                                                     {ins.status === 'PAGO' ? <CheckCircle2 className="h-4 w-4" /> :
-                                                                        ins.status === 'ISENTO' ? <CircleOff className="h-4 w-4 text-[10px]" /> :
+                                                                        ins.status === 'ISENTO' ? <CircleOff className="h-3 w-3" /> :
                                                                             ins.status === 'CANCELADO' ? <XCircle className="h-4 w-4" /> :
-                                                                                <Clock className="h-3 w-3" />}
+                                                                                null}
                                                                 </button>
                                                             </TableCell>
                                                         );

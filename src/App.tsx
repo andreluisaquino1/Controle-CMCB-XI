@@ -21,7 +21,7 @@ const LogPage = lazy(() => import("./pages/LogPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const FormaturasPage = lazy(() => import("@/pages/graduations/FormaturasPage"));
 const GraduationDetailPage = lazy(() => import("@/pages/graduations/GraduationDetailPage"));
-const ClassDetailPage = lazy(() => import("@/pages/graduations/ClassDetailPage"));
+const GraduationClassDetailPage = lazy(() => import("@/pages/graduations/GraduationClassDetailPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 
@@ -120,7 +120,7 @@ const App = () => (
                 }
               />
               <Route
-                path="/formaturas/:graduationId"
+                path="/formaturas/:slug"
                 element={
                   <ProtectedRoute>
                     <GraduationDetailPage />
@@ -128,10 +128,10 @@ const App = () => (
                 }
               />
               <Route
-                path="/formaturas/turma/:classId"
+                path="/formaturas/:slug/:classSlug"
                 element={
                   <ProtectedRoute>
-                    <ClassDetailPage />
+                    <GraduationClassDetailPage />
                   </ProtectedRoute>
                 }
               />

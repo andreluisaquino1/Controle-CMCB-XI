@@ -1,24 +1,25 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link } from "react-router-dom";
-import { graduationService, GraduationExtraType } from "@/services/graduationService";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { graduationModuleService, GraduationPayMethod, GraduationEntryType } from "@/services/graduationModuleService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
     Users,
-    Wallet,
-    TrendingUp,
     TrendingDown,
-    ArrowRight,
     Loader2,
     Plus,
     Settings,
     ChevronLeft,
     Banknote,
-    Receipt
+    History,
+    ArrowUpRight,
+    ArrowDownLeft,
+    ArrowLeftRight,
+    ArrowRight
 } from "lucide-react";
 import { formatCurrencyBRL } from "@/lib/currency";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -26,7 +27,6 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,99 +37,166 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 export default function GraduationDetailPage() {
-    const { graduationId } = useParams<{ graduationId: string }>();
+    const { slug } = useParams<{ slug: string }>();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { isAdmin } = useAuth();
-    const [openExtra, setOpenExtra] = useState(false);
+
+    // Modals state
+    const [openEntry, setOpenEntry] = useState(false);
     const [openExpense, setOpenExpense] = useState(false);
     const [openTransfer, setOpenTransfer] = useState(false);
     const [openConfig, setOpenConfig] = useState(false);
+    const [openClass, setOpenClass] = useState(false);
 
-    // Queries
-    const { data: graduations, isLoading: loadingGrads } = useQuery({
-        queryKey: ["graduations"],
-        queryFn: () => graduationService.getGraduations(),
+    // 1. Get Graduation
+    const { data: graduation, isLoading: loadingGrad } = useQuery({
+        queryKey: ["graduation-module", slug],
+        queryFn: () => graduationModuleService.getGraduationBySlug(slug!),
+        enabled: !!slug,
     });
 
-    const graduation = graduations?.find(g => g.id === graduationId);
+    const graduationId = graduation?.id;
 
-    const { data: classes, isLoading: loadingClasses } = useQuery({
-        queryKey: ["graduation-classes", graduationId],
-        queryFn: () => graduationService.getClasses(graduationId!),
-        enabled: !!graduationId,
-    });
-
+    // 2. Get Summary
     const { data: summary, isLoading: loadingSummary } = useQuery({
-        queryKey: ["graduation-summary", graduationId],
-        queryFn: () => graduationService.getFinancialSummary(graduationId!),
+        queryKey: ["graduation-summary-module", graduationId],
+        queryFn: () => graduationModuleService.getFinancialSummary(graduationId!),
         enabled: !!graduationId,
     });
 
+    // 3. Get History
+    const { data: history, isLoading: loadingHistory } = useQuery({
+        queryKey: ["graduation-history-module", graduationId],
+        queryFn: () => graduationModuleService.getHistory(graduationId!),
+        enabled: !!graduationId,
+    });
+
+    // 4. Get Classes
+    const { data: classes, isLoading: loadingClasses } = useQuery({
+        queryKey: ["graduation-classes-module", graduationId],
+        queryFn: () => graduationModuleService.listClasses(graduationId!),
+        enabled: !!graduationId,
+    });
+
+    // 5. Get Config
     const { data: config } = useQuery({
-        queryKey: ["graduation-config", graduationId],
-        queryFn: () => graduationService.getCurrentCarnetConfig(graduationId!),
+        queryKey: ["graduation-config-module", graduationId],
+        queryFn: () => graduationModuleService.getCurrentConfig(graduationId!),
         enabled: !!graduationId,
     });
 
-    // Mutations
-    const mutationConfig = useMutation({
-        mutationFn: (data: any) => graduationService.createCarnetConfig({ ...data, graduation_id: graduationId! }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["graduation-config", graduationId] });
-            toast.success("Configuração atualizada com sucesso!");
-            setOpenConfig(false);
-        },
-        onError: (error: any) => toast.error(`Erro: ${error.message}`),
-    });
 
-    const mutationExtra = useMutation({
-        mutationFn: (data: any) => graduationService.registerExtraIncome({ ...data, graduation_id: graduationId! }),
+    useEffect(() => {
+        if (graduation) {
+            document.title = `${graduation.name} | CMCB-XI`;
+        } else {
+            document.title = "Formatura | CMCB-XI";
+        }
+        return () => { document.title = "CMCB-XI"; };
+    }, [graduation]);
+
+    // --- Mutations ---
+
+    const mutationEntry = useMutation({
+        mutationFn: (data: any) => graduationModuleService.createEntry({
+            graduation_id: graduationId!,
+            date: new Date().toISOString(),
+            entry_type: data.entry_type,
+            pix_amount: data.payment_method === 'PIX' ? data.amount : 0,
+            cash_amount: data.payment_method === 'ESPECIE' ? data.amount : 0,
+            notes: data.description
+        }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["graduation-summary", graduationId] });
-            toast.success("Arrecadação extra registrada!");
-            setOpenExtra(false);
+            queryClient.invalidateQueries({ queryKey: ["graduation-summary-module"] });
+            queryClient.invalidateQueries({ queryKey: ["graduation-history-module"] });
+            toast.success("Entrada registrada!");
+            setOpenEntry(false);
         },
-        onError: (error: any) => toast.error(`Erro: ${error.message}`),
+        onError: (err: any) => toast.error("Erro: " + err.message)
     });
 
     const mutationExpense = useMutation({
-        mutationFn: (data: any) => graduationService.registerExpense({ ...data, graduation_id: graduationId! }),
+        mutationFn: (data: any) => graduationModuleService.createExpense({
+            graduation_id: graduationId!,
+            date: new Date().toISOString(),
+            method: data.payment_method,
+            amount: data.amount,
+            description: data.description
+        }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["graduation-summary", graduationId] });
+            queryClient.invalidateQueries({ queryKey: ["graduation-summary-module"] });
+            queryClient.invalidateQueries({ queryKey: ["graduation-history-module"] });
             toast.success("Despesa registrada!");
             setOpenExpense(false);
         },
-        onError: (error: any) => toast.error(`Erro: ${error.message}`),
+        onError: (err: any) => toast.error("Erro: " + err.message)
     });
 
     const mutationTransfer = useMutation({
-        mutationFn: (data: any) => graduationService.registerTransfer({ ...data, graduation_id: graduationId! }),
+        mutationFn: (data: any) => graduationModuleService.createTransfer({
+            graduation_id: graduationId!,
+            date: new Date().toISOString(),
+            from_account: data.from_account,
+            to_account: data.to_account,
+            amount: data.amount,
+            notes: data.description
+        }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["graduation-summary", graduationId] });
-            toast.success("Repasse registrado!");
+            queryClient.invalidateQueries({ queryKey: ["graduation-summary-module"] });
+            queryClient.invalidateQueries({ queryKey: ["graduation-history-module"] });
+            toast.success("Transferência registrada!");
             setOpenTransfer(false);
         },
-        onError: (error: any) => toast.error(`Erro: ${error.message}`),
+        onError: (err: any) => toast.error("Erro: " + err.message)
     });
 
-    if (loadingGrads || loadingClasses || loadingSummary) {
+    const mutationConfig = useMutation({
+        mutationFn: (data: any) => graduationModuleService.createNewConfigVersion(graduationId!, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["graduation-config-module"] });
+            toast.success("Configuração atualizada!");
+            setOpenConfig(false);
+        },
+        onError: (err: any) => toast.error("Erro: " + err.message)
+    });
+
+    const mutationClass = useMutation({
+        mutationFn: (name: string) => graduationModuleService.createClass(graduationId!, name),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["graduation-classes-module"] });
+            toast.success("Turma criada!");
+            setOpenClass(false);
+        },
+        onError: (err: any) => toast.error("Erro: " + err.message)
+    });
+
+
+    if (loadingGrad) {
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center min-h-[60vh]">
-                    <div className="flex flex-col items-center gap-4">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="text-sm text-muted-foreground animate-pulse">Carregando dados da formatura...</p>
-                    </div>
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
             </DashboardLayout>
         );
     }
 
+    if (!graduation) return null;
+
     return (
         <DashboardLayout>
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-6 animate-fade-in p-4 md:p-8 pt-6">
+                {/* Header */}
                 <header className="flex flex-col gap-4">
                     <Button asChild variant="ghost" className="w-fit p-0 h-auto hover:bg-transparent text-muted-foreground hover:text-primary transition-colors">
                         <Link to="/formaturas" className="flex items-center text-sm">
@@ -138,18 +205,18 @@ export default function GraduationDetailPage() {
                     </Button>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold text-foreground">{graduation?.name}</h1>
-                            <p className="text-muted-foreground">Ano de Referência: {graduation?.year}</p>
+                            <h1 className="text-3xl font-bold text-foreground">{graduation.name}</h1>
+                            <p className="text-muted-foreground">Ano de Referência: {graduation.reference_year}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <Button onClick={() => setOpenExtra(true)} variant="outline" size="sm" className="gap-2">
-                                <Plus className="h-4 w-4" /> Arrecadação
+                            <Button onClick={() => setOpenEntry(true)} variant="default" size="sm" className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+                                <Plus className="h-4 w-4" /> Entrada/Aporte
                             </Button>
-                            <Button onClick={() => setOpenExpense(true)} variant="outline" size="sm" className="gap-2">
-                                <Plus className="h-4 w-4" /> Despesa
+                            <Button onClick={() => setOpenExpense(true)} variant="destructive" size="sm" className="gap-2">
+                                <TrendingDown className="h-4 w-4" /> Despesa
                             </Button>
-                            <Button onClick={() => setOpenTransfer(true)} variant="default" size="sm" className="gap-2 bg-indigo-600 hover:bg-indigo-700">
-                                <Banknote className="h-4 w-4" /> Repasse
+                            <Button onClick={() => setOpenTransfer(true)} variant="outline" size="sm" className="gap-2">
+                                <ArrowLeftRight className="h-4 w-4" /> Transferência
                             </Button>
                             {isAdmin && (
                                 <Button onClick={() => setOpenConfig(true)} variant="secondary" size="sm" className="gap-2">
@@ -160,282 +227,398 @@ export default function GraduationDetailPage() {
                     </div>
                 </header>
 
-                {/* Financial Summary */}
-                <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                    <Card className="glass-card border-none bg-emerald-50/50 dark:bg-emerald-950/20">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-xs font-semibold uppercase text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-                                <TrendingUp className="h-3 w-3" /> Carnês Pagos
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-                                {formatCurrencyBRL(summary?.totalPaid || 0)}
-                            </p>
-                        </CardContent>
-                    </Card>
+                <Tabs defaultValue="financeiro" className="w-full">
+                    <TabsList className="mb-4 bg-muted/50 p-1">
+                        <TabsTrigger value="financeiro" className="gap-2">
+                            <Banknote className="h-4 w-4" /> Financeiro
+                        </TabsTrigger>
+                        <TabsTrigger value="turmas" className="gap-2">
+                            <Users className="h-4 w-4" /> Turmas
+                        </TabsTrigger>
+                    </TabsList>
 
-                    <Card className="glass-card border-none bg-blue-50/50 dark:bg-blue-950/20">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-xs font-semibold uppercase text-blue-600 dark:text-blue-400 flex items-center gap-2">
-                                <Plus className="h-3 w-3" /> Extras Líquidos
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                                {formatCurrencyBRL(summary?.totalExtras || 0)}
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <TabsContent value="financeiro" className="space-y-6">
+                        {/* Cards Summary */}
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <Card className="glass-card border-none bg-emerald-50/50 dark:bg-emerald-950/20">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-xs font-semibold uppercase text-emerald-600 dark:text-emerald-400">Receita Total</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">
+                                        {formatCurrencyBRL(summary?.totalIncome || 0)}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="glass-card border-none bg-rose-50/50 dark:bg-rose-950/20">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-xs font-semibold uppercase text-rose-600 dark:text-rose-400">Despesas</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-xl font-bold text-rose-700 dark:text-rose-300">
+                                        {formatCurrencyBRL(summary?.totalExpenses || 0)}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="glass-card border-none bg-blue-50/50 dark:bg-blue-950/20">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-xs font-semibold uppercase text-blue-600 dark:text-blue-400">Saldo Atual (Caixa)</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-xl font-bold text-blue-700 dark:text-blue-300">
+                                        {formatCurrencyBRL(summary?.balanceTotal || 0)}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Pix: {formatCurrencyBRL(summary?.balancePix || 0)} | Esp: {formatCurrencyBRL(summary?.balanceCash || 0)}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="glass-card border-none bg-slate-100 dark:bg-slate-900">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Pendente (À Receber)</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-xl font-bold text-muted-foreground">
+                                        {formatCurrencyBRL(summary?.pendingIncome || 0)}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </div>
 
-                    <Card className="glass-card border-none bg-amber-50/50 dark:bg-amber-950/20">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-xs font-semibold uppercase text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                                <TrendingDown className="h-3 w-3" /> Despesas Pagas
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">
-                                {formatCurrencyBRL(summary?.totalExpenses || 0)}
-                            </p>
-                        </CardContent>
-                    </Card>
+                        {/* History Table */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <History className="h-5 w-5 text-primary" />
+                                <h2 className="text-xl font-semibold">Histórico de Movimentações</h2>
+                            </div>
+                            <Card className="border-none glass-card overflow-hidden">
+                                <CardContent className="p-0">
+                                    <div className="divide-y divide-border">
+                                        {history?.length === 0 && (
+                                            <div className="p-8 text-center text-muted-foreground">
+                                                Nenhuma movimentação registrada.
+                                            </div>
+                                        )}
+                                        {history?.map((entry: any, i: number) => (
+                                            <div key={i} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={cn(
+                                                        "p-2 rounded-full",
+                                                        (entry.type === 'ENTRADA' || entry.type === 'AJUSTE' && entry.amount >= 0) ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
+                                                    )}>
+                                                        {(entry.type === 'ENTRADA' || entry.amount >= 0) ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownLeft className="h-4 w-4" />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-sm">{entry.description || "Sem descrição"}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {new Date(entry.date).toLocaleDateString()} • {entry.type}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className={cn("font-bold", (entry.type === 'ENTRADA' || entry.amount >= 0) ? "text-emerald-600" : "text-rose-600")}>
+                                                    {formatCurrencyBRL(entry.amount)}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
 
-                    <Card className="glass-card border-none bg-indigo-50/50 dark:bg-indigo-950/20">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-xs font-semibold uppercase text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
-                                <Banknote className="h-3 w-3" /> Repasses Realizados
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">
-                                {formatCurrencyBRL(summary?.totalTransfers || 0)}
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="glass-card border-none bg-slate-900 text-white dark:bg-slate-800">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-xs font-semibold uppercase text-slate-400 flex items-center gap-2">
-                                <Wallet className="h-3 w-3" /> Saldo em Mãos
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold text-white">
-                                {formatCurrencyBRL(summary?.balanceInHand || 0)}
-                            </p>
-                        </CardContent>
-                    </Card>
-                </section>
-
-                {/* Classes List */}
-                <section>
-                    <div className="flex items-center gap-2 mb-4">
-                        <Users className="h-5 w-5 text-primary" />
-                        <h2 className="text-xl font-semibold">Turmas</h2>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        {classes?.map((cls) => (
-                            <Button asChild key={cls.id} variant="ghost" className="h-auto p-0 hover:bg-transparent">
-                                <Link to={`/formaturas/turma/${cls.id}`} className="w-full text-left">
-                                    <Card className="w-full hover:border-primary/50 transition-colors group cursor-pointer overflow-hidden border-none glass-card bg-card/40">
-                                        <CardHeader className="pb-2">
-                                            <CardTitle className="text-lg flex justify-between items-center">
-                                                {cls.name}
-                                                <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <p className="text-sm text-muted-foreground">Gerenciar alunos e carnês desta turma.</p>
-                                        </CardContent>
-                                    </Card>
-                                </Link>
+                    <TabsContent value="turmas">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <Users className="h-5 w-5 text-primary" />
+                                <h2 className="text-xl font-semibold">Turmas</h2>
+                            </div>
+                            <Button size="sm" onClick={() => setOpenClass(true)} className="gap-2">
+                                <Plus className="h-4 w-4" /> Nova Turma
                             </Button>
-                        ))}
-                    </div>
-                </section>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {classes?.map((cls) => (
+                                <Card
+                                    key={cls.id}
+                                    className="cursor-pointer hover:border-primary/50 transition-all group"
+                                    onClick={() => navigate(`/formaturas/${graduation.slug}/${cls.id}`)}
+                                >
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="flex justify-between items-center text-lg">
+                                            {cls.name}
+                                            <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all text-primary" />
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-sm text-muted-foreground">Clique para gerenciar alunos.</p>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                            {classes?.length === 0 && (
+                                <div className="col-span-full py-12 text-center border-2 border-dashed border-muted rounded-xl bg-muted/50">
+                                    <p className="text-muted-foreground">Nenhuma turma cadastrada.</p>
+                                </div>
+                            )}
+                        </div>
+                    </TabsContent>
+                </Tabs>
 
-                {/* Dialogs */}
-                <ConfigDialog open={openConfig} onOpenChange={setOpenConfig} currentConfig={config} onSubmit={(v) => mutationConfig.mutate(v)} isLoading={mutationConfig.isPending} />
-                <ExtraIncomeDialog open={openExtra} onOpenChange={setOpenExtra} onSubmit={(v) => mutationExtra.mutate(v)} isLoading={mutationExtra.isPending} />
-                <ExpenseDialog open={openExpense} onOpenChange={setOpenExpense} onSubmit={(v) => mutationExpense.mutate(v)} isLoading={mutationExpense.isPending} />
-                <TransferDialog open={openTransfer} onOpenChange={setOpenTransfer} balance={summary?.balanceInHand || 0} onSubmit={(v) => mutationTransfer.mutate(v)} isLoading={mutationTransfer.isPending} />
+                {/* --- Dialogs --- */}
+
+                <Dialog open={openEntry} onOpenChange={setOpenEntry}>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>Nova Entrada</DialogTitle></DialogHeader>
+                        <EntryForm onSubmit={mutationEntry.mutate} isLoading={mutationEntry.isPending} />
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={openExpense} onOpenChange={setOpenExpense}>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>Nova Despesa</DialogTitle></DialogHeader>
+                        <ExpenseForm onSubmit={mutationExpense.mutate} isLoading={mutationExpense.isPending} />
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={openTransfer} onOpenChange={setOpenTransfer}>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>Transferência Interna</DialogTitle></DialogHeader>
+                        <TransferForm onSubmit={mutationTransfer.mutate} isLoading={mutationTransfer.isPending} />
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={openConfig} onOpenChange={setOpenConfig}>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>Configuração Financeira</DialogTitle></DialogHeader>
+                        <ConfigForm current={config} onSubmit={mutationConfig.mutate} isLoading={mutationConfig.isPending} />
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={openClass} onOpenChange={setOpenClass}>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>Nova Turma</DialogTitle></DialogHeader>
+                        <ClassForm onSubmit={mutationClass.mutate} isLoading={mutationClass.isPending} />
+                    </DialogContent>
+                </Dialog>
+
             </div>
         </DashboardLayout>
     );
 }
 
-// Internal Modal Components (Simplified for brevity, can be expanded)
+// --- Sub-components ---
 
-function ConfigDialog({ open, onOpenChange, currentConfig, onSubmit, isLoading }: any) {
-    const [val, setVal] = useState(currentConfig?.installment_value || "");
-    const [count, setCount] = useState(currentConfig?.installments_count || "");
-    const [day, setDay] = useState(currentConfig?.due_day || 10);
+function EntryForm({ onSubmit, isLoading }: any) {
+    const [amount, setAmount] = useState("");
+    const [desc, setDesc] = useState("");
+    const [method, setMethod] = useState<GraduationPayMethod>('PIX');
+    const [type, setType] = useState<GraduationEntryType>('OUTROS');
 
-    const handleS = (e: any) => {
+    const handleSubmit = (e: any) => {
+        e.preventDefault();
+        onSubmit({
+            amount: Number(amount),
+            description: desc,
+            payment_method: method,
+            entry_type: type
+        });
+    };
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid gap-2">
+                <Label>Descrição</Label>
+                <Input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: Rifa de Páscoa" required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                    <Label>Valor (R$)</Label>
+                    <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+                </div>
+                <div className="grid gap-2">
+                    <Label>Método</Label>
+                    <Select value={method} onValueChange={(v: any) => setMethod(v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="PIX">PIX</SelectItem>
+                            <SelectItem value="ESPECIE">Dinheiro</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <div className="grid gap-2">
+                <Label>Tipo de Entrada</Label>
+                <Select value={type} onValueChange={(v: any) => setType(v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="OUTROS">Outros</SelectItem>
+                        <SelectItem value="RIFA">Rifa</SelectItem>
+                        <SelectItem value="BINGO">Bingo</SelectItem>
+                        <SelectItem value="VENDA">Venda</SelectItem>
+                        <SelectItem value="DOACAO">Doação</SelectItem>
+                        <SelectItem value="MENSALIDADE">Mensalidade (Avulsa)</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin" /> : "Registrar Entrada"}</Button>
+        </form>
+    )
+}
+
+function ExpenseForm({ onSubmit, isLoading }: any) {
+    const [amount, setAmount] = useState("");
+    const [desc, setDesc] = useState("");
+    const [method, setMethod] = useState<GraduationPayMethod>('PIX');
+
+    const handleSubmit = (e: any) => {
+        e.preventDefault();
+        onSubmit({
+            amount: Number(amount),
+            description: desc,
+            payment_method: method,
+        });
+    };
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid gap-2">
+                <Label>Descrição da Despesa</Label>
+                <Input value={desc} onChange={e => setDesc(e.target.value)} required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                    <Label>Valor (R$)</Label>
+                    <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+                </div>
+                <div className="grid gap-2">
+                    <Label>Método Pagamento</Label>
+                    <Select value={method} onValueChange={(v: any) => setMethod(v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="PIX">PIX</SelectItem>
+                            <SelectItem value="ESPECIE">Dinheiro</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <Button type="submit" variant="destructive" className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin" /> : "Registrar Despesa"}</Button>
+        </form>
+    )
+}
+
+function TransferForm({ onSubmit, isLoading }: any) {
+    const [amount, setAmount] = useState("");
+    const [desc, setDesc] = useState("Transferência");
+    const [from, setFrom] = useState<GraduationPayMethod>('ESPECIE');
+    const [to, setTo] = useState<GraduationPayMethod>('PIX');
+
+    const handleSubmit = (e: any) => {
+        e.preventDefault();
+        onSubmit({
+            amount: Number(amount),
+            description: desc,
+            from_account: from,
+            to_account: to
+        });
+    };
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <p className="text-sm text-muted-foreground">Registrar transferência entre contas (ex: Depósito do dinheiro em caixa para conta bancária).</p>
+            <div className="grid gap-2">
+                <Label>Valor</Label>
+                <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                    <Label>De (Origem)</Label>
+                    <Select value={from} onValueChange={(v: any) => setFrom(v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="PIX">PIX / Banco</SelectItem>
+                            <SelectItem value="ESPECIE">Dinheiro em Mãos</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="grid gap-2">
+                    <Label>Para (Destino)</Label>
+                    <Select value={to} onValueChange={(v: any) => setTo(v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="PIX">PIX / Banco</SelectItem>
+                            <SelectItem value="ESPECIE">Dinheiro em Mãos</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <div className="grid gap-2">
+                <Label>Descrição</Label>
+                <Input value={desc} onChange={e => setDesc(e.target.value)} />
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>Registrar Transferência</Button>
+        </form>
+    )
+}
+
+function ConfigForm({ current, onSubmit, isLoading }: any) {
+    const [val, setVal] = useState(current?.installment_value || "");
+    const [count, setCount] = useState(current?.installments_count || "");
+    const [day, setDay] = useState(current?.due_day || 10);
+    const [month, setMonth] = useState(current?.start_month || 2);
+
+    useEffect(() => {
+        if (current) {
+            setVal(current.installment_value);
+            setCount(current.installments_count);
+            setDay(current.due_day);
+            setMonth(current.start_month);
+        }
+    }, [current]);
+
+    const handleSubmit = (e: any) => {
         e.preventDefault();
         onSubmit({
             installment_value: Number(val),
             installments_count: Number(count),
-            due_day: Number(day)
+            due_day: Number(day),
+            start_month: Number(month)
         });
-    };
+    }
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader><DialogTitle>Configuração do Carnê</DialogTitle></DialogHeader>
-                <form onSubmit={handleS} className="space-y-4 pt-4">
-                    <div className="grid gap-2">
-                        <Label>Valor da Parcela (R$)</Label>
-                        <Input type="number" step="0.01" value={val} onChange={(e) => setVal(e.target.value)} required />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>Quantidade de Parcelas</Label>
-                        <Input type="number" value={count} onChange={(e) => setCount(e.target.value)} required />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>Dia de Vencimento Padrão</Label>
-                        <Input type="number" min="1" max="28" value={day} onChange={(e) => setDay(e.target.value)} required />
-                    </div>
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                        {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "Criar Nova Versão"}
-                    </Button>
-                </form>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-function ExtraIncomeDialog({ open, onOpenChange, onSubmit, isLoading }: any) {
-    const [type, setType] = useState<GraduationExtraType>('RIFA');
-    const [gross, setGross] = useState("");
-    const [costs, setCosts] = useState("0");
-    const [notes, setNotes] = useState("");
-
-    const handleS = (e: any) => {
-        e.preventDefault();
-        onSubmit({ type, gross_value: Number(gross), costs: Number(costs), notes });
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader><DialogTitle>Nova Arrecadação Extra</DialogTitle></DialogHeader>
-                <form onSubmit={handleS} className="space-y-4 pt-4">
-                    <div className="grid gap-2">
-                        <Label>Tipo</Label>
-                        <Select value={type} onValueChange={(v: any) => setType(v)}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="RIFA">Rifa</SelectItem>
-                                <SelectItem value="BINGO">Bingo</SelectItem>
-                                <SelectItem value="ALIMENTOS">Venda de Alimentos</SelectItem>
-                                <SelectItem value="EVENTO">Evento</SelectItem>
-                                <SelectItem value="DOACAO">Doação</SelectItem>
-                                <SelectItem value="OUTROS">Outros</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>Valor Bruto (R$)</Label>
-                        <Input type="number" step="0.01" value={gross} onChange={(e) => setGross(e.target.value)} required />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>Custos (R$)</Label>
-                        <Input type="number" step="0.01" value={costs} onChange={(e) => setCosts(e.target.value)} required />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>Observações</Label>
-                        <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
-                    </div>
-                    <Button type="submit" className="w-full" disabled={isLoading}>Registrar</Button>
-                </form>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-function ExpenseDialog({ open, onOpenChange, onSubmit, isLoading }: any) {
-    const [desc, setDesc] = useState("");
-    const [val, setVal] = useState("");
-    const [method, setMethod] = useState("cash");
-
-    const handleS = (e: any) => {
-        e.preventDefault();
-        onSubmit({ description: desc, value: Number(val), pay_method: method, is_paid: true });
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader><DialogTitle>Nova Despesa</DialogTitle></DialogHeader>
-                <form onSubmit={handleS} className="space-y-4 pt-4">
-                    <div className="grid gap-2">
-                        <Label>Descrição</Label>
-                        <Input value={desc} onChange={(e) => setDesc(e.target.value)} required />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>Valor (R$)</Label>
-                        <Input type="number" step="0.01" value={val} onChange={(e) => setVal(e.target.value)} required />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>Forma de Pagamento</Label>
-                        <Select value={method} onValueChange={setMethod}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="cash">DINHEIRO</SelectItem>
-                                <SelectItem value="pix">PIX</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <Button type="submit" className="w-full" disabled={isLoading}>Registrar</Button>
-                </form>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-function TransferDialog({ open, onOpenChange, balance, onSubmit, isLoading }: any) {
-    const [val, setVal] = useState("");
-    const [method, setMethod] = useState("pix");
-
-    const handleS = (e: any) => {
-        e.preventDefault();
-        if (Number(val) > balance) {
-            toast.error("Saldo insuficiente para este repasse.");
-            return;
-        }
-        onSubmit({ value: Number(val), pay_method: method });
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader><DialogTitle>Registrar Repasse (Prestação de Contas)</DialogTitle></DialogHeader>
-                <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 rounded-lg text-sm text-indigo-700 dark:text-indigo-400 mb-2">
-                    Saldo disponível para repasse: <strong>{formatCurrencyBRL(balance)}</strong>
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid gap-2">
+                <Label>Valor da Mensalidade (R$)</Label>
+                <Input type="number" step="0.01" value={val} onChange={e => setVal(e.target.value)} required />
+            </div>
+            <div className="grid gap-2">
+                <Label>Quantidade de Parcelas</Label>
+                <Input type="number" value={count} onChange={e => setCount(e.target.value)} required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                    <Label>Dia Venc.</Label>
+                    <Input type="number" value={day} onChange={e => setDay(e.target.value)} required />
                 </div>
-                <form onSubmit={handleS} className="space-y-4 pt-2">
-                    <div className="grid gap-2">
-                        <Label>Valor do Repasse (R$)</Label>
-                        <Input type="number" step="0.01" value={val} onChange={(e) => setVal(e.target.value)} required />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>Forma</Label>
-                        <Select value={method} onValueChange={setMethod}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="pix">PIX</SelectItem>
-                                <SelectItem value="cash">DINHEIRO</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white" disabled={isLoading}>
-                        Confirmar Repasse
-                    </Button>
-                </form>
-            </DialogContent>
-        </Dialog>
-    );
+                <div className="grid gap-2">
+                    <Label>Mês Início</Label>
+                    <Input type="number" value={month} onChange={e => setMonth(e.target.value)} required />
+                </div>
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin" /> : "Salvar Configuração"}</Button>
+        </form>
+    )
+}
+
+function ClassForm({ onSubmit, isLoading }: any) {
+    const [name, setName] = useState("");
+    const handleSubmit = (e: any) => {
+        e.preventDefault();
+        onSubmit(name);
+    }
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid gap-2">
+                <Label>Nome da Turma</Label>
+                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: 3º Ano A" required />
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin" /> : "Criar Turma"}</Button>
+        </form>
+    )
 }

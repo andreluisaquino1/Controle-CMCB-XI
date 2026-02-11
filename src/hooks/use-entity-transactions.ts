@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
-import { TransactionWithCreator } from "@/types";
+import { Transaction, TransactionWithCreator } from "@/types";
 import { LedgerTransaction } from "@/domain/ledger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDemoData } from "@/demo/useDemoData";
@@ -132,7 +132,7 @@ export function useSaldosTransactions() {
       if (legacyRes.error) throw legacyRes.error;
       if (ledgerRes.error) throw ledgerRes.error;
 
-      const legacyMapped = (legacyRes.data || []).map((t) => mapLegacyTransaction(t as any, meta as MapperMetadata));
+      const legacyMapped = (legacyRes.data || []).map((t) => mapLegacyTransaction(t as unknown as Transaction, meta as MapperMetadata));
       const ledgerMapped = (ledgerRes.data || []).map((l) => mapLedgerTransaction(l as unknown as LedgerTransaction & Record<string, unknown>, meta as MapperMetadata));
 
       return [...legacyMapped, ...ledgerMapped]
@@ -190,7 +190,7 @@ export function useAllTransactionsWithCreator(startDate?: string, endDate?: stri
       if (legacyRes.error) throw legacyRes.error;
       if (ledgerRes.error) throw ledgerRes.error;
 
-      const legacyMapped = (legacyRes.data || []).map((t) => mapLegacyTransaction(t as any, meta as MapperMetadata));
+      const legacyMapped = (legacyRes.data || []).map((t) => mapLegacyTransaction(t as unknown as Transaction, meta as MapperMetadata));
       const ledgerMapped = (ledgerRes.data || []).map((l) => mapLedgerTransaction(l as unknown as LedgerTransaction & Record<string, unknown>, meta as MapperMetadata));
 
       // Combine and Sort

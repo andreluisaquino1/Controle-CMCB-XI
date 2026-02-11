@@ -26,7 +26,7 @@ const getEnv = () => {
             VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || "",
             VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || "",
             VITE_PUBLIC_SITE_URL: import.meta.env.VITE_PUBLIC_SITE_URL,
-        } as any;
+        } as z.infer<typeof EnvSchema>;
     }
 };
 

@@ -249,55 +249,228 @@ export default function PerfilPage() {
 
         {/* Danger Zone - Admin Only */}
         {profile?.role === "admin" && (
-          <div className="pt-6 border-t">
-            <h2 className="text-lg font-semibold text-destructive mb-4">Zona de Perigo</h2>
-            <Card className="border-destructive/20 bg-destructive/5">
+          <div className="pt-6 border-t space-y-4">
+            <h2 className="text-lg font-semibold text-destructive">Zona de Perigo</h2>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Reset Associação */}
+              <Card className="border-destructive/20 bg-destructive/5">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-medium text-destructive">Resetar Financeiro (Associação)</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Apaga transações e zera saldos das contas da Associação.
+                      </p>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white font-medium">Limpar Associação</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Resetar Associação?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação irá apagar as transações e zerar os saldos vinculados à Associação.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={async () => {
+                              try {
+                                const { error } = await extendedSupabase.rpc("reset_financial_data" as any, {});
+                                if (error) throw error;
+                                toast.success("Dados da Associação resetados.");
+                                setTimeout(() => window.location.reload(), 1500);
+                              } catch (error: any) {
+                                toast.error(`Erro: ${error.message}`);
+                              }
+                            }}
+                          >
+                            Confirmar Reset
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Reset Recursos */}
+              <Card className="border-destructive/20 bg-destructive/5">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-medium text-destructive">Resetar Recursos (UE/CX)</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Apaga transações e zera saldos das contas de Unidade Executora e Caixa Escolar.
+                      </p>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white font-medium">Limpar Recursos</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Resetar Recursos (UE/CX)?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação irá apagar as transações e zerar os saldos de Recursos (UE/CX).
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={async () => {
+                              try {
+                                const { error } = await extendedSupabase.rpc("reset_recursos_data" as any, {});
+                                if (error) throw error;
+                                toast.success("Dados de Recursos resetados.");
+                                setTimeout(() => window.location.reload(), 1500);
+                              } catch (error: any) {
+                                toast.error(`Erro: ${error.message}`);
+                              }
+                            }}
+                          >
+                            Confirmar Reset
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Reset Formaturas */}
+              <Card className="border-destructive/20 bg-destructive/5">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-medium text-destructive">Resetar Formaturas</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Apaga apenas o histórico financeiro (carnês, despesas, etc). Mantém os nomes dos alunos e turmas.
+                      </p>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white font-medium">Limpar Financeiro</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Resetar Financeiro das Formaturas?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação irá apagar as parcelas, despesas e entradas de tesouraria. Os nomes das formaturas, turmas e alunos SERÃO MANTIDOS.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={async () => {
+                              try {
+                                const { error } = await extendedSupabase.rpc("reset_graduation_data" as any, {});
+                                if (error) throw error;
+                                toast.success("Dados de Formaturas resetados.");
+                                setTimeout(() => window.location.reload(), 1500);
+                              } catch (error: any) {
+                                toast.error(`Erro: ${error.message}`);
+                              }
+                            }}
+                          >
+                            Confirmar Reset
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Reset Estabelecimentos */}
+              <Card className="border-destructive/20 bg-destructive/5">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-medium text-destructive">Resetar Estabelecimentos</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Zera apenas o saldo de crédito disponível em todos os estabelecimentos parceiros.
+                      </p>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white font-medium">Zerar Saldos</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Zerar Saldo dos Estabelecimentos?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Zera os saldos de crédito, mas mantém o cadastro dos estabelecimentos no sistema.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={async () => {
+                              try {
+                                const { error } = await extendedSupabase.rpc("reset_merchants_data" as any, {});
+                                if (error) throw error;
+                                toast.success("Saldos dos estabelecimentos zerados.");
+                                setTimeout(() => window.location.reload(), 1500);
+                              } catch (error: any) {
+                                toast.error(`Erro: ${error.message}`);
+                              }
+                            }}
+                          >
+                            Confirmar Reset
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Reset Global */}
+            <Card className="border-destructive bg-destructive/10">
               <CardContent className="pt-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
-                    <h3 className="font-medium text-destructive">Resetar Banco de Dados</h3>
+                    <h3 className="font-bold text-destructive">Resetar SISTEMA COMPLETO</h3>
                     <p className="text-sm text-muted-foreground">
-                      Apaga todas as transações, limpa o histórico e zera todos os saldos.
-                      <br />
-                      <span className="font-bold">Atenção: Esta ação não pode ser desfeita.</span>
-                      <br />
-                      <span className="text-xs font-mono opacity-70 mt-1 block">
-                        Proj: {env.VITE_SUPABASE_URL.split(".")[0].replace("https://", "")} |
-                        Role: {profile?.role || 'user'} |
-                        Demo: {String((profile?.role as string) === 'demo')}
-                      </span>
+                      Apaga ABSOLUTAMENTE TUDO (Associação, Recursos, Formaturas e Estabelecimentos).
                     </p>
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive">Resetar Dados</Button>
+                      <Button variant="destructive" className="w-full sm:w-auto">RESET GLOBAL</Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                        <AlertDialogTitle>VOCÊ TEM CERTEZA ABSOLUTA?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta ação irá apagar permanentemente todas as transações financeiras,
-                          logs de auditoria e zerar os saldos de todas as contas e estabelecimentos.
+                          ESTA AÇÃO IRÁ APAGAR TODOS OS DADOS DO SISTEMA (Associação, Recursos, Formaturas e Estabelecimentos). Esta operação NÃO pode ser desfeita.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogCancel>CANCELAR</AlertDialogCancel>
                         <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold"
                           onClick={async () => {
                             try {
                               const { error } = await extendedSupabase.rpc("reset_all_data", {});
                               if (error) throw error;
-                              toast.success("Banco de dados resetado com sucesso.");
+                              toast.success("Banco de dados totalmente limpo.");
                               setTimeout(() => window.location.reload(), 1500);
-                            } catch (error: unknown) {
-                              const err = error as Error;
-                              console.error(err);
-                              toast.error(`Erro ao resetar: ${err.message || "Erro desconhecido"}`);
+                            } catch (error: any) {
+                              toast.error(`Erro crítico: ${error.message}`);
                             }
                           }}
                         >
-                          Sim, apagar tudo
+                          SIM, APAGAR TUDO
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

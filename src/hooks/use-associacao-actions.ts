@@ -404,6 +404,11 @@ export function useAssociacaoActions(
         try {
             setIsSubmitting(true);
 
+            let module = "especie_ajuste";
+            if (account.name === ACCOUNT_NAMES.PIX) module = "pix_ajuste";
+            else if (account.name === ACCOUNT_NAMES.COFRE) module = "cofre_ajuste";
+            else if (account.name === ACCOUNT_NAMES.CONTA_DIGITAL) module = "conta_digital_ajuste";
+
             await transactionService.createLedgerTransaction({
                 type: direction === 'in' ? 'income' : 'expense',
                 source_account: direction === 'in' ? LEDGER_KEYS.EXTERNAL_INCOME : accountKey,
@@ -411,7 +416,7 @@ export function useAssociacaoActions(
                 amount_cents: toCents(absAmount),
                 description: `Ajuste: ${state.ajuste.motivo}`,
                 metadata: {
-                    modulo: "ajuste_manual",
+                    modulo: module,
                     original_type: "adjustment", // preserving intent
                     notes: state.ajuste.obs,
                     reason: state.ajuste.motivo
