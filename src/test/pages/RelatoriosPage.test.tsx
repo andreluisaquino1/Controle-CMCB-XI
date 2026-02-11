@@ -26,6 +26,18 @@ vi.mock("@/hooks/use-reports", () => ({
     useReports: vi.fn()
 }));
 
+// Mock auth
+vi.mock("@/contexts/AuthContext", () => ({
+    useAuth: vi.fn(() => ({
+        user: { id: "user-123" },
+        profile: { role: "admin" },
+        isAdmin: true,
+        isDemo: false,
+        isSecretaria: false,
+        loading: false,
+    }))
+}));
+
 // Mock layout/components
 vi.mock("@/components/DashboardLayout", () => ({
     DashboardLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
@@ -49,32 +61,32 @@ describe("RelatoriosPage integration", () => {
         vi.clearAllMocks();
 
         // Setup default mocks
-        (useDashboardData as any).mockReturnValue({
+        vi.mocked(useDashboardData).mockReturnValue({
             data: {},
             isLoading: false
-        });
+        } as ReturnType<typeof useDashboardData>);
 
-        (useEntities as any).mockReturnValue({
-            data: [{ id: "ent-assoc", type: "associacao" }],
+        vi.mocked(useEntities).mockReturnValue({
+            data: [{ id: "ent-assoc", type: "associacao", name: "Associação", cnpj: "" }],
             isLoading: false
-        });
+        } as ReturnType<typeof useEntities>);
 
-        (useReportData as any).mockReturnValue({
+        vi.mocked(useReportData).mockReturnValue({
             data: { income: 0, expense: 0, balance: 0 },
             isLoading: false
-        });
+        } as ReturnType<typeof useReportData>);
 
-        (useAllTransactionsWithCreator as any).mockReturnValue({
+        vi.mocked(useAllTransactionsWithCreator).mockReturnValue({
             data: [{ id: "t1", amount: 100, description: "Relatorio Teste", transaction_date: new Date().toISOString(), module: "mensalidade", direction: "in" }],
             isLoading: false
-        });
+        } as ReturnType<typeof useAllTransactionsWithCreator>);
 
-        (useReports as any).mockReturnValue({
+        vi.mocked(useReports).mockReturnValue({
             getWhatsAppReportText: () => "Mock Report Text",
             copyReport: vi.fn(),
             openWhatsApp: vi.fn(),
             exportPDF: vi.fn()
-        });
+        } as ReturnType<typeof useReports>);
     });
 
     it("should render page header and date controls", () => {

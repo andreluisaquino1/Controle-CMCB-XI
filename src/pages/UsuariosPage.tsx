@@ -77,7 +77,7 @@ export default function UsuariosPage() {
             queryClient.invalidateQueries({ queryKey: ["profiles-admin"] });
             toast.success("Status do usuário atualizado.");
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error(`Erro ao atualizar: ${error.message}`);
         },
     });
@@ -90,7 +90,7 @@ export default function UsuariosPage() {
             queryClient.invalidateQueries({ queryKey: ["profiles-admin"] });
             toast.success("Função do usuário atualizada.");
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error(`Erro ao atualizar função: ${error.message}`);
         },
     });
@@ -102,7 +102,7 @@ export default function UsuariosPage() {
             queryClient.invalidateQueries({ queryKey: ["profiles-admin"] });
             toast.success("Usuário removido com sucesso.");
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error(`Erro ao remover: ${error.message}`);
         },
     });
@@ -116,7 +116,7 @@ export default function UsuariosPage() {
             toast.success("Nome do usuário atualizado.");
             setEditingUser(null);
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error(`Erro ao atualizar nome: ${error.message}`);
         },
     });

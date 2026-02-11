@@ -24,13 +24,13 @@ describe("getAccountBalanceCents", () => {
         const mockData = { balance_cents: 12500 };
         const mockMaybeSingle = vi.fn().mockResolvedValue({ data: mockData, error: null });
 
-        (supabase.from as any).mockReturnValue({
+        vi.mocked(supabase.from).mockReturnValue({
             select: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
                     maybeSingle: mockMaybeSingle
                 })
             })
-        });
+        } as unknown as ReturnType<typeof supabase.from>);
 
         const balance = await getAccountBalanceCents("test-account");
         expect(balance).toBe(12500);
@@ -40,13 +40,13 @@ describe("getAccountBalanceCents", () => {
     it("should return 0 when account does not exist", async () => {
         const mockMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
 
-        (supabase.from as any).mockReturnValue({
+        vi.mocked(supabase.from).mockReturnValue({
             select: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
                     maybeSingle: mockMaybeSingle
                 })
             })
-        });
+        } as unknown as ReturnType<typeof supabase.from>);
 
         const balance = await getAccountBalanceCents("non-existent-id");
         expect(balance).toBe(0);
@@ -56,7 +56,7 @@ describe("getAccountBalanceCents", () => {
         const mockError = { message: "Database error" };
         const mockMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: mockError });
 
-        (supabase.from as any).mockReturnValue({
+        vi.mocked(supabase.from).mockReturnValue({
             select: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
                     maybeSingle: mockMaybeSingle

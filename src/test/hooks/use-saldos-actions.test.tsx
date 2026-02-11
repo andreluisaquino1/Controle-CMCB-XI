@@ -1,3 +1,4 @@
+import { Entity } from "@/types";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useSaldosActions } from "@/hooks/use-saldos-actions";
@@ -32,7 +33,7 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 const mockMerchants = [{ id: "m1", name: "Mercado A", balance: 100 }];
-const mockEntities = [{ id: "e1", name: "Associação", type: "associacao" }];
+const mockEntities: Entity[] = [{ id: "e1", name: "Associação", type: "associacao", cnpj: "" }];
 
 describe("useSaldosActions hook", () => {
     beforeEach(() => {
@@ -40,7 +41,7 @@ describe("useSaldosActions hook", () => {
     });
 
     it("should handle adding a merchant", async () => {
-        const { result } = renderHook(() => useSaldosActions(mockMerchants as any, mockEntities as any));
+        const { result } = renderHook(() => useSaldosActions(mockMerchants, mockEntities));
 
         await act(async () => {
             await result.current.handlers.handleAddMerchant("Novo Mercado");
@@ -51,7 +52,7 @@ describe("useSaldosActions hook", () => {
     });
 
     it("should handle editing a merchant", async () => {
-        const { result } = renderHook(() => useSaldosActions(mockMerchants as any, mockEntities as any));
+        const { result } = renderHook(() => useSaldosActions(mockMerchants, mockEntities));
 
         await act(async () => {
             await result.current.handlers.handleEditMerchant("m1", "Nome Editado");
@@ -62,7 +63,7 @@ describe("useSaldosActions hook", () => {
     });
 
     it("should handle deleting (deactivating) a merchant", async () => {
-        const { result } = renderHook(() => useSaldosActions(mockMerchants as any, mockEntities as any));
+        const { result } = renderHook(() => useSaldosActions(mockMerchants, mockEntities));
 
         await act(async () => {
             await result.current.handlers.handleDeleteMerchant("m1");
@@ -74,7 +75,7 @@ describe("useSaldosActions hook", () => {
 
     it("should validate and handle aporte submission (state reset)", async () => {
         const onSucc = vi.fn();
-        const { result } = renderHook(() => useSaldosActions(mockMerchants as any, mockEntities as any, onSucc));
+        const { result } = renderHook(() => useSaldosActions(mockMerchants, mockEntities, onSucc));
 
         await act(async () => {
             result.current.setters.setAporteOrigem("ASSOC");
@@ -95,7 +96,7 @@ describe("useSaldosActions hook", () => {
     });
 
     it("should fail aporte submission on validation error", async () => {
-        const { result } = renderHook(() => useSaldosActions(mockMerchants as any, mockEntities as any));
+        const { result } = renderHook(() => useSaldosActions(mockMerchants, mockEntities));
 
         await act(async () => {
             result.current.setters.setAporteValor(0); // Should fail Zod gt(0)

@@ -36,8 +36,8 @@ const VALUE_LABELS: Record<string, string> = {
 };
 
 export function renderSecurityDiff(
-    before: any,
-    after: any,
+    before: Record<string, unknown> | null,
+    after: Record<string, unknown> | null,
     lookups: { users?: Record<string, string>, accounts?: Record<string, string> } = {}
 ) {
     if (!before || !after) return "Alteração de Segurança";

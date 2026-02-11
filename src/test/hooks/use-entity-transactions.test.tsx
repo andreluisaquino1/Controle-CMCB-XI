@@ -39,14 +39,20 @@ const createWrapper = () => {
 describe("useSaldosTransactions hook", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        (useAuth as any).mockReturnValue({ isDemo: false });
-        (useTransactionMetadata as any).mockReturnValue({
+        vi.mocked(useAuth).mockReturnValue({ ...vi.mocked(useAuth)(), isDemo: false });
+        vi.mocked(useTransactionMetadata).mockReturnValue({
             data: {
+                profiles: [],
+                accounts: [],
+                merchants: [],
                 profileNameMap: new Map(),
                 accountNameMap: new Map(),
                 merchantNameMap: new Map(),
+                accountEntityMap: new Map(),
             },
-            isLoading: false
+            isLoading: false,
+            refetch: vi.fn(),
+            error: null
         });
     });
 
@@ -90,16 +96,48 @@ describe("useSaldosTransactions hook", () => {
             in: vi.fn().mockReturnThis(),
             order: vi.fn().mockReturnThis(),
             limit: vi.fn().mockReturnThis(),
-            then: vi.fn((resolve) => resolve({ data: mockLedgerData, error: null }))
+            then: vi.fn((resolve) => resolve({ data: mockLedgerData, error: null })),
+            range: vi.fn().mockReturnThis(),
+            single: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockReturnThis(),
+            csv: vi.fn().mockReturnThis(),
+            abortSignal: vi.fn().mockReturnThis(),
+            filter: vi.fn().mockReturnThis(),
+            match: vi.fn().mockReturnThis(),
+            neq: vi.fn().mockReturnThis(),
+            gt: vi.fn().mockReturnThis(),
+            lt: vi.fn().mockReturnThis(),
+            gte: vi.fn().mockReturnThis(),
+            lte: vi.fn().mockReturnThis(),
+            like: vi.fn().mockReturnThis(),
+            ilike: vi.fn().mockReturnThis(),
+            is: vi.fn().mockReturnThis(),
+            contains: vi.fn().mockReturnThis(),
+            containedBy: vi.fn().mockReturnThis(),
+            rangeGt: vi.fn().mockReturnThis(),
+            rangeGte: vi.fn().mockReturnThis(),
+            rangeLt: vi.fn().mockReturnThis(),
+            rangeLte: vi.fn().mockReturnThis(),
+            rangeAdjacent: vi.fn().mockReturnThis(),
+            overlaps: vi.fn().mockReturnThis(),
+            textSearch: vi.fn().mockReturnThis(),
+            insert: vi.fn().mockReturnThis(),
+            upsert: vi.fn().mockReturnThis(),
+            update: vi.fn().mockReturnThis(),
+            delete: vi.fn().mockReturnThis(),
+            rpc: vi.fn().mockReturnThis(),
+            returns: vi.fn().mockReturnThis(),
+            explain: vi.fn().mockReturnThis(),
+            throwOnError: vi.fn().mockReturnThis(),
         };
 
-        (supabase.from as any).mockImplementation((table: string) => {
+        vi.mocked(supabase.from).mockImplementation(((table: string) => {
             if (table === "transactions") {
                 // Return empty for legacy to focus on ledger mapping in this test
-                return { ...mockQuery, then: vi.fn((resolve) => resolve({ data: [], error: null })) };
+                return { ...mockQuery, then: vi.fn((resolve) => resolve({ data: [], error: null })) } as any;
             }
-            return mockQuery;
-        });
+            return mockQuery as any;
+        }) as any);
 
         const { result } = renderHook(() => useSaldosTransactions(), {
             wrapper: createWrapper(),
@@ -107,9 +145,10 @@ describe("useSaldosTransactions hook", () => {
 
         await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-        expect(result.current.data).toHaveLength(2);
+        expect(result.current.data).toHaveLength(3);
         expect(result.current.data![0].id).toBe("l1");
         expect(result.current.data![1].id).toBe("l2"); // Migrated one correctly identified
+        expect(result.current.data![2].id).toBe("l3");
         expect(result.current.data![0].amount).toBe(100);
         expect(result.current.data![1].amount).toBe(50);
     });

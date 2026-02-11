@@ -46,8 +46,8 @@ const createWrapper = () => {
 describe("useMerchants hook", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        (useAuth as any).mockReturnValue({ isDemo: false });
-        (useDemoData as any).mockReturnValue({ merchants: [] });
+        vi.mocked(useAuth).mockReturnValue({ isDemo: false } as any);
+        vi.mocked(useDemoData).mockReturnValue({ merchants: [] } as any);
     });
 
     it("should fetch merchants and merge with ledger balances", async () => {
@@ -74,11 +74,11 @@ describe("useMerchants hook", () => {
             then: vi.fn((resolve) => resolve({ data: mockBalances, error: null }))
         };
 
-        (supabase.from as any).mockImplementation((table: string) => {
-            if (table === "merchants") return mockMerchantsQuery;
-            if (table === "ledger_balances") return mockBalancesQuery;
-            return null;
-        });
+        vi.mocked(supabase.from).mockImplementation(((table: string) => {
+            if (table === "merchants") return mockMerchantsQuery as unknown as ReturnType<typeof supabase.from>;
+            if (table === "ledger_balances") return mockBalancesQuery as unknown as ReturnType<typeof supabase.from>;
+            return null as unknown as ReturnType<typeof supabase.from>;
+        }) as any);
 
         const { result } = renderHook(() => useMerchants(), {
             wrapper: createWrapper(),
@@ -93,8 +93,8 @@ describe("useMerchants hook", () => {
 
     it("should return demo data when isDemo is true", () => {
         const mockDemoMerchants = [{ id: "d1", name: "Demo Merchant", active: true }];
-        (useAuth as any).mockReturnValue({ isDemo: true });
-        (useDemoData as any).mockReturnValue({ merchants: mockDemoMerchants });
+        vi.mocked(useAuth).mockReturnValue({ isDemo: true } as any);
+        vi.mocked(useDemoData).mockReturnValue({ merchants: mockDemoMerchants } as any);
 
         const { result } = renderHook(() => useMerchants(), {
             wrapper: createWrapper(),

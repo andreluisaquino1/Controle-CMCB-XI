@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockQueryResult } from "../test-utils";
 import { render, screen } from "@testing-library/react";
 import AssociacaoPage from "@/pages/AssociacaoPage";
 import React from "react";
@@ -26,6 +27,10 @@ vi.mock("@/hooks/use-transactions", () => ({
     useVoidTransaction: vi.fn(() => ({
         mutateAsync: vi.fn(),
         isPending: false
+    })),
+    useApproveTransaction: vi.fn(() => ({
+        mutateAsync: vi.fn(),
+        isPending: false
     }))
 }));
 
@@ -34,6 +39,18 @@ vi.mock("@/hooks/use-expense-shortcuts", () => ({
         shortcuts: [],
         addShortcut: vi.fn(),
         removeShortcut: vi.fn()
+    }))
+}));
+
+// Mock auth
+vi.mock("@/contexts/AuthContext", () => ({
+    useAuth: vi.fn(() => ({
+        user: { id: "user-123" },
+        profile: { role: "admin" },
+        isAdmin: true,
+        isDemo: false,
+        isSecretaria: false,
+        loading: false,
     }))
 }));
 
@@ -76,32 +93,38 @@ describe("AssociacaoPage integration", () => {
         vi.clearAllMocks();
 
         // Setup default mocks
-        (useAssociacaoAccounts as any).mockReturnValue({
-            data: [
-                { id: "acc-esp", name: "ESPECIE", balance: 1000 },
-                { id: "acc-pix", name: "PIX", balance: 2500 },
-                { id: "acc-dig", name: "CONTA_DIGITAL", balance: 5000 },
-                { id: "acc-cof", name: "COFRE", balance: 100 }
-            ],
-            isLoading: false
-        });
+        vi.mocked(useAssociacaoAccounts).mockReturnValue(createMockQueryResult([
+            { id: "acc-esp", name: "ESPECIE", balance: 1000, entity_id: "ent-assoc", active: true, type: "cash", agency: "", bank: "", account_number: "" },
+            { id: "acc-pix", name: "PIX", balance: 2500, entity_id: "ent-assoc", active: true, type: "bank", agency: "0001", bank: "BB", account_number: "123" },
+            { id: "acc-dig", name: "CONTA_DIGITAL", balance: 5000, entity_id: "ent-assoc", active: true, type: "bank", agency: "0001", bank: "Inter", account_number: "456" },
+            { id: "acc-cof", name: "COFRE", balance: 100, entity_id: "ent-assoc", active: true, type: "cash", agency: "", bank: "", account_number: "" }
+        ]));
 
-        (useEntities as any).mockReturnValue({
-            data: [{ id: "ent-assoc", type: "associacao", name: "Associação CMCB-XI" }],
-            isLoading: false
-        });
+        vi.mocked(useEntities).mockReturnValue(createMockQueryResult([
+            { id: "ent-assoc", type: "associacao", name: "Associação CMCB-XI", cnpj: "00.000.000/0001-00" }
+        ]));
 
-        (useAssociacaoTransactions as any).mockReturnValue({
-            data: [{ id: "t1", amount: 50, description: "Mensalidade Teste", created_at: new Date().toISOString() }],
-            isLoading: false
-        });
+        vi.mocked(useAssociacaoTransactions).mockReturnValue(createMockQueryResult([{
+            id: "t1", amount: 50, description: "Mensalidade Teste", created_at: new Date().toISOString(),
+            creator_name: "User", source_account_name: "Source", destination_account_name: "Dest",
+            merchant_name: "Merch", payment_method: "cash", shift: "matutino", created_by: "user-id",
+            transaction_date: "2024-01-01", type: "income", status: "completed",
+            account_id: "acc-1", entity_id: "ent-assoc", category_id: "cat-1",
+            module: "mensalidade", direction: "in", notes: "", source_account_id: "acc-source",
+            destination_account_id: "acc-dest", merchant_id: "merch-1", origin_fund: "fund",
+            parent_transaction_id: null
+        }]));
 
-        (useAssociacaoActions as any).mockReturnValue({
-            state: { mensalidade: {}, gasto: {}, mov: {}, ajuste: {} },
-            setters: {},
+        vi.mocked(useAssociacaoActions).mockReturnValue({
+            state: { mensalidade: {}, gasto: {}, mov: {}, ajuste: {} } as any,
+            setters: {} as any,
             handlers: {
                 resetMensalidade: vi.fn(),
                 resetGasto: vi.fn(),
+                handleMensalidadeSubmit: vi.fn(),
+                handleGastoSubmit: vi.fn(),
+                handleMovimentarSubmit: vi.fn(),
+                handleAjusteSubmit: vi.fn(),
                 resetMov: vi.fn(),
                 resetAjuste: vi.fn(),
             },

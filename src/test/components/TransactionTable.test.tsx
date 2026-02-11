@@ -17,8 +17,21 @@ const mockTransactions = [
         direction: "in",
         module: "mensalidade",
         status: "posted",
-        creator_name: "Usuario Teste",
-        source_account_name: "Espécie"
+        created_by: "Usuario Teste",
+        source_account_name: "Espécie",
+        destination_account_name: null,
+        merchant_name: null,
+        payment_method: "cash",
+        shift: "matutino",
+        created_at: "2024-01-01T10:00:00Z",
+        notes: null,
+        source_account_id: null,
+        destination_account_id: null,
+        merchant_id: null,
+        origin_fund: null,
+        entity_id: null,
+        parent_transaction_id: null,
+        creator_name: "Usuario Teste" // TransactionWithCreator field
     },
     {
         id: "tx2",
@@ -28,14 +41,27 @@ const mockTransactions = [
         direction: "out",
         module: "gasto_associacao",
         status: "voided",
-        creator_name: "Admin",
-        source_account_name: "PIX (Conta BB)"
+        created_by: "Admin",
+        source_account_name: "PIX (Conta BB)",
+        destination_account_name: null,
+        merchant_name: "Mercado A",
+        payment_method: "pix",
+        shift: null,
+        created_at: "2024-01-01T11:00:00Z",
+        notes: null,
+        source_account_id: null,
+        destination_account_id: null,
+        merchant_id: null,
+        origin_fund: null,
+        entity_id: null,
+        parent_transaction_id: null,
+        creator_name: "Admin" // TransactionWithCreator field
     }
 ];
 
 describe("TransactionTable component", () => {
     it("should render transactions correctly", () => {
-        render(<TransactionTable transactions={mockTransactions as any} isLoading={false} />);
+        render(<TransactionTable transactions={mockTransactions} isLoading={false} />);
 
         expect(screen.getByText("Venda Teste")).toBeDefined();
         expect(screen.getByText("Gasto Teste")).toBeDefined();
@@ -46,7 +72,7 @@ describe("TransactionTable component", () => {
     });
 
     it("should show voided style for transactions with status voided", () => {
-        const { container } = render(<TransactionTable transactions={mockTransactions as any} isLoading={false} />);
+        const { container } = render(<TransactionTable transactions={mockTransactions} isLoading={false} />);
         const voidedRow = container.querySelector('.opacity-50.grayscale');
         expect(voidedRow).toBeDefined();
     });

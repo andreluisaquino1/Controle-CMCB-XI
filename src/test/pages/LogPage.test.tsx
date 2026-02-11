@@ -66,12 +66,12 @@ describe("LogPage integration", () => {
     beforeEach(() => {
         vi.clearAllMocks();
 
-        (useAuth as any).mockReturnValue({ isDemo: false });
+        vi.mocked(useAuth).mockReturnValue({ ...vi.mocked(useAuth)(), isDemo: false });
 
         // Default mock for useQuery
-        (useQuery as any).mockImplementation(({ queryKey }: any) => {
-            if (queryKey[0] === "users-list") return { data: [], isLoading: false };
-            if (queryKey[0] === "accounts-lookup") return { data: [], isLoading: false };
+        vi.mocked(useQuery).mockImplementation(({ queryKey }: { queryKey: readonly unknown[] }) => {
+            if (queryKey[0] === "users-list") return { data: [], isLoading: false } as any;
+            if (queryKey[0] === "accounts-lookup") return { data: [], isLoading: false } as any;
             if (queryKey[0] === "audit-logs") return {
                 data: {
                     logs: [
@@ -92,8 +92,8 @@ describe("LogPage integration", () => {
                     totalCount: 1
                 },
                 isLoading: false
-            };
-            return { data: null, isLoading: false };
+            } as any;
+            return { data: null, isLoading: false } as any;
         });
     });
 
@@ -118,7 +118,7 @@ describe("LogPage integration", () => {
     });
 
     it("should render security logs differently", () => {
-        (useQuery as any).mockImplementation(({ queryKey }: any) => {
+        vi.mocked(useQuery).mockImplementation(({ queryKey }: { queryKey: readonly unknown[] }) => {
             if (queryKey[0] === "audit-logs") return {
                 data: {
                     logs: [
@@ -136,8 +136,8 @@ describe("LogPage integration", () => {
                     totalCount: 1
                 },
                 isLoading: false
-            };
-            return { data: [], isLoading: false };
+            } as any;
+            return { data: [], isLoading: false } as any;
         });
 
         render(<LogPage />, { wrapper: createWrapper() });

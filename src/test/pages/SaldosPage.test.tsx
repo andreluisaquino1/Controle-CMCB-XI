@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockQueryResult } from "../test-utils";
 import { render, screen } from "@testing-library/react";
 import SaldosPage from "@/pages/SaldosPage";
 import React from "react";
@@ -72,31 +73,41 @@ describe("SaldosPage integration", () => {
         vi.clearAllMocks();
 
         // Setup default mocks
-        (useMerchants as any).mockReturnValue({
-            data: [{ id: "m1", name: "Merchant Test", balance: 500, active: true }],
-            isLoading: false,
-            refetch: vi.fn()
-        });
+        vi.mocked(useMerchants).mockReturnValue(createMockQueryResult([
+            { id: "m1", name: "Merchant Test", balance: 500, active: true }
+        ]));
 
-        (useEntitiesWithAccounts as any).mockReturnValue({
-            data: { entities: [], accounts: [] },
-            isLoading: false
-        });
+        vi.mocked(useEntitiesWithAccounts).mockReturnValue(createMockQueryResult({ entities: [], accounts: [] }));
 
-        (useEntities as any).mockReturnValue({
-            data: [],
-            isLoading: false
-        });
+        vi.mocked(useEntities).mockReturnValue(createMockQueryResult([]));
 
-        (useSaldosTransactions as any).mockReturnValue({
-            data: [{ id: "t1", amount: 100, description: "Test Transaction", created_at: new Date().toISOString() }],
-            isLoading: false
-        });
+        vi.mocked(useSaldosTransactions).mockReturnValue(createMockQueryResult([{
+            id: "t1", amount: 100, description: "Test Transaction", created_at: new Date().toISOString(),
+            creator_name: "User", source_account_name: "Source", destination_account_name: "Dest",
+            merchant_name: "Merch", payment_method: "cash", shift: "matutino", created_by: "user-id",
+            transaction_date: "2024-01-01", type: "expense", status: "completed", account_id: "acc-1", entity_id: "ent-1",
+            category_id: "cat-1",
+            module: "gasto", direction: "out", notes: "", source_account_id: "acc-source",
+            destination_account_id: "acc-dest", merchant_id: "merch-1", origin_fund: "fund",
+            parent_transaction_id: null
+        }]));
 
-        (useSaldosActions as any).mockReturnValue({
-            state: { aporte: {}, gasto: {}, newMerchantName: "", editingMerchant: null, deletingMerchant: null },
-            setters: {},
-            handlers: {},
+        vi.mocked(useSaldosActions).mockReturnValue({
+            state: { aporte: {}, gasto: {}, newMerchantName: "", editingMerchant: null, deletingMerchant: null } as any,
+            setters: {
+                setAporteDate: vi.fn(),
+                setGastoDate: vi.fn(),
+                setNewMerchantName: vi.fn()
+            } as any,
+            handlers: {
+                resetGasto: vi.fn(),
+                handleAporteSubmit: vi.fn(),
+                handleAddMerchant: vi.fn(),
+                handleEditMerchant: vi.fn(),
+                handleDeleteMerchant: vi.fn(),
+                handleActivateMerchant: vi.fn(),
+                resetAporte: vi.fn()
+            },
             isLoading: false
         });
     });

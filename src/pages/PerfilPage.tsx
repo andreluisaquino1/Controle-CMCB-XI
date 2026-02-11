@@ -290,9 +290,10 @@ export default function PerfilPage() {
                               if (error) throw error;
                               toast.success("Banco de dados resetado com sucesso.");
                               setTimeout(() => window.location.reload(), 1500);
-                            } catch (error: any) {
-                              console.error(error);
-                              toast.error(`Erro ao resetar: ${error.message || "Erro desconhecido"}`);
+                            } catch (error: unknown) {
+                              const err = error as Error;
+                              console.error(err);
+                              toast.error(`Erro ao resetar: ${err.message || "Erro desconhecido"}`);
                             }
                           }}
                         >

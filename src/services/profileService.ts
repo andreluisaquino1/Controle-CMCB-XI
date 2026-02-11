@@ -10,6 +10,8 @@ export interface Profile {
     role?: "admin" | "user" | "demo" | "secretaria";
 }
 
+type Role = "admin" | "user" | "demo" | "secretaria";
+
 export const profileService = {
     /**
      * Busca todos os perfis com suas respectivas funções
@@ -30,7 +32,7 @@ export const profileService = {
 
         return (profilesData || []).map((p) => ({
             ...p,
-            role: (rolesData.find((r) => r.user_id === p.user_id)?.role as any) || "user",
+            role: (rolesData.find((r) => r.user_id === p.user_id)?.role as Role) || "user",
         })) as Profile[];
     },
 
@@ -59,13 +61,13 @@ export const profileService = {
         if (existingRole) {
             const { error } = await supabase
                 .from("user_roles")
-                .update({ role: role as any })
+                .update({ role: role as Role })
                 .eq("user_id", userId);
             if (error) throw error;
         } else {
             const { error } = await supabase
                 .from("user_roles")
-                .insert({ user_id: userId, role: role as any });
+                .insert({ user_id: userId, role: role as Role });
             if (error) throw error;
         }
     },

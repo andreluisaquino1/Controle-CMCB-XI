@@ -3,13 +3,16 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ConsumoSaldoDialog } from "@/components/forms/ConsumoSaldoDialog";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createLedgerTransaction } from "@/domain/ledger";
+import { transactionService } from "@/services/transactionService";
 import { toast } from "sonner";
 import { useEntities } from "@/hooks/use-accounts";
+import { Merchant } from "@/types";
 
 // Mock dependencies
-vi.mock("@/domain/ledger", () => ({
-    createLedgerTransaction: vi.fn(),
+vi.mock("@/services/transactionService", () => ({
+    transactionService: {
+        createLedgerTransaction: vi.fn(),
+    }
 }));
 
 vi.mock("sonner", () => ({
@@ -22,7 +25,7 @@ vi.mock("sonner", () => ({
 
 vi.mock("@/hooks/use-accounts", () => ({
     useEntities: vi.fn(() => ({
-        data: [{ id: "ent1", name: "Associação", type: "associacao" }],
+        data: [{ id: "ent1", name: "Associação", type: "associacao", cnpj: "" }],
         isLoading: false
     })),
 }));
@@ -53,7 +56,7 @@ const mockSetters = {
     setObs: vi.fn(),
 };
 
-const mockMerchants = [{ id: "m1", name: "Mercado A", balance: 50, active: true }];
+const mockMerchants: Merchant[] = [{ id: "m1", name: "Mercado A", balance: 50, active: true }];
 
 const createWrapper = () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -74,7 +77,7 @@ describe("ConsumoSaldoDialog component", () => {
                 onOpenChange={vi.fn()}
                 state={mockState}
                 setters={mockSetters}
-                merchants={mockMerchants as any}
+                merchants={mockMerchants}
                 onSubmit={vi.fn()}
                 isLoading={false}
             />,
@@ -92,7 +95,7 @@ describe("ConsumoSaldoDialog component", () => {
                 onOpenChange={vi.fn()}
                 state={mockState}
                 setters={mockSetters}
-                merchants={mockMerchants as any}
+                merchants={mockMerchants}
                 onSubmit={vi.fn()}
                 isLoading={false}
             />,
@@ -121,7 +124,7 @@ describe("ConsumoSaldoDialog component", () => {
                 onOpenChange={onOpenChange}
                 state={{ ...mockState, merchant: "m1" }}
                 setters={mockSetters}
-                merchants={mockMerchants as any}
+                merchants={mockMerchants}
                 onSubmit={vi.fn()}
                 isLoading={false}
             />,
@@ -145,7 +148,7 @@ describe("ConsumoSaldoDialog component", () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(createLedgerTransaction).toHaveBeenCalled();
+            expect(transactionService.createLedgerTransaction).toHaveBeenCalled();
             expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("consumos registrados"));
             expect(onOpenChange).toHaveBeenCalledWith(false);
         });

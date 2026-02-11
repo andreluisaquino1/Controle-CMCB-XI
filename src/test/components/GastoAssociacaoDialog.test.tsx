@@ -3,14 +3,16 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { GastoAssociacaoDialog } from "@/components/forms/GastoAssociacaoDialog";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createLedgerTransaction } from "@/domain/ledger";
+import { transactionService } from "@/services/transactionService";
 import { toast } from "sonner";
 import { useAssociacaoAccounts, useEntities } from "@/hooks/use-accounts";
 import { ACCOUNT_NAMES } from "@/lib/constants";
 
 // Mock dependencies
-vi.mock("@/domain/ledger", () => ({
-    createLedgerTransaction: vi.fn(),
+vi.mock("@/services/transactionService", () => ({
+    transactionService: {
+        createLedgerTransaction: vi.fn(),
+    }
 }));
 
 vi.mock("sonner", () => ({
@@ -127,7 +129,7 @@ describe("GastoAssociacaoDialog component", () => {
 
     it("should call createLedgerTransaction for valid items on submit", async () => {
         const onOpenChange = vi.fn();
-        (createLedgerTransaction as any).mockResolvedValue({ data: {}, error: null });
+        vi.mocked(transactionService.createLedgerTransaction).mockResolvedValue({ data: {}, error: null } as any);
 
         render(
             <GastoAssociacaoDialog
@@ -154,17 +156,36 @@ describe("GastoAssociacaoDialog component", () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(createLedgerTransaction).toHaveBeenCalled();
+            expect(transactionService.createLedgerTransaction).toHaveBeenCalled();
             expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("despesas registradas"));
             expect(onOpenChange).toHaveBeenCalledWith(false);
         });
     });
 
     it("should show warning when balance is insufficient", async () => {
-        (useAssociacaoAccounts as any).mockReturnValue({
+        vi.mocked(useAssociacaoAccounts).mockReturnValue({
             data: [{ id: "a1", name: ACCOUNT_NAMES.ESPECIE, balance: 10, active: true }],
-            isLoading: false
-        });
+            isLoading: false,
+            refetch: vi.fn(),
+            isError: false,
+            error: null,
+            dataUpdatedAt: 0,
+            errorUpdatedAt: 0,
+            failureCount: 0,
+            failureReason: null,
+            fetchStatus: "idle",
+            isFetched: true,
+            isFetchedAfterMount: true,
+            isFetching: false,
+            isInitialLoading: false,
+            isLoadingError: false,
+            isPaused: false,
+            isPlaceholderData: false,
+            isRefetchError: false,
+            isRefetching: false,
+            isStale: false,
+            status: "success",
+        } as any);
 
         render(
             <GastoAssociacaoDialog

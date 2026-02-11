@@ -1,5 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { Merchant } from "@/types";
+
+interface LedgerBalanceRow {
+    account_id?: string;
+    account_key?: string;
+    account?: string;
+    balance_cents?: number;
+}
 
 export const merchantService = {
     /**
@@ -22,10 +30,10 @@ export const merchantService = {
         // 2. Fetch Ledger Balances for these merchants
         const merchantIds = merchantsData.map(m => m.id);
 
-        const { data: balancesData, error: balancesError } = await (supabase
+        const { data: balancesData, error: balancesError } = await extendedSupabase
             .from("ledger_balances")
             .select("*")
-            .in("account_id", merchantIds) as any); // View might not be perfectly typed
+            .in("account_id", merchantIds);
 
         if (balancesError) {
             console.error("Erro ao buscar saldos do Ledger:", balancesError);
@@ -34,7 +42,7 @@ export const merchantService = {
 
         const balanceMap = new Map<string, number>();
         if (balancesData && Array.isArray(balancesData)) {
-            balancesData.forEach((b: any) => {
+            (balancesData as unknown as LedgerBalanceRow[]).forEach((b) => {
                 const accountId = b.account_id || b.account_key || b.account;
                 const balance = (Number(b.balance_cents) || 0) / 100;
                 if (accountId) {

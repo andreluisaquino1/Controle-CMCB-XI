@@ -2,14 +2,25 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { EntradaRecursoDialog } from "@/components/forms/EntradaRecursoDialog";
 import React from "react";
+import { Account, Entity } from "@/types";
 
-const mockEntities = [
-    { id: "e1", name: "UE Test", type: "ue" },
-    { id: "e2", name: "Associação", type: "associacao" }
+const mockEntities: Entity[] = [
+    { id: "e1", name: "UE Test", type: "ue", cnpj: "" },
+    { id: "e2", name: "Associação", type: "associacao", cnpj: "" }
 ];
 
-const mockAccounts = [
-    { id: "a1", name: "Conta 1", entity_id: "e1", active: true, balance: 1000 },
+const mockAccounts: Account[] = [
+    {
+        id: "a1",
+        name: "Conta 1",
+        entity_id: "e1",
+        active: true,
+        balance: 1000,
+        type: "bank",
+        agency: "",
+        bank: "",
+        account_number: ""
+    },
 ];
 
 const mockState = {
@@ -42,8 +53,8 @@ describe("EntradaRecursoDialog component", () => {
                 onOpenChange={vi.fn()}
                 state={mockState}
                 setters={mockSetters}
-                entities={mockEntities as any}
-                accounts={mockAccounts as any}
+                entities={mockEntities}
+                accounts={mockAccounts}
                 onSubmit={vi.fn().mockResolvedValue(true)}
                 isLoading={false}
             />
@@ -64,8 +75,8 @@ describe("EntradaRecursoDialog component", () => {
                 onOpenChange={onOpenChange}
                 state={mockState}
                 setters={mockSetters}
-                entities={mockEntities as any}
-                accounts={mockAccounts as any}
+                entities={mockEntities}
+                accounts={mockAccounts}
                 onSubmit={onSubmit}
                 isLoading={false}
             />
@@ -87,8 +98,8 @@ describe("EntradaRecursoDialog component", () => {
                 onOpenChange={vi.fn()}
                 state={{ ...mockState, description: "PDDE" }} // 4 chars, needs 5
                 setters={mockSetters}
-                entities={mockEntities as any}
-                accounts={mockAccounts as any}
+                entities={mockEntities}
+                accounts={mockAccounts}
                 onSubmit={vi.fn().mockResolvedValue(true)}
                 isLoading={false}
             />
@@ -105,8 +116,8 @@ describe("EntradaRecursoDialog component", () => {
                 onOpenChange={vi.fn()}
                 state={{ ...mockState, entityId: "" }}
                 setters={mockSetters}
-                entities={mockEntities as any}
-                accounts={mockAccounts as any}
+                entities={mockEntities}
+                accounts={mockAccounts}
                 onSubmit={vi.fn().mockResolvedValue(true)}
                 isLoading={false}
             />

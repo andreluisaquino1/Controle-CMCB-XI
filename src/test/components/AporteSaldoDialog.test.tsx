@@ -3,12 +3,15 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AporteSaldoDialog } from "@/components/forms/AporteSaldoDialog";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createLedgerTransaction } from "@/domain/ledger";
+import { transactionService } from "@/services/transactionService";
 import { toast } from "sonner";
+import { Account, Entity, Merchant } from "@/types";
 
 // Mock dependencies
-vi.mock("@/domain/ledger", () => ({
-    createLedgerTransaction: vi.fn(),
+vi.mock("@/services/transactionService", () => ({
+    transactionService: {
+        createLedgerTransaction: vi.fn(),
+    }
 }));
 
 vi.mock("sonner", () => ({
@@ -50,9 +53,21 @@ const mockSetters = {
     setCapitalCusteio: vi.fn(),
 };
 
-const mockEntities = [{ id: "ent1", name: "Associação", type: "associacao" }];
-const mockAccounts = [{ id: "acc1", name: "Espécie", entity_id: "ent1", balance: 1000 }];
-const mockMerchants = [{ id: "m1", name: "Mercado A", balance: 50, active: true }];
+const mockEntities: Entity[] = [{ id: "ent1", name: "Associação", type: "associacao", cnpj: "" }];
+const mockAccounts: Account[] = [
+    {
+        id: "acc1",
+        name: "Espécie",
+        entity_id: "ent1",
+        balance: 1000,
+        active: true,
+        type: "cash",
+        agency: "",
+        bank: "",
+        account_number: ""
+    }
+];
+const mockMerchants: Merchant[] = [{ id: "m1", name: "Mercado A", balance: 50, active: true }];
 
 const createWrapper = () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -110,7 +125,7 @@ describe("AporteSaldoDialog component", () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(createLedgerTransaction).toHaveBeenCalled();
+            expect(transactionService.createLedgerTransaction).toHaveBeenCalled();
             expect(toast.success).toHaveBeenCalledWith("Aporte registrado.");
             expect(onSubmit).toHaveBeenCalled();
             expect(onOpenChange).toHaveBeenCalledWith(false);

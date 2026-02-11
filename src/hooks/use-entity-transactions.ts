@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { TransactionWithCreator } from "@/types";
+import { LedgerTransaction } from "@/domain/ledger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDemoData } from "@/demo/useDemoData";
 import { useTransactionMetadata } from "./use-transaction-metadata";
@@ -19,7 +21,7 @@ export function useAssociacaoTransactions() {
   const query = useQuery({
     queryKey: ["transactions", "associacao"],
     queryFn: async () => {
-      const { data: ledgerData, error } = await (supabase as any)
+      const { data: ledgerData, error } = await extendedSupabase
         .from("ledger_transactions")
         .select("*")
         .or('metadata->>module.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual"),metadata->>modulo.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual"),metadata->>original_module.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual")')
@@ -28,7 +30,7 @@ export function useAssociacaoTransactions() {
 
       if (error) throw error;
 
-      return (ledgerData || []).map((l: any) => mapLedgerTransaction(l, meta as MapperMetadata));
+      return (ledgerData || []).map((l) => mapLedgerTransaction(l as unknown as LedgerTransaction & Record<string, unknown>, meta as MapperMetadata));
     },
     enabled: !isDemo && !!meta,
   });
@@ -74,7 +76,7 @@ export function useRecursosTransactions() {
       const resourceAccountIds = resourceAccounts?.map(a => a.id) || [];
       if (resourceAccountIds.length === 0) return [];
 
-      const { data: ledgerData, error } = await (supabase as any)
+      const { data: ledgerData, error } = await extendedSupabase
         .from("ledger_transactions")
         .select("*")
         .or(`source_account.in.(${resourceAccountIds.join(',')}),destination_account.in.(${resourceAccountIds.join(',')})`)
@@ -83,7 +85,7 @@ export function useRecursosTransactions() {
 
       if (error) throw error;
 
-      return (ledgerData || []).map((l: any) => mapLedgerTransaction(l, meta as MapperMetadata));
+      return (ledgerData || []).map((l) => mapLedgerTransaction(l as unknown as LedgerTransaction & Record<string, unknown>, meta as MapperMetadata));
     },
     enabled: !isDemo && !!meta,
   });
@@ -118,7 +120,7 @@ export function useSaldosTransactions() {
         .order("transaction_date", { ascending: false })
         .limit(100);
 
-      const ledgerPromise = (supabase as any)
+      const ledgerPromise = extendedSupabase
         .from("ledger_transactions")
         .select("*")
         .or('metadata->>module.in.("aporte_saldo","consumo_saldo"),metadata->>modulo.in.("aporte_saldo","consumo_saldo"),metadata->>original_module.in.("aporte_saldo","consumo_saldo")')
@@ -131,7 +133,7 @@ export function useSaldosTransactions() {
       if (ledgerRes.error) throw ledgerRes.error;
 
       const legacyMapped = (legacyRes.data || []).map((t) => mapLegacyTransaction(t as any, meta as MapperMetadata));
-      const ledgerMapped = (ledgerRes.data || []).map((l: any) => mapLedgerTransaction(l, meta as MapperMetadata));
+      const ledgerMapped = (ledgerRes.data || []).map((l) => mapLedgerTransaction(l as unknown as LedgerTransaction & Record<string, unknown>, meta as MapperMetadata));
 
       return [...legacyMapped, ...ledgerMapped]
         .sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime() ||
@@ -175,7 +177,7 @@ export function useAllTransactionsWithCreator(startDate?: string, endDate?: stri
       if (endDate) legacyQuery = legacyQuery.lte("transaction_date", endDate);
 
       // Fetch Ledger Transactions
-      let ledgerQuery = (supabase as any)
+      let ledgerQuery = extendedSupabase
         .from("ledger_transactions")
         .select("*")
         .order("created_at", { ascending: false });
@@ -189,7 +191,7 @@ export function useAllTransactionsWithCreator(startDate?: string, endDate?: stri
       if (ledgerRes.error) throw ledgerRes.error;
 
       const legacyMapped = (legacyRes.data || []).map((t) => mapLegacyTransaction(t as any, meta as MapperMetadata));
-      const ledgerMapped = (ledgerRes.data || []).map((l: any) => mapLedgerTransaction(l, meta as MapperMetadata));
+      const ledgerMapped = (ledgerRes.data || []).map((l) => mapLedgerTransaction(l as unknown as LedgerTransaction & Record<string, unknown>, meta as MapperMetadata));
 
       // Combine and Sort
       return [...legacyMapped, ...ledgerMapped]

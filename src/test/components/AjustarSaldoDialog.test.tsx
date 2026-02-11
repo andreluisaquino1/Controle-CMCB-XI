@@ -4,7 +4,19 @@ import { AjustarSaldoDialog } from "@/components/forms/AjustarSaldoDialog";
 import React from "react";
 
 const mockAccounts = [
-    { id: "a1", name: "Conta 1", active: true, balance: 1000 },
+    {
+        id: "a1",
+        name: "Conta 1",
+        active: true,
+        balance: 1000,
+        type: "bank",
+        agency: "0001",
+        bank: "Bank A",
+        account_number: "12345",
+        entity_id: "e1",
+        created_at: "",
+        updated_at: ""
+    },
 ];
 
 const mockState = {
@@ -35,7 +47,7 @@ describe("AjustarSaldoDialog component", () => {
                 onOpenChange={vi.fn()}
                 state={mockState}
                 setters={mockSetters}
-                accounts={mockAccounts as any}
+                accounts={mockAccounts}
                 onSubmit={vi.fn().mockResolvedValue(true)}
                 isLoading={false}
             />
@@ -52,7 +64,7 @@ describe("AjustarSaldoDialog component", () => {
                 onOpenChange={vi.fn()}
                 state={mockState}
                 setters={mockSetters}
-                accounts={mockAccounts as any}
+                accounts={mockAccounts}
                 onSubmit={vi.fn().mockResolvedValue(true)}
                 isLoading={false}
             />
@@ -75,7 +87,7 @@ describe("AjustarSaldoDialog component", () => {
                 onOpenChange={onOpenChange}
                 state={{ ...mockState, valor: 100 }}
                 setters={mockSetters}
-                accounts={mockAccounts as any}
+                accounts={mockAccounts}
                 onSubmit={onSubmit}
                 isLoading={false}
             />
@@ -100,7 +112,7 @@ describe("AjustarSaldoDialog component", () => {
                 onOpenChange={vi.fn()}
                 state={{ ...mockState, motivo: "abc" }} // 3 chars, needs 5
                 setters={mockSetters}
-                accounts={mockAccounts as any}
+                accounts={mockAccounts}
                 onSubmit={vi.fn().mockResolvedValue(true)}
                 isLoading={false}
             />

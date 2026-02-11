@@ -3,11 +3,42 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MovimentarSaldoDialog } from "@/components/forms/MovimentarSaldoDialog";
 import React from "react";
 import { ACCOUNT_NAMES } from "@/lib/constants";
+import { Account } from "@/types";
 
-const mockAccounts = [
-    { id: "a1", name: ACCOUNT_NAMES.ESPECIE, balance: 1000, active: true },
-    { id: "a2", name: ACCOUNT_NAMES.PIX, balance: 500, active: true },
-    { id: "a3", name: "Conta Digital (Escolaweb)", balance: 200, active: true }
+const mockAccounts: Account[] = [
+    {
+        id: "a1",
+        name: ACCOUNT_NAMES.ESPECIE,
+        balance: 1000,
+        active: true,
+        type: "cash",
+        agency: "",
+        bank: "",
+        account_number: "",
+        entity_id: "e1"
+    },
+    {
+        id: "a2",
+        name: ACCOUNT_NAMES.PIX,
+        balance: 500,
+        active: true,
+        type: "bank",
+        agency: "",
+        bank: "",
+        account_number: "",
+        entity_id: "e1"
+    },
+    {
+        id: "a3",
+        name: "Conta Digital (Escolaweb)",
+        balance: 200,
+        active: true,
+        type: "bank",
+        agency: "",
+        bank: "",
+        account_number: "",
+        entity_id: "e1"
+    }
 ];
 
 const mockState = {
@@ -42,7 +73,7 @@ describe("MovimentarSaldoDialog component", () => {
                 onOpenChange={vi.fn()}
                 state={mockState}
                 setters={mockSetters}
-                accounts={mockAccounts as any}
+                accounts={mockAccounts}
                 onSubmit={vi.fn().mockResolvedValue(true)}
                 isLoading={false}
             />
@@ -60,15 +91,15 @@ describe("MovimentarSaldoDialog component", () => {
                 onOpenChange={vi.fn()}
                 state={{ ...mockState, valor: 100, taxa: 5 }}
                 setters={mockSetters}
-                accounts={mockAccounts as any}
+                accounts={mockAccounts}
                 onSubmit={vi.fn().mockResolvedValue(true)}
                 isLoading={false}
             />
         );
 
         expect(screen.getByText("Prévia de Impacto nos Saldos")).toBeDefined();
-        // Source projected:    // 1000 - 100 = 900 (taxa é informativa)
-        expect(screen.getByText("R$ 900,00")).toBeDefined();
+        // Source projected: 1000 - 100 - 5 = 895
+        expect(screen.getByText("R$ 895,00")).toBeDefined();
         // Destination projected: 500 + 100 = 600
         expect(screen.getByText("R$ 600,00")).toBeDefined();
     });
@@ -80,7 +111,7 @@ describe("MovimentarSaldoDialog component", () => {
                 onOpenChange={vi.fn()}
                 state={mockState}
                 setters={mockSetters}
-                accounts={mockAccounts as any}
+                accounts={mockAccounts}
                 onSubmit={vi.fn().mockResolvedValue(true)}
                 isLoading={false}
             />
@@ -103,7 +134,7 @@ describe("MovimentarSaldoDialog component", () => {
                 onOpenChange={onOpenChange}
                 state={mockState}
                 setters={mockSetters}
-                accounts={mockAccounts as any}
+                accounts={mockAccounts}
                 onSubmit={onSubmit}
                 isLoading={false}
             />
@@ -129,7 +160,7 @@ describe("MovimentarSaldoDialog component", () => {
                 onOpenChange={vi.fn()}
                 state={{ ...mockState, descricao: "abc" }}
                 setters={mockSetters}
-                accounts={mockAccounts as any}
+                accounts={mockAccounts}
                 onSubmit={vi.fn().mockResolvedValue(true)}
                 isLoading={false}
             />

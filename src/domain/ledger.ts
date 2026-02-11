@@ -10,5 +10,5 @@ export interface LedgerTransaction {
     amount_cents: number;
     description: string | null;
     reference_id: string | null;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
 }

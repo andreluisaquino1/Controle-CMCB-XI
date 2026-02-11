@@ -3,12 +3,14 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { GastoRecursoDialog } from "@/components/forms/GastoRecursoDialog";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createLedgerTransaction } from "@/domain/ledger";
+import { transactionService } from "@/services/transactionService";
 import { toast } from "sonner";
 
 // Mock dependencies
-vi.mock("@/domain/ledger", () => ({
-    createLedgerTransaction: vi.fn(),
+vi.mock("@/services/transactionService", () => ({
+    transactionService: {
+        createLedgerTransaction: vi.fn(),
+    }
 }));
 
 vi.mock("sonner", () => ({
@@ -55,16 +57,16 @@ const mockSetters = {
 };
 
 const mockEntities = [
-    { id: "e1", name: "UE Test", type: "ue" },
-    { id: "e2", name: "Associação", type: "associacao" }
+    { id: "e1", name: "UE Test", type: "ue", cnpj: "" },
+    { id: "e2", name: "Associação", type: "associacao", cnpj: "" }
 ];
 
 const mockAccounts = [
-    { id: "a1", name: "Conta 1", entity_id: "e1", active: true, balance: 1000 },
-    { id: "a2", name: "Conta 2", entity_id: "e1", active: true, balance: 500 }
+    { id: "a1", name: "Conta 1", entity_id: "e1", active: true, balance: 1000, type: "bank", agency: "", bank: "", account_number: "" },
+    { id: "a2", name: "Conta 2", entity_id: "e1", active: true, balance: 500, type: "bank", agency: "", bank: "", account_number: "" }
 ];
 
-const mockMerchants = [{ id: "m1", name: "Mercado A", active: true }];
+const mockMerchants = [{ id: "m1", name: "Mercado A", active: true, balance: 0 }];
 
 const createWrapper = () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -85,9 +87,9 @@ describe("GastoRecursoDialog component", () => {
                 onOpenChange={vi.fn()}
                 state={mockState}
                 setters={mockSetters}
-                entities={mockEntities as any}
+                entities={mockEntities}
                 accounts={mockAccounts as any}
-                merchants={mockMerchants as any}
+                merchants={mockMerchants}
                 onSubmit={vi.fn().mockResolvedValue(true)}
                 isLoading={false}
             />,
@@ -131,7 +133,7 @@ describe("GastoRecursoDialog component", () => {
 
     it("should call createLedgerTransaction for valid items on submit", async () => {
         const onOpenChange = vi.fn();
-        (createLedgerTransaction as any).mockResolvedValue({ data: {}, error: null });
+        (transactionService.createLedgerTransaction as any).mockResolvedValue({ data: {}, error: null });
 
         render(
             <GastoRecursoDialog
@@ -139,9 +141,9 @@ describe("GastoRecursoDialog component", () => {
                 onOpenChange={onOpenChange}
                 state={mockState}
                 setters={mockSetters}
-                entities={mockEntities as any}
+                entities={mockEntities}
                 accounts={mockAccounts as any}
-                merchants={mockMerchants as any}
+                merchants={mockMerchants}
                 onSubmit={vi.fn().mockResolvedValue(true)}
                 isLoading={false}
             />,
@@ -163,7 +165,7 @@ describe("GastoRecursoDialog component", () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(createLedgerTransaction).toHaveBeenCalled();
+            expect(transactionService.createLedgerTransaction).toHaveBeenCalled();
         }, { timeout: 3000 });
 
         await waitFor(() => {

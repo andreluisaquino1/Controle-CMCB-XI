@@ -118,7 +118,7 @@ export function useAssociacaoActions(
         setState((s) => ({ ...s, ajuste: { date: getTodayString(), accountId: "", valor: 0, motivo: "", obs: "" } }));
     }, []);
 
-    const handleMensalidadeSubmit = async (): Promise<boolean> => {
+    const handleMensalidadeSubmit = useCallback(async (): Promise<boolean> => {
         const result = mensalidadeSchema.safeParse(state.mensalidade);
         if (!result.success) {
             toast.error(result.error.errors[0].message);
@@ -221,10 +221,10 @@ export function useAssociacaoActions(
         } finally {
             setIsSubmitting(false);
         }
-    };
+    }, [state.mensalidade, associacaoEntity, isSecretaria, queryClient, resetMensalidade, onSuccess]);
 
 
-    const handleGastoSubmit = async (): Promise<boolean> => {
+    const handleGastoSubmit = useCallback(async (): Promise<boolean> => {
         const result = gastoAssociacaoSchema.safeParse(state.gasto);
         if (!result.success) {
             toast.error(result.error.errors[0].message);
@@ -273,8 +273,8 @@ export function useAssociacaoActions(
         } finally {
             setIsSubmitting(false);
         }
-    };
-    const handleMovimentarSubmit = async (): Promise<boolean> => {
+    }, [state.gasto, isSecretaria, queryClient, resetGasto, onSuccess]);
+    const handleMovimentarSubmit = useCallback(async (): Promise<boolean> => {
         const result = movimentarSaldoSchema.safeParse(state.mov);
         if (!result.success) {
             toast.error(result.error.errors[0].message);
@@ -374,9 +374,9 @@ export function useAssociacaoActions(
         } finally {
             setIsSubmitting(false);
         }
-    };
+    }, [state.mov, associacaoEntity, accounts, queryClient, resetMov, onSuccess]);
 
-    const handleAjusteSubmit = async (): Promise<boolean> => {
+    const handleAjusteSubmit = useCallback(async (): Promise<boolean> => {
         const result = ajusteSchema.safeParse(state.ajuste);
         if (!result.success) {
             toast.error(result.error.errors[0].message);
@@ -437,7 +437,7 @@ export function useAssociacaoActions(
         } finally {
             setIsSubmitting(false);
         }
-    };
+    }, [state.ajuste, accountsMap, associacaoEntity, queryClient, resetAjuste, onSuccess]);
 
     const handlers = useMemo(() => ({
         handleMensalidadeSubmit,

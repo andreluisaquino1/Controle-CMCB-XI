@@ -27,18 +27,19 @@ export const mapLegacyTransaction = (
  * Mapeia uma transação do Ledger para o formato TransactionWithCreator
  */
 export const mapLedgerTransaction = (
-    l: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    l: LedgerTransaction & Record<string, unknown>,
     meta: MapperMetadata
 ): TransactionWithCreator => {
-    const ledgerTx = l as LedgerTransaction;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const ledgerTx = l;
 
     // Mapear Tipo para Direção
     let direction: "in" | "out" | "transfer" = "out";
-    if (ledgerTx.type === 'income') direction = "in";
-    else if (ledgerTx.type === 'expense' || ledgerTx.type === 'fee') direction = "out";
-    else if (ledgerTx.type === 'transfer') direction = "transfer";
-    else if (ledgerTx.type === 'adjustment') {
-        direction = ledgerTx.amount_cents > 0 ? "in" : "out";
+    if (l.type === 'income') direction = "in";
+    else if (l.type === 'expense' || l.type === 'fee') direction = "out";
+    else if (l.type === 'transfer') direction = "transfer";
+    else if (l.type === 'adjustment') {
+        direction = l.amount_cents > 0 ? "in" : "out";
     }
 
     const resolveAccountName = (key: string | null) => {
@@ -52,11 +53,11 @@ export const mapLedgerTransaction = (
     };
 
     // Lógica de exibição de conta (priorizar real vs externo)
-    const isSourceExternal = ledgerTx.source_account.startsWith('ext:');
-    const isDestExternal = ledgerTx.destination_account?.startsWith('ext:');
+    const isSourceExternal = l.source_account.startsWith('ext:');
+    const isDestExternal = l.destination_account?.startsWith('ext:');
 
-    let displaySourceName = resolveAccountName(ledgerTx.source_account);
-    let displayDestName = resolveAccountName(ledgerTx.destination_account);
+    let displaySourceName = resolveAccountName(l.source_account);
+    let displayDestName = resolveAccountName(l.destination_account);
 
     if (isSourceExternal && displayDestName) {
         displaySourceName = displayDestName;
@@ -64,30 +65,31 @@ export const mapLedgerTransaction = (
         displayDestName = displaySourceName;
     }
 
-    const mod = (ledgerTx.metadata?.module || ledgerTx.metadata?.modulo || ledgerTx.metadata?.original_module || 'outros') as string;
+    const metadata = l.metadata as Record<string, unknown> || {};
+    const mod = (l.module || metadata.module || metadata.modulo || metadata.original_module || 'outros') as string;
 
     return {
-        id: ledgerTx.id,
-        transaction_date: (ledgerTx.metadata?.transaction_date as string) || ledgerTx.created_at,
+        id: l.id,
+        transaction_date: (metadata.transaction_date as string) || l.created_at,
         module: mod as any,
-        amount: ledgerTx.amount_cents / 100,
+        amount: l.amount_cents / 100,
         direction,
-        description: ledgerTx.description,
-        notes: (ledgerTx.metadata?.notes as string) || null,
+        description: l.description,
+        notes: (metadata.notes as string) || null,
         status: 'posted',
-        ledger_status: (ledgerTx as any).status,
-        created_by: ledgerTx.created_by,
-        created_at: ledgerTx.created_at,
-        creator_name: meta.profileNameMap.get(ledgerTx.created_by) || "Sistema",
+        ledger_status: l.status || (l as any).status,
+        created_by: l.created_by,
+        created_at: l.created_at,
+        creator_name: meta.profileNameMap.get(l.created_by) || "Sistema",
         source_account_name: displaySourceName,
         destination_account_name: displayDestName,
-        merchant_name: resolveMerchantName(ledgerTx.metadata?.merchant_id as string),
+        merchant_name: resolveMerchantName(metadata.merchant_id as string),
         source_account_id: null,
         destination_account_id: null,
-        merchant_id: (ledgerTx.metadata?.merchant_id as string) || null,
-        entity_id: (ledgerTx as any).entity_id || (ledgerTx.metadata?.entity_id as string) || null,
-        payment_method: (ledgerTx as any).payment_method || (ledgerTx.metadata?.payment_method as string) || null,
-        shift: (ledgerTx.metadata?.shift as string) || (ledgerTx.metadata?.turno as string) || null,
+        merchant_id: (metadata.merchant_id as string) || null,
+        entity_id: l.entity_id || (metadata.entity_id as string) || null,
+        payment_method: l.payment_method || (metadata.payment_method as string) || null,
+        shift: (metadata.shift as string) || (metadata.turno as string) || null,
         origin_fund: null,
         parent_transaction_id: null
     } as TransactionWithCreator;

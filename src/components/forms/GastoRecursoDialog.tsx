@@ -49,7 +49,7 @@ interface GastoRecursoDialogProps {
     };
     entities: Entity[];
     accounts: Account[];
-    merchants: { id: string; name: string }[];
+    merchants: { id: string; name: string; active?: boolean }[];
     onSubmit: () => Promise<boolean>;
     isLoading: boolean;
 }
@@ -205,7 +205,7 @@ export function GastoRecursoDialog({
                                 <SelectValue placeholder="Selecione o estabelecimento" />
                             </SelectTrigger>
                             <SelectContent>
-                                {merchants.filter(m => (m as any).active !== false).map(m => (
+                                {merchants.filter(m => m.active !== false).map(m => (
                                     <SelectItem key={m.id} value={m.id}>
                                         {m.name}
                                     </SelectItem>

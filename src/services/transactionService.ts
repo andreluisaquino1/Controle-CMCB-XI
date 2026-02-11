@@ -34,10 +34,10 @@ export const transactionService = {
             description: input.description ?? null,
             reference_id: input.reference_id ?? null,
             status: input.status || "validated",
-            module: (input.metadata as any)?.module ?? (input.metadata as any)?.modulo ?? null,
-            entity_id: (input.metadata as any)?.entity_id ?? null,
-            payment_method: (input.metadata as any)?.payment_method ?? null,
-            metadata: (input.metadata as any) ?? {},
+            module: (input.metadata?.module as string) ?? (input.metadata?.modulo as string) ?? null,
+            entity_id: (input.metadata?.entity_id as string) ?? null,
+            payment_method: (input.metadata?.payment_method as string) ?? null,
+            metadata: input.metadata ?? {},
         });
 
         if (error) {
@@ -74,7 +74,7 @@ export const transactionService = {
      */
     async checkExistingMonthlyFee(date: string, turno: string, method: "cash" | "pix") {
         const module = method === "cash" ? "mensalidade" : "mensalidade_pix";
-        return await (extendedSupabase as any)
+        return await extendedSupabase
             .from("ledger_transactions")
             .select("id")
             .eq("module", module)

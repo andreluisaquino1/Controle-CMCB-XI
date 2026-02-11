@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockQueryResult } from "../test-utils";
 import { render, screen } from "@testing-library/react";
 import RecursosPage from "@/pages/RecursosPage";
 import React from "react";
@@ -74,30 +75,29 @@ describe("RecursosPage integration", () => {
         vi.clearAllMocks();
 
         // Setup default mocks
-        (useEntitiesWithAccounts as any).mockReturnValue({
-            data: {
-                entities: [
-                    { id: "ent-ue", name: "UE Test", type: "ue" },
-                    { id: "ent-cx", name: "CX Test", type: "cx" }
-                ],
-                accounts: [
-                    { id: "acc-pdde", name: "PDDE", balance: 5000, entity_id: "ent-ue", active: true },
-                    { id: "acc-pnae", name: "PNAE", balance: 3000, entity_id: "ent-cx", active: true }
-                ]
-            },
-            isLoading: false,
-            refetch: vi.fn()
-        });
+        vi.mocked(useEntitiesWithAccounts).mockReturnValue(createMockQueryResult({
+            entities: [
+                { id: "ent-ue", name: "UE Test", type: "ue", cnpj: "000" },
+                { id: "ent-cx", name: "CX Test", type: "cx", cnpj: "000" }
+            ],
+            accounts: [
+                { id: "acc-pdde", name: "PDDE", balance: 5000, entity_id: "ent-ue", active: true, type: "bank", agency: "0001", bank: "BB", account_number: "111" },
+                { id: "acc-pnae", name: "PNAE", balance: 3000, entity_id: "ent-cx", active: true, type: "bank", agency: "0001", bank: "BB", account_number: "222" }
+            ]
+        }));
 
-        (useMerchants as any).mockReturnValue({
-            data: [],
-            isLoading: false
-        });
+        vi.mocked(useMerchants).mockReturnValue(createMockQueryResult([]));
 
-        (useRecursosTransactions as any).mockReturnValue({
-            data: [{ id: "t1", amount: 200, description: "Recurso Teste", created_at: new Date().toISOString() }],
-            isLoading: false
-        });
+        vi.mocked(useRecursosTransactions).mockReturnValue(createMockQueryResult([{
+            id: "t1", amount: 200, description: "Recurso Teste", created_at: new Date().toISOString(),
+            creator_name: "User", source_account_name: "Source", destination_account_name: "Dest",
+            merchant_name: "Merch", payment_method: "cash", shift: "matutino", created_by: "user-id",
+            transaction_date: "2024-01-01", type: "income", status: "completed",
+            account_id: "acc-1", entity_id: "ent-ue", category_id: "cat-1",
+            module: "financeiro", direction: "in", notes: "", source_account_id: "acc-source",
+            destination_account_id: "acc-dest", merchant_id: "merch-1", origin_fund: "fund",
+            parent_transaction_id: null
+        }]));
     });
 
     it("should render page header and entity columns", async () => {

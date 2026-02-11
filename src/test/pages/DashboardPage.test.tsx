@@ -41,7 +41,7 @@ vi.mock("@/components/DashboardLayout", () => ({
 }));
 
 vi.mock("@/components/ActionCard", () => ({
-    ActionCard: ({ title, onClick }: any) => <div onClick={onClick} data-testid="action-card">{title}</div>
+    ActionCard: ({ title, onClick }: { title: string; onClick: () => void }) => <div onClick={onClick} data-testid="action-card">{title}</div>
 }));
 
 // Mock Dialogs
@@ -63,18 +63,34 @@ describe("DashboardPage integration", () => {
         vi.clearAllMocks();
 
         // Setup default mocks
-        (useDashboardData as any).mockReturnValue({
+        vi.mocked(useDashboardData).mockReturnValue({
             data: {
                 especieBalance: 1000,
                 pixBalance: 2000,
                 contaDigitalBalance: 3000,
                 cofreBalance: 500,
                 merchantBalances: [
-                    { id: "m1", name: "Merchant A", balance: 150 }
+                    { id: "m1", name: "Merchant A", balance: 150, mode: "active" }
                 ],
                 resourceBalances: {
-                    UE: [{ id: "ue1", name: "UE Acc 1", balance: 10000 }],
-                    CX: [{ id: "cx1", name: "CX Acc 1", balance: 5000 }]
+                    UE: [{
+                        id: "ue1", name: "UE Acc 1", balance: 10000,
+                        type: "bank",
+                        entity_id: "e1",
+                        active: true,
+                        agency: "",
+                        bank: "",
+                        account_number: ""
+                    }],
+                    CX: [{
+                        id: "cx1", name: "CX Acc 1", balance: 5000,
+                        type: "bank",
+                        entity_id: "e1",
+                        active: true,
+                        agency: "",
+                        bank: "",
+                        account_number: ""
+                    }]
                 }
             },
             isLoading: false,
@@ -82,27 +98,61 @@ describe("DashboardPage integration", () => {
             refetch: vi.fn()
         });
 
-        (useAssociacaoAccounts as any).mockReturnValue({
+        vi.mocked(useAssociacaoAccounts).mockReturnValue({
             data: [],
-            isLoading: false
-        });
+            isLoading: false,
+            error: null,
+            isError: false,
+            isSuccess: true,
+            refetch: vi.fn()
+        } as any);
 
-        (useEntitiesWithAccounts as any).mockReturnValue({
+        vi.mocked(useEntitiesWithAccounts).mockReturnValue({
             data: { entities: [], accounts: [] },
+            isLoading: false,
+            error: null
+        });
+
+        vi.mocked(useAssociacaoActions).mockReturnValue({
+            state: { mensalidade: {}, gasto: {}, mover: {}, ajuste: {}, receita: {} } as any,
+            setters: {
+                mensalidade: {},
+                gasto: {},
+                mover: {},
+                ajuste: {},
+                receita: {}
+            } as any,
+            handlers: {
+                resetMensalidade: vi.fn(),
+                resetGasto: vi.fn(),
+                handleMensalidadeSubmit: vi.fn(),
+                handleGastoSubmit: vi.fn(),
+                handleMovimentarSubmit: vi.fn(),
+                handleAjusteSubmit: vi.fn(),
+                resetMov: vi.fn(),
+                resetAjuste: vi.fn()
+            },
             isLoading: false
         });
 
-        (useAssociacaoActions as any).mockReturnValue({
-            state: { mensalidade: {}, gasto: {} },
-            setters: {},
-            handlers: { resetMensalidade: vi.fn(), resetGasto: vi.fn() },
-            isLoading: false
-        });
-
-        (useSaldosActions as any).mockReturnValue({
-            state: { aporte: {}, gasto: {} },
-            setters: {},
-            handlers: { resetGasto: vi.fn() },
+        vi.mocked(useSaldosActions).mockReturnValue({
+            state: { aporte: {}, gasto: {}, consumo: {}, mover: {}, ajuste: {} } as any,
+            setters: {
+                aporte: {},
+                gasto: {},
+                consumo: {},
+                mover: {},
+                ajuste: {}
+            } as any,
+            handlers: {
+                resetGasto: vi.fn(),
+                handleAporteSubmit: vi.fn(),
+                handleAddMerchant: vi.fn(),
+                handleEditMerchant: vi.fn(),
+                handleDeleteMerchant: vi.fn(),
+                handleActivateMerchant: vi.fn(),
+                resetAporte: vi.fn()
+            },
             isLoading: false
         });
     });
