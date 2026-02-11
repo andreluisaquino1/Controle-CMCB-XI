@@ -4,13 +4,21 @@ import { graduationService } from "@/services/graduationService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, Calendar, ArrowRight, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function FormaturasPage() {
+    const navigate = useNavigate();
     const { data: graduations, isLoading, error } = useQuery({
         queryKey: ["graduations"],
         queryFn: () => graduationService.getGraduations(),
     });
+
+    const handleNavigate = (id: string, name: string) => {
+        console.log("Clicou em:", name, id);
+        // Diagnostic alert to confirm click reaches JS
+        // alert("Navegando para: " + name); 
+        navigate(`/formaturas/${id}`);
+    };
 
     if (isLoading) {
         return (
@@ -42,15 +50,20 @@ export default function FormaturasPage() {
 
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {graduations?.map((grad) => (
-                        <Card key={grad.id} className="group relative overflow-hidden border-none bg-card hover:shadow-xl transition-all duration-300 glass-card">
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <CardHeader className="pb-2">
+                        <Card
+                            key={grad.id}
+                            className="group relative overflow-hidden border-none bg-card hover:shadow-xl transition-all duration-300 glass-card cursor-pointer hover:ring-2 hover:ring-primary/20"
+                            onClick={() => handleNavigate(grad.id, grad.name)}
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                            <CardHeader className="pb-2 relative z-10">
                                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
                                     <GraduationCap className="h-6 w-6" />
                                 </div>
                                 <CardTitle className="text-xl font-bold">{grad.name}</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                            <CardContent className="space-y-4 relative z-10">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <Calendar className="h-4 w-4" />
                                     Ano de Referência: {grad.year}
@@ -58,12 +71,17 @@ export default function FormaturasPage() {
                                 <p className="text-sm text-muted-foreground leading-relaxed">
                                     Gerenciamento independente de turmas, carnês, arrecadações e despesas para a formatura de {grad.year}.
                                 </p>
-                                <Link to={`/formaturas/${grad.id}`}>
-                                    <Button className="w-full group/btn" variant="outline">
-                                        Gerenciar
-                                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
-                                    </Button>
-                                </Link>
+                                <Button
+                                    className="w-full group/btn"
+                                    variant="outline"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleNavigate(grad.id, grad.name);
+                                    }}
+                                >
+                                    Gerenciar
+                                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                                </Button>
                             </CardContent>
                         </Card>
                     ))}

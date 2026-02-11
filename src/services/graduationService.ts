@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { format, addMonths, setDate } from "date-fns";
+import ExcelJS from "exceljs";
 
 export type GraduationInstallmentStatus = 'EM_ABERTO' | 'PAGO' | 'ISENTO' | 'CANCELADO';
 export type GraduationExtraType = 'RIFA' | 'BINGO' | 'ALIMENTOS' | 'EVENTO' | 'DOACAO' | 'OUTROS';
@@ -153,15 +154,23 @@ export const graduationService = {
     },
 
     async generateCarnetForStudent(studentId: string): Promise<void> {
-        // Find student and graduation
+        // 1. Find student
         const { data: student, error: studentError } = await supabase
             .from("graduation_class_students" as any)
-            .select("*, graduation_classes(graduation_id)")
+            .select("class_id")
             .eq("id", studentId)
             .single();
         if (studentError) throw studentError;
 
-        const graduationId = (student as any).graduation_classes.graduation_id;
+        // 2. Find graduation from class
+        const { data: classData, error: classError } = await supabase
+            .from("graduation_classes" as any)
+            .select("graduation_id")
+            .eq("id", (student as any).class_id)
+            .single();
+        if (classError) throw classError;
+
+        const graduationId = (classData as any).graduation_id;
         const config = await this.getCurrentCarnetConfig(graduationId);
         if (!config) throw new Error("Configuração de carnê não encontrada para esta formatura.");
 
@@ -249,12 +258,38 @@ export const graduationService = {
 
     // Consolidated
     async getFinancialSummary(graduationId: string): Promise<GraduationFinancialSummary> {
-        // Total Paid Installments
+        // 1. Get all class IDs for this graduation
+        const { data: classes, error: classesError } = await supabase
+            .from("graduation_classes" as any)
+            .select("id")
+            .eq("graduation_id", graduationId);
+
+        if (classesError) throw classesError;
+        const classIds = (classes as any[] || []).map(c => c.id);
+
+        if (classIds.length === 0) {
+            return { totalPaid: 0, totalExtras: 0, totalExpenses: 0, totalTransfers: 0, balanceInHand: 0 };
+        }
+
+        // 2. Get all student IDs for these classes
+        const { data: students, error: studentsError } = await supabase
+            .from("graduation_class_students" as any)
+            .select("id")
+            .in("class_id", classIds);
+
+        if (studentsError) throw studentsError;
+        const studentIds = (students as any[] || []).map(s => s.id);
+
+        if (studentIds.length === 0) {
+            return { totalPaid: 0, totalExtras: 0, totalExpenses: 0, totalTransfers: 0, balanceInHand: 0 };
+        }
+
+        // 3. Get total paid installments for these students
         const { data: installments, error: installmentsError } = await supabase
             .from("graduation_installments" as any)
-            .select("value, graduation_class_students!inner(graduation_classes!inner(graduation_id))")
+            .select("value")
             .eq("status", "PAGO")
-            .eq("graduation_class_students.graduation_classes.graduation_id", graduationId);
+            .in("student_id", studentIds);
 
         if (installmentsError) throw installmentsError;
         const totalPaid = (installments as any[] || []).reduce((acc, curr) => acc + Number(curr.value), 0);
@@ -296,5 +331,42 @@ export const graduationService = {
             totalTransfers,
             balanceInHand
         };
+    },
+
+    async importStudentsFromExcel(classId: string, file: File): Promise<{ count: number }> {
+        const workbook = new ExcelJS.Workbook();
+        const arrayBuffer = await file.arrayBuffer();
+        await workbook.xlsx.load(arrayBuffer);
+
+        const worksheet = workbook.getWorksheet(1);
+        const names: string[] = [];
+
+        if (worksheet) {
+            worksheet.eachRow((row, rowNumber) => {
+                // Skip header if it looks like one (optional, but let's assume names are in column 1)
+                const value = row.getCell(1).value;
+                if (value && typeof value === 'string' && rowNumber > 1) {
+                    names.push(value.trim());
+                } else if (value && typeof value === 'string' && rowNumber === 1 && !value.toLowerCase().includes('nome')) {
+                    // If row 1 is not a header "Nome", include it
+                    names.push(value.trim());
+                }
+            });
+        }
+
+        if (names.length === 0) throw new Error("Nenhum nome de aluno encontrado na primeira coluna do Excel.");
+
+        let count = 0;
+        for (const name of names) {
+            try {
+                const student = await this.createStudent({ class_id: classId, name });
+                await this.generateCarnetForStudent(student.id);
+                count++;
+            } catch (err) {
+                console.error(`Erro ao importar ${name}:`, err);
+            }
+        }
+
+        return { count };
     }
 };

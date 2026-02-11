@@ -18,7 +18,8 @@ import {
     XCircle,
     Clock,
     CircleOff,
-    Table as TableIcon
+    Table as TableIcon,
+    Upload
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -58,11 +59,12 @@ export default function ClassDetailPage() {
     const { classId } = useParams<{ classId: string }>();
     const queryClient = useQueryClient();
     const [openAddStudent, setOpenAddStudent] = useState(false);
+    const [openImportExcel, setOpenImportExcel] = useState(false);
     const [selectedStudentForPayment, setSelectedStudentForPayment] = useState<GraduationStudent | null>(null);
     const [selectedInstallment, setSelectedInstallment] = useState<GraduationInstallment | null>(null);
 
     // Queries
-    const { data: graduations } = useQuery({
+    const { data: graduations, isLoading: loadingGrads } = useQuery({
         queryKey: ["graduations"],
         queryFn: () => graduationService.getGraduations(),
     });
@@ -131,11 +133,24 @@ export default function ClassDetailPage() {
         },
     });
 
-    if (loadingStudents) {
+    const mutationImportExcel = useMutation({
+        mutationFn: (file: File) => graduationService.importStudentsFromExcel(classId!, file),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["class-students", classId] });
+            toast.success(`${data.count} alunos importados com sucesso!`);
+            setOpenImportExcel(false);
+        },
+        onError: (error: any) => toast.error(`Erro na importação: ${error.message}`),
+    });
+
+    if (loadingGrads || loadingStudents) {
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center min-h-[60vh]">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <div className="flex flex-col items-center gap-4">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm text-muted-foreground animate-pulse">Carregando alunos e parcelas...</p>
+                    </div>
                 </div>
             </DashboardLayout>
         );
@@ -176,6 +191,9 @@ export default function ClassDetailPage() {
                         <div className="flex gap-2">
                             <Button onClick={() => setOpenAddStudent(true)} className="gap-2">
                                 <UserPlus className="h-4 w-4" /> Novo Aluno
+                            </Button>
+                            <Button onClick={() => setOpenImportExcel(true)} variant="outline" className="gap-2 border-primary/20 hover:bg-primary/5">
+                                <Upload className="h-4 w-4" /> Importar Excel
                             </Button>
                             <Button onClick={handleExportTreasurer} variant="outline" className="gap-2 border-primary/20 hover:bg-primary/5">
                                 <Download className="h-4 w-4" /> Controle PDF
@@ -316,6 +334,14 @@ export default function ClassDetailPage() {
                     isLoading={mutationCreateStudent.isPending}
                 />
 
+                {/* Import Excel Dialog */}
+                <ImportExcelDialog
+                    open={openImportExcel}
+                    onOpenChange={setOpenImportExcel}
+                    onImport={(file) => mutationImportExcel.mutate(file)}
+                    isLoading={mutationImportExcel.isPending}
+                />
+
                 {/* Payment Detail Dialog */}
                 {selectedInstallment && (
                     <PaymentDialog
@@ -425,6 +451,43 @@ function PaymentDialog({ open, onOpenChange, studentName, installment, onSubmit,
                         </DialogFooter>
                     </form>
                 </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function ImportExcelDialog({ open, onOpenChange, onImport, isLoading }: any) {
+    const [file, setFile] = useState<File | null>(null);
+
+    const handleS = (e: any) => {
+        e.preventDefault();
+        if (file) onImport(file);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Importar Alunos via Excel</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleS} className="space-y-4 pt-4">
+                    <div className="grid gap-2">
+                        <Label>Selecione o arquivo (.xlsx)</Label>
+                        <Input
+                            type="file"
+                            accept=".xlsx"
+                            onChange={(e) => setFile(e.target.files?.[0] || null)}
+                            required
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                            O arquivo deve conter os nomes dos alunos na **primeira coluna**.
+                            O sistema irá pular a primeira linha se ela contiver "Nome".
+                        </p>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading || !file}>
+                        {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "Iniciar Importação"}
+                    </Button>
+                </form>
             </DialogContent>
         </Dialog>
     );

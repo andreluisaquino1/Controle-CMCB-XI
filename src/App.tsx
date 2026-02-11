@@ -19,9 +19,9 @@ const PerfilPage = lazy(() => import("./pages/PerfilPage"));
 const UsuariosPage = lazy(() => import("./pages/UsuariosPage"));
 const LogPage = lazy(() => import("./pages/LogPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
-const FormaturasPage = lazy(() => import("./pages/graduations/FormaturasPage"));
-const GraduationDetailPage = lazy(() => import("./pages/graduations/GraduationDetailPage"));
-const ClassDetailPage = lazy(() => import("./pages/graduations/ClassDetailPage"));
+const FormaturasPage = lazy(() => import("@/pages/graduations/FormaturasPage"));
+const GraduationDetailPage = lazy(() => import("@/pages/graduations/GraduationDetailPage"));
+const ClassDetailPage = lazy(() => import("@/pages/graduations/ClassDetailPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 

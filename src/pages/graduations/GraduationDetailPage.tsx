@@ -48,7 +48,7 @@ export default function GraduationDetailPage() {
     const [openConfig, setOpenConfig] = useState(false);
 
     // Queries
-    const { data: graduations } = useQuery({
+    const { data: graduations, isLoading: loadingGrads } = useQuery({
         queryKey: ["graduations"],
         queryFn: () => graduationService.getGraduations(),
     });
@@ -114,11 +114,14 @@ export default function GraduationDetailPage() {
         onError: (error: any) => toast.error(`Erro: ${error.message}`),
     });
 
-    if (loadingClasses || loadingSummary) {
+    if (loadingGrads || loadingClasses || loadingSummary) {
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center min-h-[60vh]">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <div className="flex flex-col items-center gap-4">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm text-muted-foreground animate-pulse">Carregando dados da formatura...</p>
+                    </div>
                 </div>
             </DashboardLayout>
         );
@@ -128,9 +131,11 @@ export default function GraduationDetailPage() {
         <DashboardLayout>
             <div className="space-y-6 animate-fade-in">
                 <header className="flex flex-col gap-4">
-                    <Link to="/formaturas" className="flex items-center text-sm text-muted-foreground hover:text-primary transition-colors">
-                        <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
-                    </Link>
+                    <Button asChild variant="ghost" className="w-fit p-0 h-auto hover:bg-transparent text-muted-foreground hover:text-primary transition-colors">
+                        <Link to="/formaturas" className="flex items-center text-sm">
+                            <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
+                        </Link>
+                    </Button>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <h1 className="text-3xl font-bold text-foreground">{graduation?.name}</h1>
@@ -231,19 +236,21 @@ export default function GraduationDetailPage() {
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         {classes?.map((cls) => (
-                            <Link key={cls.id} to={`/formaturas/turma/${cls.id}`}>
-                                <Card className="hover:border-primary/50 transition-colors group cursor-pointer overflow-hidden border-none glass-card bg-card/40">
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-lg flex justify-between items-center">
-                                            {cls.name}
-                                            <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <p className="text-sm text-muted-foreground">Gerenciar alunos e carnês desta turma.</p>
-                                    </CardContent>
-                                </Card>
-                            </Link>
+                            <Button asChild key={cls.id} variant="ghost" className="h-auto p-0 hover:bg-transparent">
+                                <Link to={`/formaturas/turma/${cls.id}`} className="w-full text-left">
+                                    <Card className="w-full hover:border-primary/50 transition-colors group cursor-pointer overflow-hidden border-none glass-card bg-card/40">
+                                        <CardHeader className="pb-2">
+                                            <CardTitle className="text-lg flex justify-between items-center">
+                                                {cls.name}
+                                                <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <p className="text-sm text-muted-foreground">Gerenciar alunos e carnês desta turma.</p>
+                                        </CardContent>
+                                    </Card>
+                                </Link>
+                            </Button>
                         ))}
                     </div>
                 </section>
