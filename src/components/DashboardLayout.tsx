@@ -17,6 +17,7 @@ import {
   Settings,
   History,
   GraduationCap,
+  Banknote,
 } from "lucide-react";
 import logo from "@/assets/logo-cmcb.png";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ const navItems: NavItem[] = [
   { label: "Recursos", href: "/recursos", icon: CreditCard },
   { label: "Relatórios", href: "/relatorios", icon: Download },
   { label: "Formaturas", href: "/formaturas", icon: GraduationCap },
+  { label: "Contador de Dinheiro", href: "/contador", icon: Banknote },
   { label: "Usuários", href: "/usuarios", icon: Users },
   { label: "Logs", href: "/logs", icon: History },
   { label: "Perfil", href: "/perfil", icon: Settings },
