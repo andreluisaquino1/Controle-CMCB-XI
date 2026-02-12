@@ -84,7 +84,8 @@ export const graduationModuleService = {
 
     async listGraduations(): Promise<Graduation[]> {
         const { data, error } = await supabase
-            .from('graduations')
+            .from('graduations' as any)
+
             .select('*')
             .eq('active', true)
             .order('reference_year', { ascending: false });
@@ -95,7 +96,8 @@ export const graduationModuleService = {
 
     async getGraduationBySlug(slug: string): Promise<Graduation> {
         const { data, error } = await supabase
-            .from('graduations')
+            .from('graduations' as any)
+
             .select('*')
             .eq('slug', slug)
             .single();
@@ -109,7 +111,8 @@ export const graduationModuleService = {
         const slug = `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}-${reference_year}`.replace(/^-+|-+$/g, '');
 
         const { data, error } = await supabase
-            .from('graduations')
+            .from('graduations' as any)
+
             .insert({ name, reference_year, active: true, slug })
             .select()
             .single();
@@ -120,7 +123,8 @@ export const graduationModuleService = {
 
     async updateGraduation(id: string, updates: Partial<Graduation>): Promise<void> {
         const { error } = await supabase
-            .from('graduations')
+            .from('graduations' as any)
+
             .update(updates)
             .eq('id', id);
         if (error) throw error;
@@ -128,7 +132,8 @@ export const graduationModuleService = {
 
     async softDeleteGraduation(id: string): Promise<void> {
         const { error } = await supabase
-            .from('graduations')
+            .from('graduations' as any)
+
             .update({ active: false })
             .eq('id', id);
         if (error) throw error;
@@ -138,7 +143,8 @@ export const graduationModuleService = {
 
     async listClasses(graduationId: string): Promise<GraduationClass[]> {
         const { data, error } = await supabase
-            .from('graduation_classes')
+            .from('graduation_classes' as any)
+
             .select('*')
             .eq('graduation_id', graduationId)
             .eq('active', true)
@@ -150,7 +156,8 @@ export const graduationModuleService = {
 
     async createClass(graduationId: string, name: string): Promise<GraduationClass> {
         const { data, error } = await supabase
-            .from('graduation_classes')
+            .from('graduation_classes' as any)
+
             .insert({ graduation_id: graduationId, name, active: true })
             .select()
             .single();
@@ -240,7 +247,9 @@ export const graduationModuleService = {
             .limit(1)
             .maybeSingle();
 
-        const newVersion = (maxVer?.version || 0) + 1;
+        const newVersion = ((maxVer as any)?.version || 0) + 1;
+
+
 
         await supabase
             .from('graduation_configs' as any)

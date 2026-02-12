@@ -19,6 +19,8 @@ import { Loader2, Plus, ChevronLeft, User, FileText, BadgeDollarSign, Wallet } f
 import { cn } from "@/lib/utils";
 import { StudentFinancialDialog } from "./components/StudentFinancialDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+
 
 export default function GraduationClassDetailPage() {
     const { slug, classSlug } = useParams();
@@ -50,6 +52,13 @@ export default function GraduationClassDetailPage() {
     const { data: students, isLoading: loadingStudents } = useQuery({
         queryKey: ["graduation-students", classId],
         queryFn: () => graduationModuleService.listStudents(classId!),
+        enabled: !!classId
+    });
+
+    // 4. Get Progress
+    const { data: progress } = useQuery({
+        queryKey: ["graduation-students-progress", classId],
+        queryFn: () => graduationModuleService.getStudentsProgress(classId!),
         enabled: !!classId
     });
 
@@ -175,13 +184,13 @@ export default function GraduationClassDetailPage() {
                                                                 )}>
                                                                     {studentProgress.paid} / {studentProgress.total} pg
                                                                 </span>
-                                                                <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
-                                                                    <div
-                                                                        className={cn("h-full transition-all", isComplete ? "bg-emerald-500" : "bg-amber-500")}
-                                                                        style={{ width: `${(studentProgress.paid / studentProgress.total) * 100}%` }}
-                                                                    />
-                                                                </div>
+                                                                <Progress
+                                                                    value={(studentProgress.paid / studentProgress.total) * 100}
+                                                                    className={cn("h-1.5 w-24", isComplete ? "bg-emerald-100" : "bg-amber-100")}
+                                                                    indicatorClassName={isComplete ? "bg-emerald-500" : "bg-amber-500"}
+                                                                />
                                                             </div>
+
                                                         ) : (
                                                             <span className="text-xs text-muted-foreground italic">Sem parcelas</span>
                                                         )}
@@ -205,6 +214,7 @@ export default function GraduationClassDetailPage() {
                         )}
                     </CardContent>
                 </Card>
+
 
                 {/* Dialogs */}
                 <StudentFinancialDialog
