@@ -126,10 +126,11 @@ export function GastoRecursoDialog({
                     metadata: {
                         modulo: "pix_direto_uecx",
                         transaction_date: item.date,
-                        merchant_id: state.merchantId,
+                        merchant_id: state.merchantId === "avulso" ? null : state.merchantId,
                         account_id: state.accountId,
                         notes: state.notes,
-                        entity_id: state.entityId
+                        entity_id: state.entityId,
+                        is_avulso: state.merchantId === "avulso"
                     }
                 });
             }
@@ -205,6 +206,7 @@ export function GastoRecursoDialog({
                                 <SelectValue placeholder="Selecione o estabelecimento" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value="avulso">Compra Avulsa / Diversos</SelectItem>
                                 {merchants.filter(m => m.active !== false).map(m => (
                                     <SelectItem key={m.id} value={m.id}>
                                         {m.name}

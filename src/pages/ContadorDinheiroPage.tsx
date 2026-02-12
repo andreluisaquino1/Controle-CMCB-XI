@@ -14,17 +14,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { graduationModuleService } from "@/services/graduationModuleService";
-import { ACCOUNT_NAMES } from "@/lib/constants";
 
 const NOTES = [200, 100, 50, 20, 10, 5, 2];
 const COINS = [1, 0.50, 0.25, 0.10, 0.05];
 
+import { useDashboardData } from "@/hooks/use-dashboard-data";
+
+const STORAGE_KEY = "contador_dinheiro_counts";
+
 export default function ContadorDinheiroPage() {
     const { isSecretaria } = useAuth();
-    const [counts, setCounts] = useState<Record<string, number>>({});
+    const [counts, setCounts] = useState<Record<string, number>>(() => {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : {};
+    });
     const [sourceType, setSourceType] = useState<string>("associacao");
     const [selectedGraduationId, setSelectedGraduationId] = useState<string>("");
     const [systemBalance, setSystemBalance] = useState<number>(0);
+
+    const { data: dashboardData } = useDashboardData();
+
+    // Persist counts to localStorage
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(counts));
+    }, [counts]);
 
     const { data: graduations } = useQuery({
         queryKey: ["graduations-list"],
@@ -56,6 +69,7 @@ export default function ContadorDinheiroPage() {
 
     const resetCounts = () => {
         setCounts({});
+        localStorage.removeItem(STORAGE_KEY);
         toast.info("Contagem reiniciada.");
     };
 
@@ -67,20 +81,8 @@ export default function ContadorDinheiroPage() {
                 let balance = 0;
 
                 if (sourceType === "associacao") {
-                    // Busca conta Espécie da Associação explicitamente pelo nome constante
-                    const { data: especieAccount } = await supabase
-                        .from("accounts")
-                        .select("balance")
-                        .eq("name", ACCOUNT_NAMES.ESPECIE)
-                        .maybeSingle();
-
-                    if (especieAccount) {
-                        balance = Number(especieAccount.balance);
-                    } else {
-                        // Fallback: try finding by type 'cash' and entity 'associacao' if constant name check fails
-                        // Note: This requires knowing the entity ID for association, which we might not have handy without another query.
-                        // Sticking to name check is safer if constants match DB.
-                    }
+                    // Busca saldo real do Ledger via dashboardData.especieBalance
+                    balance = dashboardData?.especieBalance ?? 0;
                 } else if (selectedGraduationId) {
                     // Usa o serviço para buscar saldo calculado das formaturas
                     const summary = await graduationModuleService.getFinancialSummary(selectedGraduationId);
@@ -100,7 +102,7 @@ export default function ContadorDinheiroPage() {
         };
 
         fetchBalance();
-    }, [sourceType, selectedGraduationId, isSecretaria]);
+    }, [sourceType, selectedGraduationId, isSecretaria, dashboardData]);
 
     return (
         <DashboardLayout>

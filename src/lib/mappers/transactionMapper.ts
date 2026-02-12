@@ -71,10 +71,13 @@ export const mapLedgerTransaction = (
     let displaySourceName = resolveAccountName(l.source_account);
     let displayDestName = resolveAccountName(l.destination_account);
 
-    if (isSourceExternal && displayDestName) {
-        displaySourceName = displayDestName;
-    } else if (isDestExternal && displaySourceName) {
+    // Se uma das contas for externa, queremos mostrar o nome da conta interna na coluna "Conta"
+    if (isSourceExternal && l.destination_account) {
+        displaySourceName = resolveAccountName(l.destination_account);
         displayDestName = displaySourceName;
+    } else if (isDestExternal && l.source_account) {
+        displayDestName = resolveAccountName(l.source_account);
+        displaySourceName = displayDestName;
     }
 
     const metadata = l.metadata as Record<string, unknown> || {};

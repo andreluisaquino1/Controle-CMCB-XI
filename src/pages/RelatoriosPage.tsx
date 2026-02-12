@@ -60,8 +60,8 @@ export default function RelatoriosPage() {
   // Fetch transactions
   const { data: transactions, isLoading: transactionsLoading } = useAllTransactionsWithCreator(startDate, endDate);
 
-  // Reporting Hook - NOW PASSING showResources
-  const reports = useReports(startDate, endDate, dashboardData, reportData, transactions, showResources);
+  // Reporting Hook - NOW PASSING showResources AND associacaoId
+  const reports = useReports(startDate, endDate, dashboardData, reportData, transactions, showResources, associacaoId);
 
   const filteredTransactions = (transactions || []).filter((t) => {
     const matchesFilter = filter === "all" || t.module === filter;

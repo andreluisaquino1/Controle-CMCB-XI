@@ -11,32 +11,34 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, ChevronLeft, User, FileText, BadgeDollarSign, Wallet } from "lucide-react";
+import { Loader2, Plus, ChevronLeft, User, FileText, BadgeDollarSign, Wallet, Download, UserX, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StudentFinancialDialog } from "./components/StudentFinancialDialog";
+import { ChargeBatchModal } from "./components/ChargeBatchModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { generateCarnetsByInstallmentPDF, generateTreasurerControlPDF } from "@/lib/graduationPdf";
 
 
 export default function GraduationClassDetailPage() {
     const { slug, classSlug } = useParams();
     const queryClient = useQueryClient();
     const [openStudent, setOpenStudent] = useState(false);
+    const [openChargeBatch, setOpenChargeBatch] = useState(false);
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [importing, setImporting] = useState(false);
 
-    // 1. Get Graduation (for context)
+    // 1. Get Graduation
     const { data: graduation } = useQuery({
         queryKey: ["graduation-module", slug],
         queryFn: () => graduationModuleService.getGraduationBySlug(slug!),
         enabled: !!slug,
     });
-
-
 
     // 2. Get Class
     const { data: classData, isLoading: loadingClass } = useQuery({
@@ -64,30 +66,19 @@ export default function GraduationClassDetailPage() {
         enabled: !!classId
     });
 
+    // 5. Get Config
+    const { data: config } = useQuery({
+        queryKey: ["graduation-config", graduation?.id],
+        queryFn: () => graduationModuleService.getCurrentConfig(graduation!.id),
+        enabled: !!graduation?.id
+    });
+
     const mutationImport = useMutation({
         mutationFn: ({ classId, file }: { classId: string, file: File }) => graduationModuleService.importStudentsFromExcel(classId, file),
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ["graduation-students"] });
             queryClient.invalidateQueries({ queryKey: ["graduation-students-progress"] });
-
-            if (data.count > 0) {
-                let msg = `${data.count} alunos importados com sucesso!`;
-                if (data.installmentsCount > 0) {
-                    msg += `\n${data.installmentsCount} carnês gerados.`;
-                } else {
-                    msg += `\nNenhum carnê gerado (verifique se há configuração financeira vigente).`;
-                    toast.warning("Alunos importados, mas sem carnês. Configure o financeiro primeiro.", { duration: 5000 });
-                }
-
-                if (data.errors.length > 0) {
-                    msg += `\n${data.errors.length} erros encontrados.`;
-                }
-
-                toast.success(msg);
-            } else {
-                toast.warning("Nenhum aluno foi importado.");
-            }
-
+            if (data.count > 0) toast.success(`${data.count} alunos importados!`);
             setImporting(false);
         },
         onError: (err: any) => {
@@ -95,20 +86,6 @@ export default function GraduationClassDetailPage() {
             setImporting(false);
         }
     });
-
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file && classId) {
-            if (confirm(`Deseja importar alunos do arquivo "${file.name}"? Isso criará os alunos e gerará os carnês automaticamente.`)) {
-                setImporting(true);
-                mutationImport.mutate({ classId, file });
-            }
-            // Reset input
-            e.target.value = "";
-        }
-    };
-
-
 
     const mutationStudent = useMutation({
         mutationFn: (name: string) => graduationModuleService.createStudent(classId!, name),
@@ -120,19 +97,51 @@ export default function GraduationClassDetailPage() {
         onError: (err: any) => toast.error("Erro: " + err.message)
     });
 
-    const mutationGenerate = useMutation({
-        mutationFn: () => graduationModuleService.generateInstallmentsBatch(classId!),
+    const mutationInactivate = useMutation({
+        mutationFn: (id: string) => graduationModuleService.inactivateStudent(id),
         onSuccess: () => {
-            toast.success("Parcelas geradas com sucesso para todos os alunos!");
+            queryClient.invalidateQueries({ queryKey: ["graduation-students"] });
+            toast.success("Aluno inativado!");
         },
         onError: (err: any) => toast.error("Erro: " + err.message)
     });
 
-    const handleGenerateCarnets = () => {
-        if (confirm("Deseja gerar as parcelas para TODOS os alunos desta turma baseadas na configuração atual? Isso não duplicará parcelas já existentes.")) {
-            mutationGenerate.mutate();
-        }
-    }
+    const mutationGenerate = useMutation({
+        mutationFn: () => graduationModuleService.generateInstallmentsBatch(classId!),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["graduation-students-progress"] });
+            toast.success("Prestações geradas com sucesso!");
+        },
+        onError: (err: any) => toast.error("Erro: " + err.message)
+    });
+
+    const handleExportCarnets = () => {
+        if (!config || !students) return;
+        generateCarnetsByInstallmentPDF({
+            graduation: { name: graduation!.name, year: graduation!.year },
+            class: { name: classData!.name },
+            config: {
+                installment_value: config.installment_value,
+                installments_count: config.installments_count,
+                due_day: config.due_day
+            },
+            students: students.map(s => ({ id: s.id, full_name: s.full_name }))
+        });
+    };
+
+    const handleExportTreasurer = () => {
+        if (!config || !students) return;
+        generateTreasurerControlPDF({
+            graduation: { name: graduation!.name, year: graduation!.year },
+            class: { name: classData!.name },
+            config: {
+                installment_value: config.installment_value,
+                installments_count: config.installments_count,
+                due_day: config.due_day
+            },
+            students: students.map(s => ({ id: s.id, full_name: s.full_name }))
+        });
+    };
 
     if (loadingClass || !graduation) {
         return (
@@ -163,111 +172,146 @@ export default function GraduationClassDetailPage() {
                             <p className="text-muted-foreground">{graduation.name}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <Button onClick={handleGenerateCarnets} variant="outline" size="sm" className="gap-2">
-                                <FileText className="h-4 w-4" /> Gerar Carnês (Lote)
+                            <Button onClick={handleExportCarnets} variant="outline" size="sm" className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                                <Download className="h-4 w-4" /> Exportar Carnês (PDF)
                             </Button>
-                            <div className="relative">
-                                <input
-                                    type="file"
-                                    accept=".xlsx, .xls"
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    onChange={handleFileUpload}
-                                    disabled={importing}
-                                    aria-label="Importar Excel"
-                                />
-
-                                <Button variant="outline" size="sm" className="gap-2" disabled={importing}>
-                                    {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                                    Importar Excel
-                                </Button>
-                            </div>
-                            <Button onClick={() => setOpenStudent(true)} size="sm" className="gap-2">
-                                <Plus className="h-4 w-4" />
-                                Novo Aluno
+                            <Button onClick={handleExportTreasurer} variant="outline" size="sm" className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50">
+                                <Download className="h-4 w-4" /> Exportar Controle Tesoureiro
                             </Button>
                         </div>
-
                     </div>
                 </header>
 
-                {/* Students List */}
-                <Card className="glass-card border-none">
-                    <CardHeader>
-                        <CardTitle>Alunos</CardTitle>
-                        <CardDescription>Gerencie os alunos e seus pagamentos individuais.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {loadingStudents ? (
-                            <div className="py-8 flex justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
-                        ) : (
-                            <div className="relative w-full overflow-auto">
+                <Tabs defaultValue="students" className="space-y-4">
+                    <TabsList className="bg-muted/50 p-1">
+                        <TabsTrigger value="students" className="gap-2">
+                            <User className="h-4 w-4" /> Alunos
+                        </TabsTrigger>
+                        <TabsTrigger value="finance" className="gap-2">
+                            <BadgeDollarSign className="h-4 w-4" /> Controle Financeiro
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="students">
+                        <Card className="glass-card border-none">
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle>Alunos</CardTitle>
+                                    <CardDescription>Gerencie a listagem de alunos da turma.</CardDescription>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="relative">
+                                        <input
+                                            id="import-excel-input"
+                                            title="Importar alunos do Excel"
+                                            type="file"
+                                            accept=".xlsx, .xls"
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file && classId) mutationImport.mutate({ classId, file });
+                                                e.target.value = "";
+                                            }}
+                                            disabled={importing}
+                                        />
+                                        <Button variant="outline" size="sm" className="gap-2" disabled={importing}>
+                                            {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                                            Importar Excel
+                                        </Button>
+                                    </div>
+                                    <Button onClick={() => setOpenStudent(true)} size="sm" className="gap-2">
+                                        <Plus className="h-4 w-4" /> Novo Aluno
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead className="w-[50px]"></TableHead>
                                             <TableHead>Nome</TableHead>
                                             <TableHead>Status</TableHead>
-                                            <TableHead>Progresso Pagto.</TableHead>
                                             <TableHead className="text-right">Ações</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {students?.length === 0 && (
-                                            <TableRow>
-                                                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                                    Nenhum aluno cadastrado nesta turma.
+                                        {students?.map((student) => (
+                                            <TableRow key={student.id}>
+                                                <TableCell className="font-medium">{student.full_name}</TableCell>
+                                                <TableCell>
+                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                                        Ativo
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-muted-foreground hover:text-destructive"
+                                                        onClick={() => {
+                                                            if (confirm(`Deseja inativar o aluno ${student.full_name}?`)) {
+                                                                mutationInactivate.mutate(student.id);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <UserX className="h-4 w-4" />
+                                                    </Button>
                                                 </TableCell>
                                             </TableRow>
-                                        )}
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="finance">
+                        <Card className="glass-card border-none">
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle>Controle Financeiro</CardTitle>
+                                    <CardDescription>Acompanhe mensalidades e cobranças extras.</CardDescription>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button onClick={() => mutationGenerate.mutate()} variant="outline" size="sm" className="gap-2">
+                                        <Calculator className="h-4 w-4" /> Gerar Prestações
+                                    </Button>
+                                    <Button onClick={() => setOpenChargeBatch(true)} variant="default" size="sm" className="gap-2">
+                                        <Plus className="h-4 w-4" /> Criar Cobrança
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Aluno</TableHead>
+                                            <TableHead>Progresso Mensabilidades</TableHead>
+                                            <TableHead className="text-right">Ações</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
                                         {students?.map((student) => {
                                             const studentProgress = progress?.[student.id];
                                             const isComplete = studentProgress && studentProgress.paid >= studentProgress.total && studentProgress.total > 0;
-
                                             return (
-                                                <TableRow key={student.id} className="group">
-                                                    <TableCell>
-                                                        <Avatar className="h-8 w-8">
-                                                            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${student.full_name}`} />
-                                                            <AvatarFallback>{student.full_name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                                                        </Avatar>
-                                                    </TableCell>
+                                                <TableRow key={student.id}>
                                                     <TableCell className="font-medium">{student.full_name}</TableCell>
-                                                    <TableCell>
-                                                        <span className={cn(
-                                                            "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
-                                                            student.active ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-800"
-                                                        )}>
-                                                            {student.active ? "Ativo" : "Inativo"}
-                                                        </span>
-                                                    </TableCell>
                                                     <TableCell>
                                                         {studentProgress ? (
                                                             <div className="flex flex-col gap-1">
-                                                                <span className={cn(
-                                                                    "text-xs font-bold",
-                                                                    isComplete ? "text-emerald-600" : "text-amber-600"
-                                                                )}>
+                                                                <span className={cn("text-xs font-bold", isComplete ? "text-emerald-600" : "text-amber-600")}>
                                                                     {studentProgress.paid} / {studentProgress.total} pg
                                                                 </span>
                                                                 <Progress
                                                                     value={(studentProgress.paid / studentProgress.total) * 100}
-                                                                    className={cn("h-1.5 w-24", isComplete ? "bg-emerald-100" : "bg-amber-100")}
-                                                                    indicatorClassName={isComplete ? "bg-emerald-500" : "bg-amber-500"}
+                                                                    className="h-1.5 w-32"
                                                                 />
                                                             </div>
-
-                                                        ) : (
-                                                            <span className="text-xs text-muted-foreground italic">Sem parcelas</span>
-                                                        )}
+                                                        ) : <span className="text-xs text-muted-foreground italic">Sem parcelas</span>}
                                                     </TableCell>
                                                     <TableCell className="text-right">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            onClick={() => setSelectedStudentId(student.id)}
-                                                        >
-                                                            <Wallet className="h-4 w-4 mr-2" /> Financeiro
+                                                        <Button variant="outline" size="sm" onClick={() => setSelectedStudentId(student.id)}>
+                                                            <Wallet className="h-4 w-4 mr-2" /> Detalhes
                                                         </Button>
                                                     </TableCell>
                                                 </TableRow>
@@ -275,18 +319,26 @@ export default function GraduationClassDetailPage() {
                                         })}
                                     </TableBody>
                                 </Table>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
 
-
-                {/* Dialogs */}
                 <StudentFinancialDialog
                     open={!!selectedStudentId}
                     onOpenChange={(open) => !open && setSelectedStudentId(null)}
                     studentId={selectedStudentId}
                 />
+
+                {classId && graduation && students && (
+                    <ChargeBatchModal
+                        open={openChargeBatch}
+                        onOpenChange={setOpenChargeBatch}
+                        graduationId={graduation.id}
+                        classId={classId}
+                        students={students.map(s => ({ id: s.id, full_name: s.full_name }))}
+                    />
+                )}
 
                 <Dialog open={openStudent} onOpenChange={setOpenStudent}>
                     <DialogContent>
@@ -294,7 +346,6 @@ export default function GraduationClassDetailPage() {
                         <StudentForm onSubmit={mutationStudent.mutate} isLoading={mutationStudent.isPending} />
                     </DialogContent>
                 </Dialog>
-
             </div>
         </DashboardLayout>
     );
@@ -302,17 +353,13 @@ export default function GraduationClassDetailPage() {
 
 function StudentForm({ onSubmit, isLoading }: any) {
     const [name, setName] = useState("");
-    const handleSubmit = (e: any) => {
-        e.preventDefault();
-        onSubmit(name);
-    }
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={(e) => { e.preventDefault(); onSubmit(name); }} className="space-y-4">
             <div className="grid gap-2">
                 <Label>Nome Completo</Label>
                 <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nome do aluno" required />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin" /> : "Cadastrar Aluno"}</Button>
         </form>
-    )
+    );
 }

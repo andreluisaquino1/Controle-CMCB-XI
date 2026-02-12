@@ -29,23 +29,57 @@ export function useReports(
     dashboardData: DashboardData | undefined,
     reportData: ReportData | undefined,
     transactions: TransactionWithCreator[] | undefined,
-    showResources: boolean
+    showResources: boolean,
+    entityId?: string
 ) {
     // Calcular resumo localmente para incluir transações legadas e garantir consistência
     const summary = useMemo(() => {
+        // Se temos dados do servidor para o ID específico, priorizamos ele para o resumo numérico
+        // mas o cálculo local continua para suportar transações que talvez não estejam no RPC
         if (!transactions) return null;
 
-        return transactions.reduce((acc, t) => {
+        const isAssoc = entityId === undefined || entityId === null || dashboardData?.merchantBalances.every(m => m.id !== entityId);
+
+        // Filtrar transações pela entidade se o entityId for fornecido E pelo status (ignorar anuladas)
+        const filteredTransactions = transactions.filter(t => {
+            // Regra 1: Status deve ser 'posted' (ignorar 'voided')
+            if (t.status === 'voided') return false;
+
+            // Regra 2: Filtragem por Entidade
+            if (entityId && t.entity_id === entityId) return true;
+
+            // Fallback: se for Associação e t.entity_id for nulo, incluímos se o módulo for típico da associação
+            if (isAssoc && !t.entity_id) {
+                return ['mensalidade', 'mensalidade_pix', 'taxa_pix_bb', 'pix_nao_identificado', 'gasto_associacao', 'especie_ajuste', 'pix_ajuste', 'conta_digital_ajuste'].includes(t.module);
+            }
+
+            return !entityId; // Fallback original se nada for passado
+        });
+
+        const initialSummary = {
+            weeklyEntriesCash: reportData?.weeklyEntriesCash ?? 0,
+            weeklyEntriesPix: (reportData?.weeklyEntriesPix ?? 0) + (reportData?.weeklyEntriesPixNaoIdentificado ?? 0),
+            weeklyEntriesPixNaoIdentificado: reportData?.weeklyEntriesPixNaoIdentificado ?? 0,
+            weeklyExpensesCash: reportData?.weeklyExpensesCash ?? 0,
+            weeklyExpensesPix: reportData?.weeklyExpensesPix ?? 0,
+            weeklyExpensesDigital: reportData?.weeklyExpensesDigital ?? 0
+        };
+
+        // Se reportData existe e é da mesma entidade, podemos usar ele como base
+        // mas para evitar duplicidade ou inconsistência se o reportData vier de uma entidade diferente,
+        // vamos calcular do zero a partir das transações que já foram buscadas filtradas.
+
+        return filteredTransactions.reduce((acc, t) => {
             const amount = Number(t.amount);
 
             // Entradas
             if (t.module === 'mensalidade' && t.payment_method === 'cash') acc.weeklyEntriesCash += amount;
             else if ((t.module === 'mensalidade' && t.payment_method === 'pix') || t.module === 'mensalidade_pix') acc.weeklyEntriesPix += amount;
-            else if (t.module === 'pix_nao_identificado') acc.weeklyEntriesPixNaoIdentificado += amount;
+            else if (t.module === 'pix_nao_identificado') acc.weeklyEntriesPix += amount; // Soma ao total PIX
 
             // Saídas
             else if (t.module === 'gasto_associacao' && t.payment_method === 'cash') acc.weeklyExpensesCash += amount;
-            else if (t.module === 'gasto_associacao' && t.payment_method === 'pix') acc.weeklyExpensesPix += amount;
+            else if ((t.module === 'gasto_associacao' && t.payment_method === 'pix') || t.module === 'taxa_pix_bb') acc.weeklyExpensesPix += amount;
             else if (t.module === 'conta_digital_taxa') acc.weeklyExpensesDigital += amount;
             // Para transferências/saídas da conta digital, verificamos a conta de origem
             else if (t.source_account_name?.includes('Escolaweb') || t.source_account_name?.includes('Conta Digital')) {
@@ -63,7 +97,7 @@ export function useReports(
             weeklyExpensesPix: 0,
             weeklyExpensesDigital: 0
         });
-    }, [transactions]);
+    }, [transactions, entityId, reportData, dashboardData]);
 
     const getWhatsAppReportText = useCallback(() => {
         if (!dashboardData || !summary) {

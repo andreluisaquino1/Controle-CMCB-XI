@@ -635,11 +635,10 @@ export const graduationModuleService = {
         if (!config) throw new Error("Nenhuma configuração vigente encontrada para esta formatura");
 
         const students = await this.listStudents(classId);
-
-        const obligationsToInsert: any[] = [];
         const resultGrad = await supabase.from('graduations' as any).select('year').eq('id', cls.graduation_id).single();
         const baseYear = (resultGrad.data as any)?.year || 2026;
 
+        const obligationsToInsert: any[] = [];
 
         for (const student of students) {
             for (let i = 1; i <= config.installments_count; i++) {
@@ -660,10 +659,12 @@ export const graduationModuleService = {
             }
         }
 
+        if (obligationsToInsert.length === 0) return;
+
         const { error } = await supabase
             .from('graduation_student_obligations' as any)
             .upsert(obligationsToInsert, {
-                onConflict: 'student_id, kind, installment_number',
+                onConflict: 'student_id,kind,installment_number',
                 ignoreDuplicates: true
             });
 
@@ -690,9 +691,13 @@ export const graduationModuleService = {
             status: 'EM_ABERTO'
         }));
 
+        // Para cobranças tipo RIFA/BINGO/OUTRO, a idempotência pode ser por reference_label
         const { error } = await supabase
             .from('graduation_student_obligations' as any)
-            .insert(payload);
+            .upsert(payload, {
+                onConflict: 'student_id,kind,reference_label',
+                ignoreDuplicates: true
+            });
 
         if (error) throw error;
     },
@@ -724,6 +729,14 @@ export const graduationModuleService = {
                 signature: null
             })
             .eq('id', id);
+        if (error) throw error;
+    },
+
+    async inactivateStudent(studentId: string): Promise<void> {
+        const { error } = await supabase
+            .from('graduation_class_students' as any)
+            .update({ active: false })
+            .eq('id', studentId);
         if (error) throw error;
     }
 };
