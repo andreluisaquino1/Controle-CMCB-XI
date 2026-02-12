@@ -1,3 +1,4 @@
+import { formatDateString } from "./date-utils";
 /**
  * Exports an array of objects to a CSV file.
  * Handles basic escaping and adds BOM for Excel compatibility in UTF-8.
@@ -25,7 +26,7 @@ export function exportToCSV(data: Record<string, unknown>[], filename: string) {
     const url = URL.createObjectURL(blob);
 
     link.setAttribute("href", url);
-    link.setAttribute("download", `${filename}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `${filename}_${formatDateString(new Date())}.csv`);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -66,7 +67,7 @@ export async function exportToExcel(data: Record<string, unknown>[], filename: s
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.download = `${filename}_${formatDateString(new Date())}.xlsx`;
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -116,7 +117,7 @@ export async function exportToPDF(
         yPosition = doc.lastAutoTable.finalY + 10;
     });
 
-    doc.save(`${filename}_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`${filename}_${formatDateString(new Date())}.pdf`);
 }
 
 /**

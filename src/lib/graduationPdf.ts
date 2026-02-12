@@ -10,91 +10,214 @@ interface PDFData {
         installment_value: number;
         installments_count: number;
         due_day: number;
+        start_month: number;
     };
-    students: { id: string; full_name: string }[];
+    students: { id: string; full_name: string; guardian_name?: string }[];
 }
 
 export const generateCarnetsByInstallmentPDF = ({ graduation, class: classData, config, students }: PDFData) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 10;
+    const margin = 8;
 
-    // Configurações do layout (Parecido com a imagem)
-    const carnetWidth = (pageWidth - 2 * margin);
-    const receiptWidth = carnetWidth * 0.35; // Parte esquerda (Canhoto)
-    const bankCopyWidth = carnetWidth * 0.65; // Parte direita (Ficha)
-    const carnetHeight = 50; // Altura de cada bloco de carnê
-    const spacing = 5;
+    const totalWidth = pageWidth - 2 * margin;
+    const receiptWidth = totalWidth * 0.30;
+    const mainWidth = totalWidth * 0.70;
+    const carnetHeight = 44;
+    const spacing = 2;
+    const headerBandH = 8;
 
-    let currentY = 25;
+    const drawDashedLine = (x1: number, y1: number, x2: number, y2: number) => {
+        const dashLen = 2;
+        const gapLen = 2;
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const lineLen = Math.sqrt(dx * dx + dy * dy);
+        const steps = Math.floor(lineLen / (dashLen + gapLen));
+        const ux = dx / lineLen;
+        const uy = dy / lineLen;
+        for (let s = 0; s < steps; s++) {
+            const sx = x1 + (dashLen + gapLen) * s * ux;
+            const sy = y1 + (dashLen + gapLen) * s * uy;
+            doc.line(sx, sy, sx + dashLen * ux, sy + dashLen * uy);
+        }
+    };
 
-    // Iterar por cada parcela (conforme pedido: Seção Parcela 01, depois 02...)
     for (let i = 1; i <= config.installments_count; i++) {
         const installmentLabel = `${i.toString().padStart(2, '0')}/${config.installments_count.toString().padStart(2, '0')}`;
+        // Calculate the actual due date for this installment
+        const monthIndex = (config.start_month - 1) + (i - 1); // 0-based
+        const dueDate = new Date(graduation.year, monthIndex, config.due_day);
+        const dueDateStr = `${dueDate.getDate().toString().padStart(2, '0')}/${(dueDate.getMonth() + 1).toString().padStart(2, '0')}/${dueDate.getFullYear()}`;
 
-        // Adicionar cabeçalho da seção de parcela
         if (i > 1) doc.addPage();
-        doc.setFontSize(14);
+
+        // Page title
+        doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
-        doc.text(`Parcela ${i.toString().padStart(2, '0')} — Turma ${classData.name}`, margin, 15);
-        currentY = 25;
+        doc.setTextColor(40, 40, 40);
+        doc.text(`Parcela ${i.toString().padStart(2, '0')} — ${graduation.name}`, margin, 8);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(120);
+        doc.text(`Turma: ${classData.name}  |  Ano: ${graduation.year}`, margin, 12);
+        doc.setTextColor(0);
+
+        let currentY = 15;
 
         for (const student of students) {
-            // Verificar se cabe na página
-            if (currentY + carnetHeight > pageHeight - 15) {
+            if (currentY + carnetHeight > pageHeight - 6) {
                 doc.addPage();
-                currentY = 20;
+                currentY = 8;
             }
 
-            // --- BLOCO ESQUERDO (CANHOTO) ---
-            doc.setDrawColor(0);
-            doc.setLineWidth(0.5);
-            doc.rect(margin, currentY, receiptWidth, carnetHeight);
+            const leftX = margin;
+            const rightX = margin + receiptWidth + 1;
+
+            // ═══════════════════════════════════════════════════
+            // CANHOTO (Recibo do Pagador)
+            // ═══════════════════════════════════════════════════
+            doc.setDrawColor(80);
+            doc.setLineWidth(0.4);
+            doc.rect(leftX, currentY, receiptWidth, carnetHeight);
+
+            // Header band
+            doc.setFillColor(230, 230, 230);
+            doc.rect(leftX, currentY, receiptWidth, headerBandH, 'F');
+            doc.setDrawColor(80);
+            doc.rect(leftX, currentY, receiptWidth, headerBandH);
+
+            doc.setFontSize(7);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(50);
+            doc.text("RECIBO DO PAGADOR", leftX + receiptWidth / 2, currentY + 5, { align: "center" });
+
+            // Content
+            const cY = currentY + headerBandH + 3;
+            doc.setFontSize(7);
+            doc.setTextColor(80);
+
+            doc.setFont("helvetica", "bold");
+            doc.text("Parcela:", leftX + 2, cY);
+            doc.setFont("helvetica", "normal");
+            doc.text(installmentLabel, leftX + 16, cY);
+
+            doc.setFont("helvetica", "bold");
+            doc.text("Valor:", leftX + 2, cY + 6);
+            doc.setFont("helvetica", "normal");
+            doc.text(`R$ ${Number(config.installment_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, leftX + 14, cY + 6);
+
+            doc.setFont("helvetica", "bold");
+            doc.text("Venc.:", leftX + 2, cY + 12);
+            doc.setFont("helvetica", "normal");
+            doc.text(dueDateStr, leftX + 14, cY + 12);
+
+            doc.setFont("helvetica", "bold");
+            doc.text("Pago em:", leftX + 2, cY + 18);
+            doc.setFont("helvetica", "normal");
+            doc.text("____/____/________", leftX + 16, cY + 18);
+
+            doc.setFont("helvetica", "bold");
+            doc.text("Ass.:", leftX + 2, cY + 24);
+            doc.line(leftX + 10, cY + 24, leftX + receiptWidth - 3, cY + 24);
+
+            // Dashed cut line
+            doc.setDrawColor(160);
+            doc.setLineWidth(0.2);
+            drawDashedLine(margin + receiptWidth + 0.5, currentY, margin + receiptWidth + 0.5, currentY + carnetHeight);
+
+            // ═══════════════════════════════════════════════════
+            // FICHA PRINCIPAL (Via da Comissão)
+            // ═══════════════════════════════════════════════════
+            doc.setDrawColor(80);
+            doc.setLineWidth(0.4);
+            doc.rect(rightX, currentY, mainWidth, carnetHeight);
+
+            // Header band
+            doc.setFillColor(45, 80, 140);
+            doc.rect(rightX, currentY, mainWidth, headerBandH, 'F');
+            doc.setDrawColor(80);
+            doc.rect(rightX, currentY, mainWidth, headerBandH);
 
             doc.setFontSize(8);
             doc.setFont("helvetica", "bold");
-            doc.text("VALOR:", margin + 2, currentY + 7);
-            doc.text("MÊS:", margin + 2, currentY + 15);
-            doc.text("PARCELA:", margin + 2, currentY + 23);
-            doc.text("PAGO EM:", margin + 2, currentY + 31);
-            doc.text("RECEBIDO POR:", margin + 2, currentY + 39);
+            doc.setTextColor(255);
+            doc.text(`${graduation.name.toUpperCase()} — PARCELA ${installmentLabel}`, rightX + 4, currentY + 5.5);
 
+            doc.setFontSize(7);
+            doc.text(`R$ ${Number(config.installment_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, rightX + mainWidth - 4, currentY + 5.5, { align: "right" });
+
+            // Content
+            const mY = currentY + headerBandH + 4;
+            doc.setTextColor(60);
+
+            // Row 1: Aluno + Turma
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(7);
+            doc.text("ALUNO(A):", rightX + 4, mY);
             doc.setFont("helvetica", "normal");
-            doc.text(`R$ ${Number(config.installment_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, margin + 15, currentY + 7);
-            doc.text(`________________`, margin + 11, currentY + 15); // Campo Mês
-            doc.text(installmentLabel, margin + 18, currentY + 23);
-            doc.text(`___/___/___`, margin + 18, currentY + 31); // Campo Pago em
-            doc.text(`________________`, margin + 25, currentY + 39); // Campo Recebido por
-
-            // --- BLOCO DIREITO (FICHA PRINCIPAL) ---
-            doc.rect(margin + receiptWidth, currentY, bankCopyWidth, carnetHeight);
+            doc.setFontSize(8);
+            doc.text(student.full_name.toUpperCase(), rightX + 22, mY);
 
             doc.setFont("helvetica", "bold");
-            doc.text("PARCELA:", margin + receiptWidth + 5, currentY + 7);
-            doc.text("VALOR:", margin + receiptWidth + 5, currentY + 15);
-            doc.text("ALUNO(A):", margin + receiptWidth + 5, currentY + 23);
-            doc.text("RESPONSÁVEL FINANCEIRO:", margin + receiptWidth + 5, currentY + 31);
-            doc.text("RECEBIDO EM:", margin + receiptWidth + 5, currentY + 39);
-
+            doc.setFontSize(7);
+            doc.text("TURMA:", rightX + mainWidth - 35, mY);
             doc.setFont("helvetica", "normal");
-            doc.text(installmentLabel, margin + receiptWidth + 22, currentY + 7);
-            doc.text(`R$ ${Number(config.installment_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, margin + receiptWidth + 20, currentY + 15);
-            doc.text(student.full_name.toUpperCase(), margin + receiptWidth + 25, currentY + 23);
-            doc.text(`____________________________________`, margin + receiptWidth + 48, currentY + 31);
-            doc.text(`___/___/___`, margin + receiptWidth + 28, currentY + 39);
+            doc.text(classData.name, rightX + mainWidth - 21, mY);
 
-            // Informação da Turma discreta no rodapé do bloco
-            doc.setFontSize(6);
-            doc.text(`TURMA: ${classData.name}`, margin + receiptWidth + 5, currentY + 47);
+            // Separator
+            doc.setDrawColor(200);
+            doc.setLineWidth(0.15);
+            doc.line(rightX + 4, mY + 2.5, rightX + mainWidth - 4, mY + 2.5);
+
+            // Row 2: Responsável Financeiro
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(7);
+            doc.setTextColor(60);
+            doc.text("RESPONSÁVEL FINANCEIRO:", rightX + 4, mY + 7);
+            if (student.guardian_name) {
+                doc.setFont("helvetica", "normal");
+                doc.text(student.guardian_name.toUpperCase(), rightX + 45, mY + 7);
+            } else {
+                doc.setDrawColor(180);
+                doc.line(rightX + 45, mY + 7, rightX + mainWidth - 4, mY + 7);
+            }
+
+            // Row 3: Pago em + Recebido por
+            doc.setFont("helvetica", "bold");
+            doc.text("PAGO EM:", rightX + 4, mY + 14);
+            doc.setFont("helvetica", "normal");
+            doc.text("____/____/________", rightX + 20, mY + 14);
+
+            doc.setFont("helvetica", "bold");
+            doc.text("RECEBIDO POR:", rightX + 60, mY + 14);
+            doc.line(rightX + 85, mY + 14, rightX + mainWidth - 4, mY + 14);
+
+            // Row 4: Assinatura
+            doc.setFont("helvetica", "bold");
+            doc.text("ASSINATURA:", rightX + 4, mY + 21);
+            doc.line(rightX + 25, mY + 21, rightX + mainWidth / 2 - 5, mY + 21);
+
+            doc.setFont("helvetica", "bold");
+            doc.text("ASSINATURA:", rightX + mainWidth / 2 + 5, mY + 21);
+            doc.line(rightX + mainWidth / 2 + 26, mY + 21, rightX + mainWidth - 4, mY + 21);
+
+            // Footer text
+            doc.setFontSize(5);
+            doc.setTextColor(170);
+            doc.text("Pagador", rightX + 15, mY + 24);
+            doc.text("Recebedor", rightX + mainWidth / 2 + 18, mY + 24);
+
+            doc.setTextColor(0);
 
             currentY += carnetHeight + spacing;
         }
 
-        // Nota de rodapé na página
-        doc.setFontSize(7);
-        doc.setTextColor(150);
-        doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")} - Sistema Controle CMCB`, pageWidth - margin - 60, pageHeight - 5);
+        // Page footer
+        doc.setFontSize(6);
+        doc.setTextColor(160);
+        doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")} — Sistema Controle CMCB`, pageWidth - margin, pageHeight - 5, { align: "right" });
         doc.setTextColor(0);
     }
 

@@ -38,10 +38,10 @@
         }
 
         .document-container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             background: var(--white);
-            padding: 0.5rem 1.5rem;
+            padding: 1rem 2rem;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             border-radius: 4px;
         }
@@ -55,33 +55,33 @@
 
         header h1 {
             color: var(--primary);
-            font-size: 16pt;
+            font-size: 18pt;
             margin: 0;
             font-weight: 800;
             letter-spacing: -0.025em;
         }
 
         header p {
-            font-size: 10pt;
+            font-size: 11pt;
             color: var(--text-muted);
             margin: 0.15rem 0 0 0;
         }
 
         h2 {
             color: var(--primary);
-            font-size: 13pt;
-            margin-top: 0.4rem;
-            margin-bottom: 0.25rem;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 0.1rem;
+            font-size: 14pt;
+            margin-top: 0.8rem;
+            margin-bottom: 0.4rem;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.2rem;
             font-weight: 700;
         }
 
         h3 {
             color: var(--secondary);
-            font-size: 10.5pt;
-            margin-top: 0.35rem;
-            margin-bottom: 0.15rem;
+            font-size: 11pt;
+            margin-top: 0.6rem;
+            margin-bottom: 0.2rem;
             font-weight: 700;
             display: flex;
             align-items: center;
@@ -91,23 +91,23 @@
         h3::before {
             content: "";
             display: inline-block;
-            width: 3px;
-            height: 12px;
+            width: 4px;
+            height: 14px;
             background: var(--accent);
             border-radius: 2px;
         }
 
         p {
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.4rem;
         }
 
         ul {
-            margin-bottom: 0.4rem;
-            padding-left: 1.1rem;
+            margin-bottom: 0.6rem;
+            padding-left: 1.2rem;
         }
 
         li {
-            margin-bottom: 0.1rem;
+            margin-bottom: 0.2rem;
         }
 
         b {
@@ -117,8 +117,8 @@
         .example-block {
             background: #fefce8;
             border-left: 3px solid #eab308;
-            padding: 0.4rem 0.75rem;
-            margin: 0.25rem 0 0.5rem 0.5rem;
+            padding: 0.5rem 0.8rem;
+            margin: 0.3rem 0 0.6rem 0.8rem;
             font-style: italic;
             font-size: 9pt;
             border-radius: 0 4px 4px 0;
@@ -128,36 +128,36 @@
         .note-block {
             background: var(--primary-soft);
             border: 1px solid var(--border);
-            padding: 0.5rem 0.75rem;
-            margin: 0.75rem 0;
-            font-size: 9pt;
-            border-radius: 6px;
+            padding: 0.6rem 0.9rem;
+            margin: 0.8rem 0;
+            font-size: 9.5pt;
+            border-radius: 8px;
             color: var(--primary);
         }
 
         .routine-step {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
-            margin-bottom: 0.3rem;
-            padding: 0.4rem 0.6rem;
+            gap: 0.8rem;
+            margin-bottom: 0.4rem;
+            padding: 0.5rem 0.8rem;
             background: #f8fafc;
-            border-radius: 6px;
+            border-radius: 8px;
             border: 1px solid var(--border);
         }
 
         .step-number {
             background: var(--primary);
             color: white;
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
             font-weight: 700;
-            font-size: 8.5pt;
+            font-size: 9pt;
         }
 
         footer {
@@ -165,7 +165,7 @@
             padding-top: 1rem;
             border-top: 1px solid var(--border);
             text-align: center;
-            font-size: 8pt;
+            font-size: 8.5pt;
             color: var(--text-muted);
         }
 
@@ -184,7 +184,7 @@
             }
 
             h2 {
-                margin-top: 1rem;
+                margin-top: 1.2rem;
             }
 
             .no-break {
@@ -202,186 +202,175 @@
 <body>
     <div class="document-container">
         <header>
-            <h1>Manual Financeiro CMCB-XI</h1>
-            <p>Guia Unificado de Gestão Administrativa e Operacional</p>
+            <h1>Manual Completo CMCB-XI</h1>
+            <p>Guia Permanente de Gestão Financeira, Operacional e Auditoria</p>
         </header>
 
         <section>
-            <h2>1. Institucional e Acesso</h2>
-            <p>O sistema gerencia três entidades distintas para o CMCB-XI:</p>
+            <h2>1. Estrutura e Acessos</h2>
+            <p>O sistema centraliza a gestão de todas as esferas financeiras da escola:</p>
             <ul>
-                <li><b>Associação de Pais e Mestres</b>: Gestão de mensalidades dos alunos do Colégio Militar e custeio
-                    operacional imediato.</li>
-                <li><b>Unidade Executora (UE)</b>: Responsável por recursos federais diretos (FNDE/PDDE).</li>
-                <li><b>Caixa Escolar (CX)</b>: Gere repasses estaduais e alimentação escolar (Merenda).</li>
-            </ul>
-            <p><b>Perfis de Acesso:</b></p>
-            <ul>
-                <li><b>Admin</b>: Acesso total, gestão de usuários, ativação e reset de dados.</li>
-                <li><b>Usuário</b>: Operação diária completa (lançamentos, anulações e relatórios) para todas as
-                    entidades.</li>
-                <li><b>Secretária</b>: Focado na secretaria escolar. Acesso restrito apenas à aba <b>Associação</b>.
-                    Lançamentos entram como <b>Pendentes</b> e exigem validação de um superior.</li>
-                <li><b>Visitante/Demonstração</b>: Modo simulação. Permite testes salvos apenas localmente no navegador.
-                    <br><b>Login:</b> teste@teste.com | <b>Senha:</b> teste1
+                <li><b>Associação</b>: Gerencia o caixa interno e mensalidades.
+                    <div class="example-block">Exemplo: Recebimento de mensalidades dos alunos e compra de materiais de
+                        limpeza.</div>
+                </li>
+                <li><b>UE / Caixa Escolar</b>: Gerencia verbas estaduais e federais com prestação de contas rigorosa.
+                    <div class="example-block">Exemplo: Recebimento de PDDE (Federal) ou Merenda (Estadual) e pagamento
+                        de fornecedores via conta bancária vinculada.</div>
+                </li>
+                <li><b>Formaturas</b>: Módulo independente para gestão de turmas e eventos.
+                    <div class="example-block">Exemplo: Controle de arrecadação do 3º ano para o baile e despesas com
+                        buffet.</div>
                 </li>
             </ul>
         </section>
 
         <section>
-            <h2>2. Abas e Funcionalidades</h2>
+            <h2>2. Guia de Funções por Aba</h2>
 
             <div class="no-break">
-                <h3>2.1 Dashboard (Visão Geral e Atalhos)</h3>
+                <h3>2.1 Dashboard e Visão de Saldos</h3>
+                <p>O ponto de controle central do sistema.</p>
                 <ul>
-                    <li><b>Saldos em Tempo Real</b>: Mostra o total em Espécie, Banco (PIX), Conta Digital e Cofre.</li>
-                    <li><b>Saldos dos Estabelecimentos</b>: Lista rápida de fornecedores com crédito ou débito.</li>
-                    <li><b>Ações Rápidas</b>: Atalhos para Mensalidade, Despesa Associação e Gasto Estabelecimento.</li>
-                </ul>
-                <div class="note-block">
-                    <b>Nota:</b> Estes botões são atalhos das funções completas encontradas nas abas específicas abaixo.
-                </div>
-            </div>
-
-            <h3>2.2 Associação (Recursos Próprios)</h3>
-            <p>Gestão de arrecadação interna e despesas da rotina escolar.</p>
-            <ul>
-                <li><b>Botão [Mensalidades]</b>: Registro de valores recebidos.
-                    <div class="example-block">Como usar: Recebeu R$ 300,00 da secretaria? Clique em Mensalidades,
-                        selecione "Manhã" e o valor.</div>
-                </li>
-                <li><b>Botão [Despesa Associação]</b>: Pagamento direto de serviços/materiais.
-                    <div class="example-block">Como usar: Pagou R$ 20,00 em xerox? Escolha o meio (Espécie/PIX) e
-                        descreva o gasto.</div>
-                </li>
-                <li><b>Botão [Movimentar Saldo]</b>: Transferência interna (Ex: Espécie para Cofre).
-                    <div class="example-block">Como usar: Retirou R$ 1.000,00 do Espécie para o Cofre? Selecione a
-                        origem e o destino.</div>
-                </li>
-                <li><b>Botão [PIX Fantasma]</b>: Créditos não identificados.
-                    <div class="example-block">Exemplo: PIX de R$ 50,00 no extrato sem nome? Registre aqui para
-                        bater o saldo e ajuste depois.</div>
-                </li>
-                <li><b>Botão [Taxas PIX]</b>: Tarifas bancárias em lote.
-                    <div class="example-block">Como usar: No fim da semana, lance todas as tarifas e taxas de PIX de
-                        uma só vez.</div>
-                </li>
-                <li><b>Botão [Ajustar Saldo]</b>: Correções de erros ou saldo inicial.
-                    <div class="example-block">Exemplo: Físico da Espécie R$ 5,00 diferente? Ajuste com "Acerto de
-                        quebra de caixa".</div>
-                </li>
-            </ul>
-
-            <div class="no-break">
-                <h3>2.3 Saldos em Estabelecimentos</h3>
-                <ul>
-                    <li><b>Botão [Novo Estabelecimento]</b>: Cadastrar um novo fornecedor recorrente.</li>
-                    <li><b>Botão [Aporte]</b>: Enviar dinheiro da conta para o fornecedor.
-                        <div class="example-block">Exemplo: PIX de R$ 2.000,00 da UE para o "Supermercado X".</div>
+                    <li><b>Saldos Reais</b>: Mostra exatamente quanto há em cada conta física ou virtual.
+                        <div class="example-block">Exemplo: Consultar se há saldo no "Cofre" antes de realizar um
+                            depósito bancário.</div>
                     </li>
-                    <li><b>Botão [Registrar Gasto]</b>: Abater do saldo após uma compra.
-                        <div class="example-block">Exemplo: Comprou R$ 150,00 em lanches? Use este botão para dar baixa.
-                        </div>
+                    <li><b>Saldos de Fornecedores</b>: Exibe créditos ou débitos em estabelecimentos parceiros.
+                        <div class="example-block">Exemplo: Ver que a escola ainda possui R$ 500,00 de crédito no
+                            "Sacolão Brasil".</div>
                     </li>
                 </ul>
             </div>
 
             <div class="no-break">
-                <h3>2.4 Recursos (UE e Caixa Escolar)</h3>
+                <h3>2.2 Associação (Caixa Escolar e Mensalidades)</h3>
                 <ul>
-                    <li><b>Botão [Nova Conta]</b>: Adicionar uma nova rubrica ou conta bancária específica.</li>
-                    <li><b>Botão [Entrada de Recurso]</b>: Registrar a chegada de verba pública (PNAE/PDDE).</li>
-                    <li><b>Botão [Gasto de Recurso]</b>: Pagamento direto ou aporte em estabelecimento.
-                        <div class="example-block">Exemplo: Pagou ar condicionado com a conta FEE ou aportou valor no
-                            Supermercado.</div>
+                    <li><b>[Mensalidades]</b>: Registro de arrecadação dos alunos.
+                        <div class="example-block">Exemplo: O aluno João pagou R$ 60,00 em espécie na secretaria.
+                            Registre selecionando "Mensalidade" e o turno.</div>
+                    </li>
+                    <li><b>[Despesa Associação]</b>: Pagamento de gastos rotineiros.
+                        <div class="example-block">Exemplo: Pagamento de R$ 15,00 para chaveiro. Selecione o meio de
+                            pagamento (Espécie) e descreva o serviço.</div>
+                    </li>
+                    <li><b>[Movimentar Saldo]</b>: Transferências internas seguras.
+                        <div class="example-block">Exemplo: Sangria de caixa. Transferir R$ 2.000,00 do "Espécie" para o
+                            "Cofre".</div>
+                    </li>
+                    <li><b>[PIX Fantasma / Taxas]</b>: Lançamentos técnicos bancários.
+                        <div class="example-block">Exemplo: Identificar um PIX de R$ 50,00 que caiu no extrato sem nome
+                            de origem para bater o saldo bancário.</div>
                     </li>
                 </ul>
             </div>
 
             <div class="no-break">
-                <h3>2.5 Relatórios e Prestação de Contas</h3>
-                <p><b>Selecione o período desejado antes de gerar.</b></p>
+                <h3>2.3 Saldos em Estabelecimentos (Aportes)</h3>
+                <p>Controle de créditos pré-pagos em fornecedores.</p>
                 <ul>
-                    <li><b>Botão [Copiar Texto / Abrir WhatsApp]</b>: Resumo formatado para grupos.</li>
-                    <li><b>Botão [Exportar PDF]</b>: Documento oficial para arquivamento ou prestação de contas.</li>
-                    <li><b>Filtros (Lupa/Funil)</b>: Buscar transações por texto, categoria ou data.</li>
-                </ul>
-            </div>
-
-            <div class="no-break">
-                <h3>2.6 Anulação e Histórico</h3>
-                <ul>
-                    <li><b>Botão [Anular]</b>: Botão X vermelho ao final de cada linha no "Histórico".
-                        <div class="example-block">Como usar: Lançou errado? Clique no X, insira a justificativa e o
-                            saldo volta ao normal.</div>
+                    <li><b>[Aporte]</b>: Enviar dinheiro para um fornecedor para uso futuro.
+                        <div class="example-block">Exemplo: Fazer um PIX de R$ 1.500,00 para o "Mercantil Farias" como
+                            adiantamento para compras de merenda.</div>
                     </li>
-                    <li><b>Logs de Auditoria</b>: Registro permanente em <b>Logs</b> de quem anulou e o porquê.</li>
-                </ul>
-            </div>
-
-            <div class="no-break">
-                <h3>2.7 Gestão de Cadastros (Lápis e Lixeira)</h3>
-                <ul>
-                    <li><b>Botão [Lápis]</b>: Edita o nome de um estabelecimento ou número da conta bancária.</li>
-                    <li><b>Botão [Lixeira]</b>: Desativa permanentemente uma conta ou fornecedor (mantendo o histórico).
+                    <li><b>[Registrar Gasto]</b>: Abater do crédito após uma compra real.
+                        <div class="example-block">Exemplo: A merendeira trouxe uma nota de R$ 120,00 do Mercantil.
+                            Registre o gasto para o sistema abater do saldo que você aportou.</div>
                     </li>
                 </ul>
             </div>
 
             <div class="no-break">
-                <h3>2.8 Administração de Usuários (Apenas Admin)</h3>
+                <h3>2.4 Formaturas (Módulo de Turmas)</h3>
+                <p>Gestão financeira dedicada a eventos de formatura.</p>
                 <ul>
-                    <li><b>Ativação (Switch)</b>: Libera acesso para novos perfis cadastrados.</li>
-                    <li><b>Alterar Função (Select)</b>: Define se o usuário é Admin, Usuário ou Visitante.</li>
-                    <li><b>Reset de Dados</b>: Função "Nuclear" disponível no menu Perfil para administradores.
-                        <div class="example-block">Atenção: Esta ação apaga todo o histórico e não pode ser desfeita.
-                        </div>
+                    <li><b>[Gerir Alunos]</b>: Controle de quem faz parte da turma.
+                        <div class="example-block">Exemplo: Adicionar 40 alunos ao "3º Ano B 2026" e baixar a lista em
+                            Excel para controle manual se necessário.</div>
+                    </li>
+                    <li><b>[Cobrança em Lote]</b>: Gerar débitos para todos os alunos simultaneamente.
+                        <div class="example-block">Exemplo: Criar uma parcela de "Festa de Formatura" de R$ 100,00 para
+                            todos os alunos da turma com um único clique.</div>
+                    </li>
+                    <li><b>[Financeiro Individual]</b>: Baixa de pagamentos por aluno.
+                        <div class="example-block">Exemplo: O pai do aluno Marcos pagou a parcela 01/10. Registre a
+                            entrada direto no perfil do aluno na turma.</div>
                     </li>
                 </ul>
             </div>
 
             <div class="no-break">
-                <h3>2.9 Perfil e Segurança</h3>
+                <h3>2.5 Contador de Dinheiro (Fechamento)</h3>
+                <p>Ferramenta para conferência de valores físicos ao final do dia.</p>
                 <ul>
-                    <li><b>Alterar Senha</b>: No menu Perfil, informe a senha atual e a nova.</li>
-                    <li><b>Zona de Perigo</b>: Local onde o Administrador pode realizar o Reset do banco.</li>
-                    <li><b>Recuperação</b>: Link "Esqueci minha senha" na tela de login via e-mail.</li>
+                    <li><b>Conferência com Ledger</b>: O sistema compara sua contagem com o saldo real do banco.
+                        <div class="example-block">Exemplo: Você contou R$ 512,00 em notas. O sistema mostra que deveria
+                            ter R$ 510,00. Ele te avisa que "Sobrou R$ 2,00".</div>
+                    </li>
+                    <li><b>Persistência de Dados (Cache)</b>: Não perde os dados se a página fechar.
+                        <div class="example-block">Exemplo: Você começou a contar as moedas, teve que atender um
+                            telefone e a aba fechou. Ao abrir, os valores estarão lá.</div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="no-break">
+                <h3>2.6 Relatórios e WhatsApp</h3>
+                <p>Exportação de dados para transparência e grupos.</p>
+                <ul>
+                    <li><b>Filtro de Período</b>: Gere resumos semanais ou mensais.
+                        <div class="example-block">Exemplo: Selecione de 01/02 a 07/02 para gerar o "Informativo
+                            Semanal" da diretoria.</div>
+                    </li>
+                    <li><b>Relatório PDF</b>: Documento pronto para assinar e arquivar.
+                        <div class="example-block">Exemplo: Exportar relatório de despesas da UE para prestar contas ao
+                            conselho escolar.</div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="no-break">
+                <h3>2.7 Auditoria e Logs (Rastreabilidade)</h3>
+                <p>Segurança total: nada é deletado, apenas anulado.</p>
+                <ul>
+                    <li><b>Histórico de Logs</b>: Lista de quem fez o quê e quando.
+                        <div class="example-block">Exemplo: Buscar no campo de busca por "Anulação". Você verá quem
+                            anulou uma transação e a justificativa dada.</div>
+                    </li>
+                    <li><b>Justificativas Obrigatórias</b>: Todo erro exige uma explicação.
+                        <div class="example-block">Exemplo: Ao anular um pagamento duplicado, o sistema exige que você
+                            escreva: "Lançamento duplicado por erro de digitação".</div>
+                    </li>
                 </ul>
             </div>
         </section>
 
         <section>
-            <h2>3. Guia Operacional (Rotina)</h2>
+            <h2>3. Rotina Diária Recomendada</h2>
             <div class="routine-step">
                 <div class="step-number">1</div>
-                <div><b>Conferência:</b> Cheque se o físico em espécie bate com o Dashboard no início do turno.</div>
+                <div><b>Início:</b> Verifique no Dashboard se os saldos iniciais de PIX e Espécie batem com os extratos.
+                </div>
             </div>
             <div class="routine-step">
                 <div class="step-number">2</div>
-                <div><b>Lançamentos:</b> Registre entradas imediatamente. O Ledger garante atualização em tempo real.
+                <div><b>Operação:</b> Lançar toda entrada (Mensalidade/Aporte) e saída (Gasto) no momento em que ocorre.
                 </div>
             </div>
             <div class="routine-step">
                 <div class="step-number">3</div>
-                <div><b>Autorização:</b> Verifique o Saldo do Estabelecimento antes de autorizar compras.</div>
+                <div><b>Correção:</b> Se errar, não tente "ajustar" com outro lançamento. Use o botão <b>Anular</b> e
+                    justifique.</div>
             </div>
             <div class="routine-step">
                 <div class="step-number">4</div>
-                <div><b>Fechamento:</b> Gere o relatório. Agora os dados vêm 100% do Ledger oficial.</div>
+                <div><b>Fim do Turno:</b> Use o <b>Contador de Dinheiro</b> para validar o caixa físico e gere o
+                    relatório para o WhatsApp.</div>
             </div>
         </section>
 
-        <section>
-            <h2>4. Auditoria e Segurança</h2>
-            <ul>
-                <li><b>Fonte Única</b>: Relatórios e dashboards unificados via Ledger Transactions.</li>
-                <li><b>Imutabilidade</b>: Valores são imutáveis; correções apenas via Anulação com justificativa.</li>
-                <li><b>Logs em Tempo Real</b>: Todo Reset, Anulação ou Alteração gera um log auditável.</li>
-            </ul>
-        </section>
-
         <footer>
-            Manual CMCB-XI Financeiro - Compactado para Impressão A4 Portrait.
+            Manual Financeiro CMCB-XI - Atualizado em Fevereiro de 2026.
         </footer>
     </div>
 </body>

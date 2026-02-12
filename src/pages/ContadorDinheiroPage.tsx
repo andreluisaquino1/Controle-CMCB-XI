@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import { graduationModuleService } from "@/services/graduationModuleService";
+import { graduationModuleService } from "@/services/graduations";
 
 const NOTES = [200, 100, 50, 20, 10, 5, 2];
 const COINS = [1, 0.50, 0.25, 0.10, 0.05];

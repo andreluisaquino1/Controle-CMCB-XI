@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { graduationModuleService, GraduationPayMethod, GraduationEntryType, GraduationClass } from "@/services/graduationModuleService";
+import { graduationModuleService, GraduationPayMethod, GraduationEntryType, GraduationClass } from "@/services/graduations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { useState, useEffect } from "react";
+import { EntryForm, ExpenseForm, TransferForm, ConfigForm, ClassForm } from "./components/GraduationForms";
+import { GlobalChargeBatchModal } from "./components/GlobalChargeBatchModal";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -66,6 +68,7 @@ export default function GraduationDetailPage() {
     const [openTransfer, setOpenTransfer] = useState(false);
     const [openConfig, setOpenConfig] = useState(false);
     const [openClass, setOpenClass] = useState(false);
+    const [openGlobalCharge, setOpenGlobalCharge] = useState(false);
 
     // 1. Get Graduation
     const { data: graduation, isLoading: loadingGrad } = useQuery({
@@ -99,7 +102,7 @@ export default function GraduationDetailPage() {
 
     // 5. Get Config
     const { data: config } = useQuery({
-        queryKey: ["graduation-config-module", graduationId],
+        queryKey: ["graduation-config", graduationId],
         queryFn: () => graduationModuleService.getCurrentConfig(graduationId!),
         enabled: !!graduationId,
     });
@@ -170,10 +173,21 @@ export default function GraduationDetailPage() {
     });
 
     const mutationConfig = useMutation({
-        mutationFn: (data: any) => graduationModuleService.createNewConfigVersion(graduationId!, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["graduation-config-module"] });
-            toast.success("Configuração atualizada!");
+        mutationFn: async (newData: any) => {
+            // Check if anything changed
+            await graduationModuleService.createNewConfigVersion(graduationId!, newData);
+            await graduationModuleService.generateInstallmentsForGraduation(graduationId!);
+            return true; // Always true now because we are always regenerating if they click the button
+        },
+        onSuccess: (hasChanged) => {
+            queryClient.invalidateQueries({ queryKey: ["graduation-config", graduationId] });
+            if (hasChanged) {
+                queryClient.invalidateQueries({ queryKey: ["graduation-students-progress"] });
+                queryClient.invalidateQueries({ queryKey: ["graduation-summary-module"] });
+                toast.success("Configuração salva e prestações regeneradas!");
+            } else {
+                toast.success("Configuração salva.");
+            }
             setOpenConfig(false);
         },
         onError: (err: any) => toast.error("Erro: " + err.message)
@@ -260,6 +274,9 @@ export default function GraduationDetailPage() {
                             <Button onClick={() => setOpenTransfer(true)} variant="outline" size="sm" className="gap-2">
                                 <ArrowLeftRight className="h-4 w-4" /> Transferência
                             </Button>
+                            <Button onClick={() => setOpenGlobalCharge(true)} variant="outline" size="sm" className="gap-2">
+                                <Plus className="h-4 w-4" /> Cobrança Lote
+                            </Button>
                             {isAdmin && (
                                 <Button onClick={() => setOpenConfig(true)} variant="secondary" size="sm" className="gap-2">
                                     <Settings className="h-4 w-4" /> Config
@@ -281,7 +298,7 @@ export default function GraduationDetailPage() {
 
                     <TabsContent value="financeiro" className="space-y-6">
                         {/* Cards Summary */}
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                             <Card className="glass-card border-none bg-emerald-50/50 dark:bg-emerald-950/20">
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-xs font-semibold uppercase text-emerald-600 dark:text-emerald-400">Receita Total</CardTitle>
@@ -473,7 +490,11 @@ export default function GraduationDetailPage() {
                 <Dialog open={openConfig} onOpenChange={setOpenConfig}>
                     <DialogContent>
                         <DialogHeader><DialogTitle>Configuração Financeira</DialogTitle></DialogHeader>
-                        <ConfigForm current={config} onSubmit={mutationConfig.mutate} isLoading={mutationConfig.isPending} />
+                        <ConfigForm
+                            current={config}
+                            onSubmit={mutationConfig.mutate}
+                            isLoading={mutationConfig.isPending}
+                        />
                     </DialogContent>
                 </Dialog>
 
@@ -485,224 +506,13 @@ export default function GraduationDetailPage() {
                 </Dialog>
 
             </div>
+            {graduation && (
+                <GlobalChargeBatchModal
+                    open={openGlobalCharge}
+                    onOpenChange={setOpenGlobalCharge}
+                    graduationId={graduation.id}
+                />
+            )}
         </DashboardLayout>
     );
-}
-
-// --- Sub-components ---
-
-function EntryForm({ onSubmit, isLoading }: any) {
-    const [amount, setAmount] = useState("");
-    const [desc, setDesc] = useState("");
-    const [method, setMethod] = useState<GraduationPayMethod>('PIX');
-    const [type, setType] = useState<GraduationEntryType>('OUTROS');
-
-    const handleSubmit = (e: any) => {
-        e.preventDefault();
-        onSubmit({
-            amount: Number(amount),
-            description: desc,
-            payment_method: method,
-            entry_type: type
-        });
-    };
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-2">
-                <Label>Descrição</Label>
-                <Input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: Rifa de Páscoa" required />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                    <Label>Valor (R$)</Label>
-                    <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
-                </div>
-                <div className="grid gap-2">
-                    <Label>Método</Label>
-                    <Select value={method} onValueChange={(v: any) => setMethod(v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="PIX">PIX</SelectItem>
-                            <SelectItem value="ESPECIE">Dinheiro</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-            <div className="grid gap-2">
-                <Label>Tipo de Entrada</Label>
-                <Select value={type} onValueChange={(v: any) => setType(v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="OUTROS">Outros</SelectItem>
-                        <SelectItem value="RIFA">Rifa</SelectItem>
-                        <SelectItem value="BINGO">Bingo</SelectItem>
-                        <SelectItem value="VENDA">Venda</SelectItem>
-                        <SelectItem value="DOACAO">Doação</SelectItem>
-                        <SelectItem value="MENSALIDADE">Mensalidade (Avulsa)</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin" /> : "Registrar Entrada"}</Button>
-        </form>
-    )
-}
-
-function ExpenseForm({ onSubmit, isLoading }: any) {
-    const [amount, setAmount] = useState("");
-    const [desc, setDesc] = useState("");
-    const [method, setMethod] = useState<GraduationPayMethod>('PIX');
-
-    const handleSubmit = (e: any) => {
-        e.preventDefault();
-        onSubmit({
-            amount: Number(amount),
-            description: desc,
-            payment_method: method,
-        });
-    };
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-2">
-                <Label>Descrição da Despesa</Label>
-                <Input value={desc} onChange={e => setDesc(e.target.value)} required />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                    <Label>Valor (R$)</Label>
-                    <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
-                </div>
-                <div className="grid gap-2">
-                    <Label>Método Pagamento</Label>
-                    <Select value={method} onValueChange={(v: any) => setMethod(v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="PIX">PIX</SelectItem>
-                            <SelectItem value="ESPECIE">Dinheiro</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-            <Button type="submit" variant="destructive" className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin" /> : "Registrar Despesa"}</Button>
-        </form>
-    )
-}
-
-function TransferForm({ onSubmit, isLoading }: any) {
-    const [amount, setAmount] = useState("");
-    const [desc, setDesc] = useState("Transferência");
-    const [from, setFrom] = useState<GraduationPayMethod>('ESPECIE');
-    const [to, setTo] = useState<GraduationPayMethod>('PIX');
-
-    const handleSubmit = (e: any) => {
-        e.preventDefault();
-        onSubmit({
-            amount: Number(amount),
-            description: desc,
-            from_account: from,
-            to_account: to
-        });
-    };
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <p className="text-sm text-muted-foreground">Registrar transferência entre contas (ex: Depósito do dinheiro em caixa para conta bancária).</p>
-            <div className="grid gap-2">
-                <Label>Valor</Label>
-                <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                    <Label>De (Origem)</Label>
-                    <Select value={from} onValueChange={(v: any) => setFrom(v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="PIX">PIX / Banco</SelectItem>
-                            <SelectItem value="ESPECIE">Dinheiro em Mãos</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="grid gap-2">
-                    <Label>Para (Destino)</Label>
-                    <Select value={to} onValueChange={(v: any) => setTo(v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="PIX">PIX / Banco</SelectItem>
-                            <SelectItem value="ESPECIE">Dinheiro em Mãos</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-            <div className="grid gap-2">
-                <Label>Descrição</Label>
-                <Input value={desc} onChange={e => setDesc(e.target.value)} />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>Registrar Transferência</Button>
-        </form>
-    )
-}
-
-function ConfigForm({ current, onSubmit, isLoading }: any) {
-    const [val, setVal] = useState(current?.installment_value || "");
-    const [count, setCount] = useState(current?.installments_count || "");
-    const [day, setDay] = useState(current?.due_day || 10);
-    const [month, setMonth] = useState(current?.start_month || 2);
-
-    useEffect(() => {
-        if (current) {
-            setVal(current.installment_value);
-            setCount(current.installments_count);
-            setDay(current.due_day);
-            setMonth(current.start_month);
-        }
-    }, [current]);
-
-    const handleSubmit = (e: any) => {
-        e.preventDefault();
-        onSubmit({
-            installment_value: Number(val),
-            installments_count: Number(count),
-            due_day: Number(day),
-            start_month: Number(month)
-        });
-    }
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-2">
-                <Label>Valor da Mensalidade (R$)</Label>
-                <Input type="number" step="0.01" value={val} onChange={e => setVal(e.target.value)} required />
-            </div>
-            <div className="grid gap-2">
-                <Label>Quantidade de Parcelas</Label>
-                <Input type="number" value={count} onChange={e => setCount(e.target.value)} required />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                    <Label>Dia Venc.</Label>
-                    <Input type="number" value={day} onChange={e => setDay(e.target.value)} required />
-                </div>
-                <div className="grid gap-2">
-                    <Label>Mês Início</Label>
-                    <Input type="number" value={month} onChange={e => setMonth(e.target.value)} required />
-                </div>
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin" /> : "Salvar Configuração"}</Button>
-        </form>
-    )
-}
-
-function ClassForm({ onSubmit, isLoading }: any) {
-    const [name, setName] = useState("");
-    const handleSubmit = (e: any) => {
-        e.preventDefault();
-        onSubmit(name);
-    }
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-2">
-                <Label>Nome da Turma</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: 3º Ano A" required />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin" /> : "Criar Turma"}</Button>
-        </form>
-    )
 }

@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
-import { graduationModuleService } from "@/services/graduationModuleService";
+import { graduationModuleService } from "@/services/graduations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,17 +11,18 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, ChevronLeft, User, FileText, BadgeDollarSign, Wallet, Download, UserX, Calculator } from "lucide-react";
+import { Loader2, Plus, ChevronLeft, User, FileText, BadgeDollarSign, Wallet, Download, UserX, Calculator, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StudentFinancialDialog } from "./components/StudentFinancialDialog";
-import { ChargeBatchModal } from "./components/ChargeBatchModal";
+import { PaymentBatchModal } from "./components/PaymentBatchModal";
+import { StudentForm } from "./components/StudentForm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { generateCarnetsByInstallmentPDF, generateTreasurerControlPDF } from "@/lib/graduationPdf";
 
 
@@ -29,7 +30,7 @@ export default function GraduationClassDetailPage() {
     const { slug, classSlug } = useParams();
     const queryClient = useQueryClient();
     const [openStudent, setOpenStudent] = useState(false);
-    const [openChargeBatch, setOpenChargeBatch] = useState(false);
+    const [openPaymentBatch, setOpenPaymentBatch] = useState(false);
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [importing, setImporting] = useState(false);
 
@@ -123,9 +124,10 @@ export default function GraduationClassDetailPage() {
             config: {
                 installment_value: config.installment_value,
                 installments_count: config.installments_count,
-                due_day: config.due_day
+                due_day: config.due_day,
+                start_month: config.start_month
             },
-            students: students.map(s => ({ id: s.id, full_name: s.full_name }))
+            students: students.map(s => ({ id: s.id, full_name: s.full_name, guardian_name: s.guardian_name }))
         });
     };
 
@@ -137,11 +139,21 @@ export default function GraduationClassDetailPage() {
             config: {
                 installment_value: config.installment_value,
                 installments_count: config.installments_count,
-                due_day: config.due_day
+                due_day: config.due_day,
+                start_month: config.start_month
             },
-            students: students.map(s => ({ id: s.id, full_name: s.full_name }))
+            students: students.map(s => ({ id: s.id, full_name: s.full_name, guardian_name: s.guardian_name }))
         });
     };
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("TODOS");
+
+    const filteredStudents = students?.filter(s => {
+        const matchesSearch = s.full_name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === "TODOS" || (statusFilter === "ACTIVE" && s.active); // For now students are mostly active in this view
+        return matchesSearch && matchesStatus;
+    });
 
     if (loadingClass || !graduation) {
         return (
@@ -182,71 +194,114 @@ export default function GraduationClassDetailPage() {
                     </div>
                 </header>
 
-                <Tabs defaultValue="students" className="space-y-4">
-                    <TabsList className="bg-muted/50 p-1">
-                        <TabsTrigger value="students" className="gap-2">
-                            <User className="h-4 w-4" /> Alunos
-                        </TabsTrigger>
-                        <TabsTrigger value="finance" className="gap-2">
-                            <BadgeDollarSign className="h-4 w-4" /> Controle Financeiro
-                        </TabsTrigger>
-                    </TabsList>
+                <div className="flex flex-col md:flex-row gap-4 items-end justify-between mb-4">
+                    <div className="grid gap-2 flex-1 w-full md:max-w-xs">
+                        <Label htmlFor="student-search">Buscar Aluno</Label>
+                        <div className="relative">
+                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                id="student-search"
+                                placeholder="Nome do aluno..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-8"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 w-full md:w-auto justify-end">
+                        <div className="relative">
+                            <input
+                                id="import-excel-input"
+                                title="Importar alunos do Excel"
+                                type="file"
+                                accept=".xlsx, .xls"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file && classId) mutationImport.mutate({ classId, file });
+                                    e.target.value = "";
+                                }}
+                                disabled={importing}
+                            />
+                            <Button variant="outline" size="sm" className="gap-2" disabled={importing}>
+                                {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                                Importar Excel
+                            </Button>
+                        </div>
 
-                    <TabsContent value="students">
-                        <Card className="glass-card border-none">
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <div>
-                                    <CardTitle>Alunos</CardTitle>
-                                    <CardDescription>Gerencie a listagem de alunos da turma.</CardDescription>
-                                </div>
-                                <div className="flex gap-2">
-                                    <div className="relative">
-                                        <input
-                                            id="import-excel-input"
-                                            title="Importar alunos do Excel"
-                                            type="file"
-                                            accept=".xlsx, .xls"
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file && classId) mutationImport.mutate({ classId, file });
-                                                e.target.value = "";
-                                            }}
-                                            disabled={importing}
-                                        />
-                                        <Button variant="outline" size="sm" className="gap-2" disabled={importing}>
-                                            {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                                            Importar Excel
-                                        </Button>
-                                    </div>
-                                    <Button onClick={() => setOpenStudent(true)} size="sm" className="gap-2">
-                                        <Plus className="h-4 w-4" /> Novo Aluno
-                                    </Button>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Nome</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead className="text-right">Ações</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {students?.map((student) => (
-                                            <TableRow key={student.id}>
-                                                <TableCell className="font-medium">{student.full_name}</TableCell>
-                                                <TableCell>
-                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                                                        Ativo
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="text-right">
+                        <Button onClick={() => setOpenPaymentBatch(true)} variant="default" size="sm" className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                            <BadgeDollarSign className="h-4 w-4" /> Baixa Lote
+                        </Button>
+                        <Button onClick={() => setOpenStudent(true)} size="sm" className="gap-2">
+                            <Plus className="h-4 w-4" /> Novo Aluno
+                        </Button>
+                    </div>
+                </div>
+
+                <Card className="glass-card border-none overflow-hidden">
+                    <CardHeader className="pb-4">
+                        <CardTitle>Alunos e Financeiro</CardTitle>
+                        <CardDescription>Gerencie alunos e acompanhe mensalidades em uma única visão.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="pl-6">Aluno</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Progresso Financeiro</TableHead>
+                                    <TableHead className="text-right pr-6">Ações</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredStudents?.map((student) => {
+                                    const studentProgress = progress?.[student.id];
+                                    const isComplete = studentProgress && studentProgress.paid >= studentProgress.total && studentProgress.total > 0;
+                                    return (
+                                        <TableRow key={student.id} className="hover:bg-muted/50 transition-colors">
+                                            <TableCell className="font-medium pl-6">
+                                                <div className="flex items-center gap-2">
+                                                    {student.full_name}
+                                                    {studentProgress?.hasOverdue && (
+                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold uppercase tracking-tighter animate-pulse">Atraso</span>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100 text-[10px] font-bold">
+                                                    ATIVO
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                {studentProgress ? (
+                                                    <div className="flex flex-col gap-1.5 min-w-[120px]">
+                                                        <div className="flex justify-between items-center text-[10px] uppercase font-bold">
+                                                            <span className={isComplete ? "text-emerald-600" : "text-amber-600"}>
+                                                                {studentProgress.paid} / {studentProgress.total} pg
+                                                            </span>
+                                                            <span className="text-muted-foreground">
+                                                                {Math.round((studentProgress.paid / studentProgress.total) * 100 || 0)}%
+                                                            </span>
+                                                        </div>
+                                                        <Progress
+                                                            value={(studentProgress.paid / studentProgress.total) * 100}
+                                                            className={cn(
+                                                                "h-1.5",
+                                                                isComplete ? "bg-emerald-100 [&>div]:bg-emerald-500" : "bg-amber-100 [&>div]:bg-amber-500"
+                                                            )}
+                                                        />
+                                                    </div>
+                                                ) : <span className="text-xs text-muted-foreground italic">Sem parcelas</span>}
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button variant="outline" size="sm" onClick={() => setSelectedStudentId(student.id)} className="h-8 gap-2 border-primary/20 hover:bg-primary/5">
+                                                        <Wallet className="h-3.5 w-3.5" /> Detalhes
+                                                    </Button>
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="text-muted-foreground hover:text-destructive"
+                                                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                                                         onClick={() => {
                                                             if (confirm(`Deseja inativar o aluno ${student.full_name}?`)) {
                                                                 mutationInactivate.mutate(student.id);
@@ -255,74 +310,22 @@ export default function GraduationClassDetailPage() {
                                                     >
                                                         <UserX className="h-4 w-4" />
                                                     </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="finance">
-                        <Card className="glass-card border-none">
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <div>
-                                    <CardTitle>Controle Financeiro</CardTitle>
-                                    <CardDescription>Acompanhe mensalidades e cobranças extras.</CardDescription>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button onClick={() => mutationGenerate.mutate()} variant="outline" size="sm" className="gap-2">
-                                        <Calculator className="h-4 w-4" /> Gerar Prestações
-                                    </Button>
-                                    <Button onClick={() => setOpenChargeBatch(true)} variant="default" size="sm" className="gap-2">
-                                        <Plus className="h-4 w-4" /> Criar Cobrança
-                                    </Button>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Aluno</TableHead>
-                                            <TableHead>Progresso Mensabilidades</TableHead>
-                                            <TableHead className="text-right">Ações</TableHead>
+                                                </div>
+                                            </TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {students?.map((student) => {
-                                            const studentProgress = progress?.[student.id];
-                                            const isComplete = studentProgress && studentProgress.paid >= studentProgress.total && studentProgress.total > 0;
-                                            return (
-                                                <TableRow key={student.id}>
-                                                    <TableCell className="font-medium">{student.full_name}</TableCell>
-                                                    <TableCell>
-                                                        {studentProgress ? (
-                                                            <div className="flex flex-col gap-1">
-                                                                <span className={cn("text-xs font-bold", isComplete ? "text-emerald-600" : "text-amber-600")}>
-                                                                    {studentProgress.paid} / {studentProgress.total} pg
-                                                                </span>
-                                                                <Progress
-                                                                    value={(studentProgress.paid / studentProgress.total) * 100}
-                                                                    className="h-1.5 w-32"
-                                                                />
-                                                            </div>
-                                                        ) : <span className="text-xs text-muted-foreground italic">Sem parcelas</span>}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button variant="outline" size="sm" onClick={() => setSelectedStudentId(student.id)}>
-                                                            <Wallet className="h-4 w-4 mr-2" /> Detalhes
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
+                                    );
+                                })}
+                                {filteredStudents?.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
+                                            Nenhum aluno encontrado.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
 
                 <StudentFinancialDialog
                     open={!!selectedStudentId}
@@ -330,11 +333,12 @@ export default function GraduationClassDetailPage() {
                     studentId={selectedStudentId}
                 />
 
-                {classId && graduation && students && (
-                    <ChargeBatchModal
-                        open={openChargeBatch}
-                        onOpenChange={setOpenChargeBatch}
-                        graduationId={graduation.id}
+
+
+                {classId && students && (
+                    <PaymentBatchModal
+                        open={openPaymentBatch}
+                        onOpenChange={setOpenPaymentBatch}
                         classId={classId}
                         students={students.map(s => ({ id: s.id, full_name: s.full_name }))}
                     />
@@ -348,18 +352,5 @@ export default function GraduationClassDetailPage() {
                 </Dialog>
             </div>
         </DashboardLayout>
-    );
-}
-
-function StudentForm({ onSubmit, isLoading }: any) {
-    const [name, setName] = useState("");
-    return (
-        <form onSubmit={(e) => { e.preventDefault(); onSubmit(name); }} className="space-y-4">
-            <div className="grid gap-2">
-                <Label>Nome Completo</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nome do aluno" required />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin" /> : "Cadastrar Aluno"}</Button>
-        </form>
     );
 }
