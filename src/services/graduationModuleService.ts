@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import ExcelJS from "exceljs";
+
 
 // --- Types ---
 
@@ -21,17 +23,20 @@ export interface GraduationConfig {
 export interface Graduation {
     id: string;
     name: string;
-    reference_year: number;
+    year: number;
     active: boolean;
     slug?: string;
 }
+
 
 export interface GraduationClass {
     id: string;
     graduation_id: string;
     name: string;
     active: boolean;
+    slug?: string;
 }
+
 
 export interface GraduationStudent {
     id: string;
@@ -88,7 +93,7 @@ export const graduationModuleService = {
 
             .select('*')
             .eq('active', true)
-            .order('reference_year', { ascending: false });
+            .order('year', { ascending: false });
 
         if (error) throw error;
         return data as unknown as Graduation[];
@@ -106,14 +111,14 @@ export const graduationModuleService = {
         return data as unknown as Graduation;
     },
 
-    async createGraduation(name: string, reference_year: number): Promise<Graduation> {
+    async createGraduation(name: string, year: number): Promise<Graduation> {
         // Simple slug generation: name-year (e.g. "formatura-3-ano-2026")
-        const slug = `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}-${reference_year}`.replace(/^-+|-+$/g, '');
+        const slug = `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}-${year}`.replace(/^-+|-+$/g, '');
 
         const { data, error } = await supabase
             .from('graduations' as any)
 
-            .insert({ name, reference_year, active: true, slug })
+            .insert({ name, year, active: true, slug })
             .select()
             .single();
 
@@ -155,16 +160,161 @@ export const graduationModuleService = {
     },
 
     async createClass(graduationId: string, name: string): Promise<GraduationClass> {
+        // Simple slug generation for class
+        const slug = `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}`.replace(/^-+|-+$/g, '');
+
         const { data, error } = await supabase
             .from('graduation_classes' as any)
-
-            .insert({ graduation_id: graduationId, name, active: true })
+            .insert({ graduation_id: graduationId, name, active: true, slug })
             .select()
             .single();
 
         if (error) throw error;
         return data as unknown as GraduationClass;
     },
+
+    async updateClass(id: string, name: string): Promise<void> {
+        const { error } = await supabase
+            .from('graduation_classes' as any)
+            .update({ name })
+            .eq('id', id);
+        if (error) throw error;
+    },
+
+    async softDeleteClass(id: string): Promise<void> {
+        const { error } = await supabase
+            .from('graduation_classes' as any)
+            .update({ active: false })
+            .eq('id', id);
+        if (error) throw error;
+    },
+
+    async getClassBySlug(graduationId: string, slug: string): Promise<GraduationClass> {
+        // Tenta buscar por slug
+        const { data, error } = await supabase
+            .from('graduation_classes' as any)
+            .select('*')
+            .eq('graduation_id', graduationId)
+            .eq('slug', slug)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) return data as unknown as GraduationClass;
+
+        // Se não achou por slug e o parâmetro parece um UUID, tenta buscar por ID
+        // Isso mantem compatibilidade com links antigos ou turmas sem slug
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)) {
+            const { data: dataId, error: errorId } = await supabase
+                .from('graduation_classes' as any)
+                .select('*')
+                .eq('graduation_id', graduationId)
+                .eq('id', slug)
+                .maybeSingle();
+
+            if (errorId) throw errorId;
+            if (dataId) return dataId as unknown as GraduationClass;
+        }
+
+        throw new Error("Turma não encontrada");
+    },
+
+
+    async generateInstallmentsForStudent(studentId: string): Promise<void> {
+        const { data: student, error: stError } = await supabase
+            .from('graduation_class_students' as any)
+            .select('class_id')
+            .eq('id', studentId)
+            .single();
+
+        if (stError) throw stError;
+        const classId = (student as any).class_id;
+
+        const resultCls = await supabase.from('graduation_classes' as any).select('graduation_id').eq('id', classId).single();
+        const cls = resultCls.data as any;
+
+        if (!cls) throw new Error("Turma não encontrada");
+
+        const config = await this.getCurrentConfig(cls.graduation_id);
+        if (!config) throw new Error("Nenhuma configuração vigente encontrada");
+
+        const resultGrad = await supabase.from('graduations' as any).select('year').eq('id', cls.graduation_id).single();
+        const baseYear = (resultGrad.data as any)?.year || 2026;
+
+        const obligationsToInsert: any[] = [];
+        for (let i = 1; i <= config.installments_count; i++) {
+            const monthIndex = (config.start_month - 1) + (i - 1);
+            const dueDate = new Date(baseYear, monthIndex, config.due_day);
+
+            obligationsToInsert.push({
+                graduation_id: cls.graduation_id,
+                class_id: classId,
+                student_id: studentId,
+                kind: 'MENSALIDADE',
+                reference_label: `Parcela ${i.toString().padStart(2, '0')}/${config.installments_count}`,
+                installment_number: i,
+                amount: config.installment_value,
+                due_date: dueDate.toISOString().split('T')[0],
+                status: 'EM_ABERTO'
+            });
+        }
+
+        const { error } = await supabase
+            .from('graduation_student_obligations' as any)
+            .upsert(obligationsToInsert, {
+                onConflict: 'student_id, kind, installment_number',
+                ignoreDuplicates: true
+            });
+
+        if (error) throw error;
+    },
+
+    async importStudentsFromExcel(classId: string, file: File): Promise<{ count: number, installmentsCount: number, errors: string[] }> {
+        const workbook = new ExcelJS.Workbook();
+        const arrayBuffer = await file.arrayBuffer();
+        await workbook.xlsx.load(arrayBuffer);
+
+        const worksheet = workbook.getWorksheet(1);
+        const names: string[] = [];
+
+        if (worksheet) {
+            worksheet.eachRow((row, rowNumber) => {
+                const value = row.getCell(1).value;
+                if (value && typeof value === 'string' && rowNumber > 1) {
+                    names.push(value.trim());
+                } else if (value && typeof value === 'string' && rowNumber === 1 && !value.toLowerCase().includes('nome')) {
+                    names.push(value.trim());
+                }
+            });
+        }
+
+        if (names.length === 0) throw new Error("Nenhum nome encontrado na primeira coluna.");
+
+        let count = 0;
+        let installmentsCount = 0;
+        const errors: string[] = [];
+
+        for (const name of names) {
+            try {
+                const student = await this.createStudent(classId, name);
+                count++;
+                try {
+                    await this.generateInstallmentsForStudent(student.id);
+                    installmentsCount++;
+                } catch (installErr: any) {
+                    console.warn(`Erro ao gerar carnê para ${name}:`, installErr);
+                    // Não falha a importação do aluno, apenas do carnê
+                }
+            } catch (err: any) {
+                console.error(`Erro ao importar ${name}:`, err);
+                errors.push(`Falha ao importar ${name}: ${err.message}`);
+            }
+        }
+
+        return { count, installmentsCount, errors };
+    },
+
+
 
     // --- Students ---
 
@@ -487,8 +637,9 @@ export const graduationModuleService = {
         const students = await this.listStudents(classId);
 
         const obligationsToInsert: any[] = [];
-        const resultGrad = await supabase.from('graduations' as any).select('reference_year').eq('id', cls.graduation_id).single();
-        const baseYear = (resultGrad.data as any)?.reference_year || 2026;
+        const resultGrad = await supabase.from('graduations' as any).select('year').eq('id', cls.graduation_id).single();
+        const baseYear = (resultGrad.data as any)?.year || 2026;
+
 
         for (const student of students) {
             for (let i = 1; i <= config.installments_count; i++) {

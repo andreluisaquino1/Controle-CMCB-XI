@@ -7,7 +7,7 @@ import { useVoidTransaction } from "@/hooks/use-transactions";
 import { useEntitiesWithAccounts, useCreateAccount, useUpdateAccount, useDeactivateAccount, useActivateAccount } from "@/hooks/use-accounts";
 import { useMerchants } from "@/hooks/use-merchants";
 import { useRecursosTransactions } from "@/hooks/use-entity-transactions";
-import { getTodayString } from "@/lib/date-utils";
+import { getTodayString, formatDateString } from "@/lib/date-utils";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { cleanAccountDisplayName } from "@/lib/account-display";
 import { ActionCard } from "@/components/ActionCard";
@@ -27,6 +27,8 @@ import { Switch } from "@/components/ui/switch";
 import { Account } from "@/types";
 import { ListPlus } from "lucide-react";
 import { TransactionExportActions } from "@/components/transactions/TransactionExportActions";
+import { TransactionFilters } from "@/components/transactions/TransactionFilters";
+import { startOfMonth } from "date-fns";
 
 export default function RecursosPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
@@ -37,8 +39,14 @@ export default function RecursosPage() {
   const [voidReason, setVoidReason] = useState("");
   const [showInactive, setShowInactive] = useState(false);
 
+  const [dateRange, setDateRange] = useState({
+    start: formatDateString(startOfMonth(new Date())),
+    end: getTodayString()
+  });
+  const [searchTerm, setSearchTerm] = useState("");
+
   const { data: entitiesData, isLoading: entitiesLoading, refetch: refetchEntities } = useEntitiesWithAccounts(showInactive);
-  const { data: transactions, isLoading: transactionsLoading } = useRecursosTransactions();
+  const { data: transactions, isLoading: transactionsLoading } = useRecursosTransactions(dateRange.start, dateRange.end);
   const { data: merchantsData } = useMerchants();
 
   // Account Management
@@ -445,8 +453,38 @@ export default function RecursosPage() {
             </div>
           </CardHeader>
           <CardContent>
+            <TransactionFilters
+              startDate={dateRange.start}
+              endDate={dateRange.end}
+              onDateChange={(start, end) => setDateRange({ start, end })}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              onClear={() => {
+                setDateRange({
+                  start: formatDateString(startOfMonth(new Date())),
+                  end: getTodayString()
+                });
+                setSearchTerm("");
+              }}
+              isLoading={transactionsLoading}
+            />
             <TransactionTable
-              transactions={transactions || []}
+              transactions={transactions?.filter(t => {
+                if (!searchTerm) return true;
+
+                const searchLower = searchTerm.toLowerCase();
+                const description = t.description?.toLowerCase() || '';
+                const amount = t.amount?.toString() || '';
+                const tx = t as any;
+                const accountName = tx.account?.name?.toLowerCase() || '';
+                const obs = tx.metadata && typeof tx.metadata === 'object' ?
+                  (tx.metadata.observation || tx.metadata.notes || '').toLowerCase() : '';
+
+                return description.includes(searchLower) ||
+                  amount.includes(searchLower) ||
+                  accountName.includes(searchLower) ||
+                  obs.includes(searchLower);
+              }) || []}
               isLoading={transactionsLoading}
               showOrigin={true}
               showAccount={true}

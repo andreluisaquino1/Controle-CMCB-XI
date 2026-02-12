@@ -36,7 +36,7 @@ import { useSaldosTransactions } from "@/hooks/use-entity-transactions";
 import { CurrencyInput } from "@/components/forms/CurrencyInput";
 import { DateInput } from "@/components/forms/DateInput";
 import { formatCurrencyBRL } from "@/lib/currency";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, formatDateString, getTodayString } from "@/lib/date-utils";
 import { cleanAccountDisplayName } from "@/lib/account-display";
 import { MODULE_LABELS, sortByAccountOrder } from "@/lib/constants";
 import { useSaldosActions } from "@/hooks/use-saldos-actions";
@@ -45,13 +45,21 @@ import { AporteSaldoDialog } from "@/components/forms/AporteSaldoDialog";
 import { ConsumoSaldoDialog } from "@/components/forms/ConsumoSaldoDialog";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
 import { TransactionExportActions } from "@/components/transactions/TransactionExportActions";
+import { TransactionFilters } from "@/components/transactions/TransactionFilters";
+import { startOfMonth } from "date-fns";
 
 export default function SaldosPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [dateRange, setDateRange] = useState({
+    start: formatDateString(startOfMonth(new Date())),
+    end: getTodayString()
+  });
+  const [searchTerm, setSearchTerm] = useState("");
+
   const { data: merchants, refetch: refetchMerchants } = useMerchants(showInactive);
   const { data: entitiesData } = useEntitiesWithAccounts();
-  const { data: transactions, isLoading: transactionsLoading } = useSaldosTransactions();
+  const { data: transactions, isLoading: transactionsLoading } = useSaldosTransactions(dateRange.start, dateRange.end);
   const voidTransaction = useVoidTransaction();
 
   const {
@@ -357,12 +365,46 @@ export default function SaldosPage() {
                 <ScrollText className="h-5 w-5 text-primary" />
                 Histórico de Saldos nos Estabelecimentos
               </CardTitle>
-              <TransactionExportActions transactions={transactions} filename="saldos_relatorio" />
+              <TransactionExportActions transactions={transactions || []} filename="saldos_relatorio" />
             </div>
           </CardHeader>
           <CardContent>
+            <TransactionFilters
+              startDate={dateRange.start}
+              endDate={dateRange.end}
+              onDateChange={(start, end) => setDateRange({ start, end })}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              onClear={() => {
+                setDateRange({
+                  start: formatDateString(startOfMonth(new Date())),
+                  end: getTodayString()
+                });
+                setSearchTerm("");
+              }}
+              isLoading={transactionsLoading}
+            />
             <TransactionTable
-              transactions={transactions}
+              transactions={transactions?.filter(t => {
+                if (!searchTerm) return true;
+
+                const searchLower = searchTerm.toLowerCase();
+                const description = t.description?.toLowerCase() || '';
+                const amount = t.amount?.toString() || '';
+                const tx = t as any;
+                const merchantName = tx.merchant?.name?.toLowerCase() || '';
+                const accountName = tx.account?.name?.toLowerCase() || '';
+                const category = tx.category?.toLowerCase() || '';
+                const obs = tx.metadata && typeof tx.metadata === 'object' ?
+                  (tx.metadata.observation || tx.metadata.notes || '').toLowerCase() : '';
+
+                return description.includes(searchLower) ||
+                  amount.includes(searchLower) ||
+                  merchantName.includes(searchLower) ||
+                  accountName.includes(searchLower) ||
+                  category.includes(searchLower) ||
+                  obs.includes(searchLower);
+              }) || []}
               isLoading={transactionsLoading}
               onVoid={(id) => setVoidingId(id)}
               showMerchant={true}

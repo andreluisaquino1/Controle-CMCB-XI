@@ -48,6 +48,8 @@ import { PixFeeBatchDialog } from "@/components/forms/PixFeeBatchDialog";
 import { PixNaoIdentificadoDialog } from "@/components/forms/PixNaoIdentificadoDialog";
 import { FileText, Ghost, ListPlus } from "lucide-react";
 import { TransactionExportActions } from "@/components/transactions/TransactionExportActions";
+import { TransactionFilters } from "@/components/transactions/TransactionFilters";
+import { startOfMonth } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApproveTransaction } from "@/hooks/use-transactions";
 import { useReportData } from "@/hooks/use-dashboard-data";
@@ -56,10 +58,16 @@ import { getWeekStartDate, formatDateString, getTodayString } from "@/lib/date-u
 export default function AssociacaoPage() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [dateRange, setDateRange] = useState({
+    start: formatDateString(startOfMonth(new Date())),
+    end: getTodayString()
+  });
+  const [searchTerm, setSearchTerm] = useState("");
+
   const voidTransaction = useVoidTransaction();
   const { data: accounts, isLoading: accountsLoading } = useAssociacaoAccounts();
   const { data: entities } = useEntities();
-  const { data: transitions, isLoading: transactionsLoading } = useAssociacaoTransactions();
+  const { data: transitions, isLoading: transactionsLoading } = useAssociacaoTransactions(dateRange.start, dateRange.end);
   const { isSecretaria, isAdmin, profile } = useAuth();
   const approveTransaction = useApproveTransaction();
 
@@ -125,17 +133,32 @@ export default function AssociacaoPage() {
     return name;
   };
 
-  const selectedSourceAccount = accounts?.find(a => a.id === mov.de);
+  const totalBalance = (Number(specieAccount?.balance || 0)) +
+    (Number(pixAccount?.balance || 0)) +
+    (Number(contaDigitalAccount?.balance || 0)) +
+    (Number(cofreAccount?.balance || 0));
 
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
         {/* Page Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Associação</h1>
-          <p className="text-muted-foreground">
-            Gestão de mensalidades, gastos e movimentações
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Associação</h1>
+            <p className="text-muted-foreground">
+              Gestão de mensalidades, gastos e movimentações
+            </p>
+          </div>
+          {!isSecretaria && (
+            <div className="bg-primary/10 px-3 py-1.5 rounded-full flex items-center gap-2 border border-primary/20">
+              <span className="text-xs font-semibold text-primary uppercase tracking-wider">Saldo Total</span>
+              {accountsLoading ? (
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+              ) : (
+                <span className="text-sm font-bold text-foreground tabular-nums">{formatCurrencyBRL(totalBalance)}</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Balances */}
@@ -159,6 +182,7 @@ export default function AssociacaoPage() {
             </Card>
           ) : (
             <>
+
               <Card className="stat-card-primary">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -298,119 +322,158 @@ export default function AssociacaoPage() {
         </div>
 
 
-        {/* Transactions Table */}
-        <Card>
-          <CardHeader>
-            <div className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Building2 className="h-5 w-5 text-primary" />
-                Histórico da Associação
-              </CardTitle>
-              <TransactionExportActions transactions={transitions} filename="associacao_relatorio" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <TransactionTable
-              transactions={isSecretaria
-                ? transitions?.filter(t => t.created_by === profile?.user_id)
-                : transitions}
-              isLoading={transactionsLoading}
-              onVoid={(id) => setVoidingId(id)}
-              onValidate={!isSecretaria ? (id) => approveTransaction.mutate(id) : undefined}
-              isValidating={approveTransaction.isPending}
-              showShift={true}
-              showMethod={true}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Footer Info Section - Collapsible */}
-        <Card className="bg-muted/30 border-dashed overflow-hidden">
-          <CardHeader
-            className="py-3 cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => setShowInfo(!showInfo)}
-          >
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-md font-semibold text-muted-foreground">
-                <Building2 className="h-4 w-4" />
-                Informações da Associação CMCB-XI
-              </CardTitle>
-              {showInfo ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </div>
-          </CardHeader>
-          {showInfo && (
-            <CardContent className="pt-2 pb-6 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <h4 className="font-bold text-foreground">Institucional:</h4>
-                    <p className="text-sm text-muted-foreground"><strong>CNPJ:</strong> 37.812.756/0001-45</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Responsável pela gestão das mensalidades voluntárias e custeio das despesas operacionais.
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-bold text-foreground mb-2">Canais de Recebimento:</h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="bg-background/50 p-2 rounded border border-border/50 text-[11px]">
-                      <span className="font-semibold block">PIX (Banco do Brasil)</span>
-                      Ag: 0782-0 | CC: 36500-9
-                    </div>
-                    <div className="bg-background/50 p-2 rounded border border-border/50 text-[11px]">
-                      <span className="font-semibold block">Escolaweb</span>
-                      Mensalidades recorrentes e sistema de taxas.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          )}
-        </Card>
-
-        {/* Void Transaction Dialog */}
-        <Dialog open={!!voidingId} onOpenChange={(open) => !open && setVoidingId(null)}>
-          <DialogContent className="w-[95vw] max-w-md border-destructive/20">
-            <DialogHeader>
-              <DialogTitle className="text-destructive flex items-center gap-2">
-                <XCircle className="h-5 w-5" />
-                Anular Lançamento
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="void-reason-assoc">Motivo da Anulação <span className="text-destructive">*</span></Label>
-                <Input
-                  id="void-reason-assoc"
-                  value={voidReason}
-                  onChange={(e) => setVoidReason(e.target.value)}
-                  placeholder="Ex: Valor digitado errado"
-                  autoFocus
-                />
-                <p className="text-[10px] text-muted-foreground italic">Mínimo de 3 caracteres para confirmar.</p>
-              </div>
-              <div className="p-3 bg-destructive/5 border border-destructive/20 rounded-md">
-                <p className="text-xs text-destructive-foreground font-medium">
-                  <strong>Atenção:</strong> Esta ação é irreversível e reverterá o impacto financeiro no saldo das contas envolvidas imediatamente.
-                </p>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setVoidingId(null)}>
-                  Voltar
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="flex-1"
-                  onClick={handleVoidTx}
-                  disabled={voidTransaction.isPending || voidReason.trim().length < 3}
-                >
-                  {voidTransaction.isPending ? "Anulando..." : "Confirmar Anulação"}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
+
+      <TransactionFilters
+        startDate={dateRange.start}
+        endDate={dateRange.end}
+        onDateChange={(start, end) => setDateRange({ start, end })}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onClear={() => {
+          setDateRange({
+            start: formatDateString(startOfMonth(new Date())),
+            end: getTodayString()
+          });
+          setSearchTerm("");
+        }}
+        isLoading={transactionsLoading}
+      />
+
+      {/* Transactions Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Building2 className="h-5 w-5 text-primary" />
+              Histórico da Associação
+            </CardTitle>
+            <TransactionExportActions transactions={transitions} filename="associacao_relatorio" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <TransactionTable
+            transactions={transitions?.filter(t => {
+              // Status Filter
+              if (t.status === 'voided') return false;
+
+              // Permission Filter
+              if (isSecretaria && t.created_by !== profile?.user_id) return false;
+
+              // Search Filter
+              if (!searchTerm) return true;
+
+              const searchLower = searchTerm.toLowerCase();
+              const description = t.description?.toLowerCase() || '';
+              const amount = t.amount?.toString() || '';
+              const tx = t as any;
+              const accountName = tx.account?.name?.toLowerCase() || '';
+              const category = tx.category?.toLowerCase() || '';
+              const obs = tx.metadata && typeof tx.metadata === 'object' ?
+                (tx.metadata.observation || tx.metadata.notes || '').toLowerCase() : '';
+
+              return description.includes(searchLower) ||
+                amount.includes(searchLower) ||
+                accountName.includes(searchLower) ||
+                category.includes(searchLower) ||
+                obs.includes(searchLower);
+            }) || []}
+            isLoading={transactionsLoading}
+            onVoid={(id) => setVoidingId(id)}
+            onValidate={!isSecretaria ? (id) => approveTransaction.mutate(id) : undefined}
+            isValidating={approveTransaction.isPending}
+            showShift={true}
+            showMethod={true}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Footer Info Section - Collapsible */}
+      <Card className="bg-muted/30 border-dashed overflow-hidden">
+        <CardHeader
+          className="py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => setShowInfo(!showInfo)}
+        >
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-md font-semibold text-muted-foreground">
+              <Building2 className="h-4 w-4" />
+              Informações da Associação CMCB-XI
+            </CardTitle>
+            {showInfo ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </div>
+        </CardHeader>
+        {showInfo && (
+          <CardContent className="pt-2 pb-6 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <h4 className="font-bold text-foreground">Institucional:</h4>
+                  <p className="text-sm text-muted-foreground"><strong>CNPJ:</strong> 37.812.756/0001-45</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Responsável pela gestão das mensalidades voluntárias e custeio das despesas operacionais.
+                  </p>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-bold text-foreground mb-2">Canais de Recebimento:</h4>
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="bg-background/50 p-2 rounded border border-border/50 text-[11px]">
+                    <span className="font-semibold block">PIX (Banco do Brasil)</span>
+                    Ag: 0782-0 | CC: 36500-9
+                  </div>
+                  <div className="bg-background/50 p-2 rounded border border-border/50 text-[11px]">
+                    <span className="font-semibold block">Escolaweb</span>
+                    Mensalidades recorrentes e sistema de taxas.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Void Transaction Dialog */}
+      <Dialog open={!!voidingId} onOpenChange={(open) => !open && setVoidingId(null)}>
+        <DialogContent className="w-[95vw] max-w-md border-destructive/20">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <XCircle className="h-5 w-5" />
+              Anular Lançamento
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="void-reason-assoc">Motivo da Anulação <span className="text-destructive">*</span></Label>
+              <Input
+                id="void-reason-assoc"
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                placeholder="Ex: Valor digitado errado"
+                autoFocus
+              />
+              <p className="text-[10px] text-muted-foreground italic">Mínimo de 3 caracteres para confirmar.</p>
+            </div>
+            <div className="p-3 bg-destructive/5 border border-destructive/20 rounded-md">
+              <p className="text-xs text-destructive-foreground font-medium">
+                <strong>Atenção:</strong> Esta ação é irreversível e reverterá o impacto financeiro no saldo das contas envolvidas imediatamente.
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setVoidingId(null)}>
+                Voltar
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={handleVoidTx}
+                disabled={voidTransaction.isPending || voidReason.trim().length < 3}
+              >
+                {voidTransaction.isPending ? "Anulando..." : "Confirmar Anulação"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialogs shifted outside the main content for better organization */}
       <MensalidadeDialog

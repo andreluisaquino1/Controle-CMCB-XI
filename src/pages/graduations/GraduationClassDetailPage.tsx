@@ -24,10 +24,10 @@ import { Progress } from "@/components/ui/progress";
 
 export default function GraduationClassDetailPage() {
     const { slug, classSlug } = useParams();
-    const classId = classSlug; // As agreed, classSlug is actually the ID
     const queryClient = useQueryClient();
     const [openStudent, setOpenStudent] = useState(false);
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+    const [importing, setImporting] = useState(false);
 
     // 1. Get Graduation (for context)
     const { data: graduation } = useQuery({
@@ -36,17 +36,19 @@ export default function GraduationClassDetailPage() {
         enabled: !!slug,
     });
 
+
+
     // 2. Get Class
     const { data: classData, isLoading: loadingClass } = useQuery({
-        queryKey: ["graduation-class", classId],
+        queryKey: ["graduation-class", slug, classSlug],
         queryFn: async () => {
             if (!graduation) return null;
-            // Fetch list and find (requires graduation to be loaded)
-            const classes = await graduationModuleService.listClasses(graduation.id);
-            return classes.find(c => c.id === classId);
+            return graduationModuleService.getClassBySlug(graduation.id, classSlug!);
         },
-        enabled: !!classId && !!graduation
+        enabled: !!classSlug && !!graduation
     });
+
+    const classId = classData?.id;
 
     // 3. Get Students
     const { data: students, isLoading: loadingStudents } = useQuery({
@@ -61,6 +63,52 @@ export default function GraduationClassDetailPage() {
         queryFn: () => graduationModuleService.getStudentsProgress(classId!),
         enabled: !!classId
     });
+
+    const mutationImport = useMutation({
+        mutationFn: ({ classId, file }: { classId: string, file: File }) => graduationModuleService.importStudentsFromExcel(classId, file),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["graduation-students"] });
+            queryClient.invalidateQueries({ queryKey: ["graduation-students-progress"] });
+
+            if (data.count > 0) {
+                let msg = `${data.count} alunos importados com sucesso!`;
+                if (data.installmentsCount > 0) {
+                    msg += `\n${data.installmentsCount} carnês gerados.`;
+                } else {
+                    msg += `\nNenhum carnê gerado (verifique se há configuração financeira vigente).`;
+                    toast.warning("Alunos importados, mas sem carnês. Configure o financeiro primeiro.", { duration: 5000 });
+                }
+
+                if (data.errors.length > 0) {
+                    msg += `\n${data.errors.length} erros encontrados.`;
+                }
+
+                toast.success(msg);
+            } else {
+                toast.warning("Nenhum aluno foi importado.");
+            }
+
+            setImporting(false);
+        },
+        onError: (err: any) => {
+            toast.error("Erro na importação: " + err.message);
+            setImporting(false);
+        }
+    });
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file && classId) {
+            if (confirm(`Deseja importar alunos do arquivo "${file.name}"? Isso criará os alunos e gerará os carnês automaticamente.`)) {
+                setImporting(true);
+                mutationImport.mutate({ classId, file });
+            }
+            // Reset input
+            e.target.value = "";
+        }
+    };
+
+
 
     const mutationStudent = useMutation({
         mutationFn: (name: string) => graduationModuleService.createStudent(classId!, name),
@@ -114,14 +162,31 @@ export default function GraduationClassDetailPage() {
                             </h1>
                             <p className="text-muted-foreground">{graduation.name}</p>
                         </div>
-                        <div className="flex gap-2">
-                            <Button onClick={handleGenerateCarnets} variant="outline" className="gap-2">
+                        <div className="flex flex-wrap gap-2">
+                            <Button onClick={handleGenerateCarnets} variant="outline" size="sm" className="gap-2">
                                 <FileText className="h-4 w-4" /> Gerar Carnês (Lote)
                             </Button>
-                            <Button onClick={() => setOpenStudent(true)} className="gap-2">
-                                <Plus className="h-4 w-4" /> Adicionar Aluno
+                            <div className="relative">
+                                <input
+                                    type="file"
+                                    accept=".xlsx, .xls"
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    onChange={handleFileUpload}
+                                    disabled={importing}
+                                    aria-label="Importar Excel"
+                                />
+
+                                <Button variant="outline" size="sm" className="gap-2" disabled={importing}>
+                                    {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                                    Importar Excel
+                                </Button>
+                            </div>
+                            <Button onClick={() => setOpenStudent(true)} size="sm" className="gap-2">
+                                <Plus className="h-4 w-4" />
+                                Novo Aluno
                             </Button>
                         </div>
+
                     </div>
                 </header>
 

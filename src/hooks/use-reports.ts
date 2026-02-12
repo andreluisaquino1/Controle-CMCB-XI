@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { toast } from "sonner";
 import { formatCurrencyBRL } from '@/lib/currency';
 import { formatDateBR } from '@/lib/date-utils';
@@ -31,8 +31,42 @@ export function useReports(
     transactions: TransactionWithCreator[] | undefined,
     showResources: boolean
 ) {
+    // Calcular resumo localmente para incluir transações legadas e garantir consistência
+    const summary = useMemo(() => {
+        if (!transactions) return null;
+
+        return transactions.reduce((acc, t) => {
+            const amount = Number(t.amount);
+
+            // Entradas
+            if (t.module === 'mensalidade' && t.payment_method === 'cash') acc.weeklyEntriesCash += amount;
+            else if ((t.module === 'mensalidade' && t.payment_method === 'pix') || t.module === 'mensalidade_pix') acc.weeklyEntriesPix += amount;
+            else if (t.module === 'pix_nao_identificado') acc.weeklyEntriesPixNaoIdentificado += amount;
+
+            // Saídas
+            else if (t.module === 'gasto_associacao' && t.payment_method === 'cash') acc.weeklyExpensesCash += amount;
+            else if (t.module === 'gasto_associacao' && t.payment_method === 'pix') acc.weeklyExpensesPix += amount;
+            else if (t.module === 'conta_digital_taxa') acc.weeklyExpensesDigital += amount;
+            // Para transferências/saídas da conta digital, verificamos a conta de origem
+            else if (t.source_account_name?.includes('Escolaweb') || t.source_account_name?.includes('Conta Digital')) {
+                if (['gasto_associacao', 'transferencia', 'saque'].includes(t.module)) {
+                    acc.weeklyExpensesDigital += amount;
+                }
+            }
+
+            return acc;
+        }, {
+            weeklyEntriesCash: 0,
+            weeklyEntriesPix: 0,
+            weeklyEntriesPixNaoIdentificado: 0,
+            weeklyExpensesCash: 0,
+            weeklyExpensesPix: 0,
+            weeklyExpensesDigital: 0
+        });
+    }, [transactions]);
+
     const getWhatsAppReportText = useCallback(() => {
-        if (!dashboardData || !reportData) {
+        if (!dashboardData || !summary) {
             return "Carregando dados...";
         }
 
@@ -45,20 +79,26 @@ export function useReports(
             }).join("\n");
         };
 
+
         // 2.1 Associação
         const saldosAtuaisLines = [
             `Espécie: ${formatCurrencyBRL(dashboardData.especieBalance)}`,
             `PIX (Conta BB): ${formatCurrencyBRL(dashboardData.pixBalance)}`,
-            `Conta Digital (Escolaweb): ${formatCurrencyBRL(dashboardData.contaDigitalBalance)}`,
-            `Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}`
+            `Conta Digital (Escolaweb): ${formatCurrencyBRL(dashboardData.contaDigitalBalance)}`
         ];
 
+        if (dashboardData.cofreBalance > 0) {
+            saldosAtuaisLines.push(`Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}`);
+        }
+
+        const totalSaldos = dashboardData.especieBalance + dashboardData.pixBalance + dashboardData.contaDigitalBalance + dashboardData.cofreBalance;
+        saldosAtuaisLines.push(`Total Geral: ${formatCurrencyBRL(totalSaldos)}`);
+
         const resumoLines = [
-            `Entradas (Espécie): ${formatCurrencyBRL(reportData.weeklyEntriesCash)}`,
-            `Entradas (PIX): ${formatCurrencyBRL(reportData.weeklyEntriesPix)}`,
-            `Saídas (Espécie): ${formatCurrencyBRL(reportData.weeklyExpensesCash)}`,
-            `Saídas (PIX): ${formatCurrencyBRL(reportData.weeklyExpensesPix)}`,
-            `Saídas (Conta Digital): ${formatCurrencyBRL(reportData.weeklyExpensesDigital)}`
+            `Entradas (Espécie): ${formatCurrencyBRL(summary.weeklyEntriesCash)}`,
+            `Entradas (PIX): ${formatCurrencyBRL(summary.weeklyEntriesPix)}`,
+            `Saídas (Espécie): ${formatCurrencyBRL(summary.weeklyExpensesCash)}`,
+            `Saídas (PIX): ${formatCurrencyBRL(summary.weeklyExpensesPix)}`
         ];
 
         const associacaoSection = `
@@ -107,7 +147,7 @@ ${cxBlock}
         ].filter(Boolean);
 
         return parts.join('\n\n');
-    }, [dashboardData, reportData, startDate, endDate, showResources]);
+    }, [dashboardData, summary, startDate, endDate, showResources]);
 
     const copyReport = useCallback(() => {
         const text = getWhatsAppReportText();
@@ -130,7 +170,7 @@ ${cxBlock}
     }, [getWhatsAppReportText]);
 
     const exportPDF = useCallback(async () => {
-        if (!dashboardData || !reportData || !transactions) {
+        if (!dashboardData || !summary || !transactions) {
             toast.error("Aguarde o carregamento dos dados.");
             return;
         }
@@ -228,6 +268,13 @@ ${cxBlock}
         doc.text(`Conta Digital (Escolaweb): ${formatCurrencyBRL(dashboardData.contaDigitalBalance)}`, 22, yPos);
         yPos += 5;
         doc.text(`Cofre: ${formatCurrencyBRL(dashboardData.cofreBalance)}`, 22, yPos);
+        yPos += 6;
+
+        // Total Geral da Associação
+        const associationTotal = dashboardData.especieBalance + dashboardData.pixBalance + dashboardData.contaDigitalBalance + dashboardData.cofreBalance;
+        doc.setFont(undefined, 'bold');
+        doc.text(`Total Geral da Associação: ${formatCurrencyBRL(associationTotal)}`, 22, yPos);
+        doc.setFont(undefined, 'normal');
         yPos += 10;
 
         // Bloco B: Resumo do Período
@@ -239,17 +286,15 @@ ${cxBlock}
         doc.setFont(undefined, 'normal');
         doc.setFontSize(10);
         doc.setTextColor(0, 128, 0); // Green for entries
-        doc.text(`Entradas (Espécie): ${formatCurrencyBRL(reportData.weeklyEntriesCash)}`, 22, yPos);
+        doc.text(`Entradas (Espécie): ${formatCurrencyBRL(summary.weeklyEntriesCash)}`, 22, yPos);
         yPos += 5;
-        doc.text(`Entradas (PIX): ${formatCurrencyBRL(reportData.weeklyEntriesPix)}`, 22, yPos);
+        doc.text(`Entradas (PIX): ${formatCurrencyBRL(summary.weeklyEntriesPix)}`, 22, yPos);
         yPos += 5;
 
         doc.setTextColor(204, 0, 0); // Red for expenses
-        doc.text(`Saídas (Espécie): ${formatCurrencyBRL(reportData.weeklyExpensesCash)}`, 22, yPos);
+        doc.text(`Saídas (Espécie): ${formatCurrencyBRL(summary.weeklyExpensesCash)}`, 22, yPos);
         yPos += 5;
-        doc.text(`Saídas (PIX): ${formatCurrencyBRL(reportData.weeklyExpensesPix)}`, 22, yPos);
-        yPos += 5;
-        doc.text(`Saídas (Conta Digital): ${formatCurrencyBRL(reportData.weeklyExpensesDigital)}`, 22, yPos);
+        doc.text(`Saídas (PIX): ${formatCurrencyBRL(summary.weeklyExpensesPix)}`, 22, yPos);
         yPos += 15;
 
         doc.setTextColor(0, 0, 0); // Reset to black
@@ -380,21 +425,26 @@ ${cxBlock}
 
         doc.setTextColor(0, 0, 0);
 
-        // Ordenar transações por data (decrescente)
-        const sortedTransactions = [...transactions].sort((a, b) =>
-            new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime()
-        );
+        // Ordenar e filtrar transações (remover anuladas)
+        const sortedTransactions = [...transactions]
+            .filter(t => t.status !== 'voided')
+            .sort((a, b) =>
+                new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime()
+            );
 
         // Prepare transaction data with humanized labels
         const tableData = sortedTransactions.map(t => {
             // Usar mapeamento correto de tipo
             const tipo = REPORT_TYPE_LABELS[t.module] || t.module;
 
-            // Determinar Origem/Conta corretamente
-            const origemConta = t.source_account_name || t.destination_account_name || "-";
-
             // Determinar Estabelecimento corretamente (usar merchant_name)
             const estabelecimento = t.merchant_name || "-";
+
+            // Determinar Origem/Conta corretamente (evitar duplicar nome do estabelecimento)
+            let origemConta = t.source_account_name || t.destination_account_name || "-";
+            if (estabelecimento !== "-" && origemConta === estabelecimento) {
+                origemConta = "-";
+            }
 
             return [
                 formatDateBR(t.transaction_date),
@@ -463,7 +513,7 @@ ${cxBlock}
 
         doc.save(`prestacao_contas_${endDate}.pdf`);
         toast.success("PDF gerado com sucesso!");
-    }, [dashboardData, reportData, transactions, startDate, endDate]);
+    }, [dashboardData, summary, transactions, startDate, endDate]);
 
     return {
         getWhatsAppReportText,

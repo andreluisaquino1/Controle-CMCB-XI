@@ -73,6 +73,25 @@ export default function FormaturasPage() {
         }
     });
 
+    const [editGrad, setEditGrad] = useState<Graduation | null>(null);
+    const [editGradName, setEditGradName] = useState("");
+
+    const updateMutation = useMutation({
+        mutationFn: async () => {
+            if (!editGrad || !editGradName) return;
+            await graduationModuleService.updateGraduation(editGrad.id, { name: editGradName });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["graduations-module"] });
+            toast.success("Formatura atualizada!");
+            setEditGrad(null);
+            setEditGradName("");
+        },
+        onError: (err) => {
+            toast.error(`Erro ao atualizar: ${err.message}`);
+        }
+    });
+
     const handleNavigate = (grad: Graduation) => {
         // Use slug if available, otherwise fallback to id (though route expects slug, logic in service creates slug)
         // If slug is missing for old records, we might have an issue. 
@@ -153,6 +172,32 @@ export default function FormaturasPage() {
                             </DialogContent>
                         </Dialog>
                     )}
+
+                    <Dialog open={!!editGrad} onOpenChange={(open) => !open && setEditGrad(null)}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Editar Formatura</DialogTitle>
+                                <DialogDescription>Alterar nome da formatura.</DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-name">Nome</Label>
+                                    <Input
+                                        id="edit-name"
+                                        value={editGradName}
+                                        onChange={(e) => setEditGradName(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setEditGrad(null)}>Cancelar</Button>
+                                <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending}>
+                                    {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Salvar Alterações
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </header>
 
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -176,6 +221,13 @@ export default function FormaturasPage() {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditGrad(grad);
+                                                setEditGradName(grad.name);
+                                            }}>
+                                                <Edit className="mr-2 h-4 w-4" /> Editar
+                                            </DropdownMenuItem>
                                             <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => {
                                                 e.stopPropagation();
                                                 if (confirm("Tem certeza que deseja inativar esta formatura?")) {
@@ -192,8 +244,9 @@ export default function FormaturasPage() {
                                 <CardTitle className="text-xl font-bold line-clamp-1">{grad.name}</CardTitle>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <Calendar className="h-3 w-3" />
-                                    {grad.reference_year}
+                                    {grad.year}
                                 </div>
+
                             </CardContent>
                             <CardFooter className="relative z-10 pt-2">
                                 <span className="text-xs text-primary font-medium flex items-center group-hover:underline">

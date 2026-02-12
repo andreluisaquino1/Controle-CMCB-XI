@@ -42,23 +42,9 @@ interface AuditLog {
     id: string;
     created_at: string;
     action: string;
-    reason: string | null;
-    before_json: Record<string, unknown>;
-    after_json: Record<string, unknown>;
-    profiles: { name: string | null } | null;
-    transactions: {
-        description: string | null;
-        amount: number;
-        module: string;
-        transaction_date: string;
-        direction: string;
-        origin_fund: string | null;
-        notes: string | null;
-        source: { name: string | null } | null;
-        destination: { name: string | null } | null;
-        merchant: { name: string | null } | null;
-        entity: { name: string | null; type: string } | null;
-    } | null;
+    before: Record<string, any>;
+    after: Record<string, any>;
+    actor_profile: { name: string | null } | null;
 }
 
 export default function LogPage() {
@@ -103,36 +89,30 @@ export default function LogPage() {
         queryKey: ["audit-logs", page, startDate, endDate, selectedUser, selectedAction],
         queryFn: async () => {
             let query = supabase
-                .from("audit_logs")
+                .from("ledger_audit_log")
                 .select(`
           id,
           created_at,
           action,
-          reason,
-          before_json,
-          after_json,
-          profiles:profiles!audit_logs_user_id_profiles_fkey(name),
-          transactions:transactions!audit_logs_transaction_id_fkey(
-            description, 
-            amount, 
-            module, 
-            transaction_date,
-            direction,
-            origin_fund,
-            notes,
-            source:accounts!transactions_source_account_id_fkey(name),
-            destination:accounts!transactions_destination_account_id_fkey(name),
-            merchant:merchants(name),
-            entity:entities(name, type)
-          )
-        `, { count: "exact" })
-                .neq("action", "create");
+          before,
+          after,
+          actor_profile:profiles!ledger_audit_log_actor_profiles_fkey(name)
+        `, { count: "exact" });
 
             if (startDate) query = query.gte("created_at", `${startDate}T00:00:00`);
             if (endDate) query = query.lte("created_at", `${endDate}T23:59:59`);
-            if (selectedUser !== "all") query = query.eq("user_id", selectedUser);
+            if (selectedUser !== "all") query = query.eq("actor", selectedUser);
+
             if (selectedAction !== "all") {
-                query = query.eq("action", selectedAction as Database["public"]["Enums"]["audit_action"]);
+                if (selectedAction === "void") {
+                    query = query.eq("action", "VOID_LEDGER");
+                } else if (selectedAction === "change") {
+                    // Mapeia para ações de segurança/config no futuro ou filtro atual
+                    query = query.eq("action", "SECURITY_CHANGE");
+                }
+            } else {
+                // Por padrão, esconde INSERT_LEDGER para focar em anulações e mudanças
+                query = query.neq("action", "INSERT_LEDGER");
             }
 
             const from = (page - 1) * pageSize;
@@ -298,8 +278,16 @@ export default function LogPage() {
                                         </TableHeader>
                                         <TableBody>
                                             {logs.map((log) => {
-                                                const t = log.transactions;
-                                                const isSecurity = log.action === 'change';
+                                                const data = log.after || log.before || {};
+                                                const isVoid = log.action === 'VOID_LEDGER';
+                                                const isSecurity = log.action === 'SECURITY_CHANGE';
+
+                                                // Extrair dados da transação do JSON
+                                                const amount = data.amount_cents ? Number(data.amount_cents) / 100 : 0;
+                                                const module = data.module;
+                                                const description = data.description || "Sem descrição";
+                                                const direction = data.type === 'income' ? 'in' : 'out';
+                                                const reason = data.metadata?.void_reason || log.reason || null;
 
                                                 return (
                                                     <TableRow key={log.id} className={isSecurity ? "bg-muted/5 italic" : "bg-card"}>
@@ -313,8 +301,8 @@ export default function LogPage() {
                                                                         <ShieldCheck className="h-3 w-3 mr-1" /> Segurança
                                                                     </Badge>
                                                                 ) : (
-                                                                    <Badge variant="outline" className={`${log.action === 'void' ? 'bg-destructive/5 text-destructive border-destructive/20' : 'bg-primary/5 text-primary border-primary/20'} text-[9px] px-1.5 h-5 uppercase`}>
-                                                                        {log.action === 'void' ? 'Anulação' : 'Ajuste'}
+                                                                    <Badge variant="outline" className={`${isVoid ? 'bg-destructive/5 text-destructive border-destructive/20' : 'bg-primary/5 text-primary border-primary/20'} text-[9px] px-1.5 h-5 uppercase`}>
+                                                                        {isVoid ? 'Anulação' : 'Ação'}
                                                                     </Badge>
                                                                 )}
                                                             </div>
@@ -323,20 +311,20 @@ export default function LogPage() {
                                                             <div className="flex flex-col gap-0.5">
                                                                 <div className="flex items-center gap-1.5">
                                                                     <UserIcon className="h-3 w-3 text-muted-foreground/60" />
-                                                                    <span className="text-xs font-semibold">{log.profiles?.name || "Sistema"}</span>
+                                                                    <span className="text-xs font-semibold">{log.actor_profile?.name || "Sistema"}</span>
                                                                 </div>
-                                                                {t?.module && (
+                                                                {module && (
                                                                     <span className="text-[10px] text-muted-foreground">
-                                                                        {t.origin_fund || t.entity?.type?.toUpperCase()} • {MODULE_LABELS[t.module] || t.module}
+                                                                        {MODULE_LABELS[module] || module}
                                                                     </span>
                                                                 )}
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell className={`text-right font-mono text-xs tabular-nums ${t?.direction === "in" || t?.module === "aporte_saldo" ? "text-success" : "text-destructive"}`}>
-                                                            {t ? (
+                                                        <TableCell className={`text-right font-mono text-xs tabular-nums ${direction === "in" || module === "aporte_saldo" ? "text-success" : "text-destructive"}`}>
+                                                            {amount !== 0 ? (
                                                                 <>
-                                                                    {t.direction === "in" || t.module === "aporte_saldo" ? "+" : "-"}
-                                                                    {formatCurrencyBRL(Number(t.amount))}
+                                                                    {direction === "in" || module === "aporte_saldo" ? "+" : "-"}
+                                                                    {formatCurrencyBRL(amount)}
                                                                 </>
                                                             ) : (
                                                                 <span className="text-muted-foreground/30">—</span>
@@ -346,20 +334,15 @@ export default function LogPage() {
                                                             <div className="flex flex-col gap-1">
                                                                 <p className="text-xs leading-tight line-clamp-2">
                                                                     {isSecurity
-                                                                        ? renderSecurityDiff(log.before_json, log.after_json, lookups)
-                                                                        : (t?.description || "-")}
+                                                                        ? renderSecurityDiff(log.before, log.after, lookups)
+                                                                        : (description)}
                                                                 </p>
-                                                                {t?.merchant?.name && (
-                                                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                                                        <MapPin className="h-2.5 w-2.5" /> {t.merchant.name}
-                                                                    </span>
-                                                                )}
                                                             </div>
                                                         </TableCell>
                                                         <TableCell className="text-xs border-l bg-muted/5 font-medium px-4 py-3 leading-relaxed">
                                                             <div className="flex items-start gap-2">
                                                                 <AlertCircle className="h-3.5 w-3.5 mt-0.5 text-muted-foreground/40 shrink-0" />
-                                                                <span className="text-foreground/80 italic">"{log.reason || "Nenhuma justificativa fornecida"}"</span>
+                                                                <span className="text-foreground/80 italic">"{reason || "Nenhuma justificativa fornecida"}"</span>
                                                             </div>
                                                         </TableCell>
                                                     </TableRow>

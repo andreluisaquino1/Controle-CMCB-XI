@@ -90,7 +90,7 @@ export const mapLedgerTransaction = (
         direction,
         description: l.description,
         notes: (metadata.notes as string) || null,
-        status: 'posted',
+        status: (l as Record<string, any>).status === 'voided' ? 'voided' : 'posted',
         ledger_status: (l as Record<string, any>).status as Transaction['ledger_status'],
         created_by: l.created_by,
         created_at: l.created_at,

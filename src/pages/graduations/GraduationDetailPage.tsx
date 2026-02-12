@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { graduationModuleService, GraduationPayMethod, GraduationEntryType } from "@/services/graduationModuleService";
+import { graduationModuleService, GraduationPayMethod, GraduationEntryType, GraduationClass } from "@/services/graduationModuleService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +16,10 @@ import {
     ArrowUpRight,
     ArrowDownLeft,
     ArrowLeftRight,
-    ArrowRight
+    ArrowRight,
+    MoreVertical,
+    Trash2,
+    Edit
 } from "lucide-react";
 import { formatCurrencyBRL } from "@/lib/currency";
 import { useState, useEffect } from "react";
@@ -37,6 +40,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
     Tabs,
     TabsContent,
@@ -180,6 +189,38 @@ export default function GraduationDetailPage() {
         onError: (err: any) => toast.error("Erro: " + err.message)
     });
 
+    const [editClass, setEditClass] = useState<GraduationClass | null>(null);
+    const [editClassName, setEditClassName] = useState("");
+
+    const updateClassMutation = useMutation({
+        mutationFn: async () => {
+            if (!editClass || !editClassName) return;
+            await graduationModuleService.updateClass(editClass.id, editClassName);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["graduation-classes-module"] });
+            toast.success("Turma atualizada!");
+            setEditClass(null);
+            setEditClassName("");
+        },
+        onError: (err) => {
+            toast.error(`Erro ao atualizar: ${err.message}`);
+        }
+    });
+
+    const deleteClassMutation = useMutation({
+        mutationFn: async (id: string) => {
+            await graduationModuleService.softDeleteClass(id);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["graduation-classes-module"] });
+            toast.success("Turma removida.");
+        },
+        onError: (err) => {
+            toast.error(`Erro ao remover: ${err.message}`);
+        }
+    });
+
 
     if (loadingGrad) {
         return (
@@ -206,7 +247,8 @@ export default function GraduationDetailPage() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <h1 className="text-3xl font-bold text-foreground">{graduation.name}</h1>
-                            <p className="text-muted-foreground">Ano de Referência: {graduation.reference_year}</p>
+                            <p className="text-muted-foreground">Ano de Referência: {graduation.year}</p>
+
                         </div>
                         <div className="flex flex-wrap gap-2">
                             <Button onClick={() => setOpenEntry(true)} variant="default" size="sm" className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
@@ -355,12 +397,40 @@ export default function GraduationDetailPage() {
                                 <Card
                                     key={cls.id}
                                     className="cursor-pointer hover:border-primary/50 transition-all group"
-                                    onClick={() => navigate(`/formaturas/${graduation.slug}/${cls.id}`)}
+                                    onClick={() => navigate(`/formaturas/${graduation.slug}/${cls.slug || cls.id}`)}
                                 >
                                     <CardHeader className="pb-2">
                                         <CardTitle className="flex justify-between items-center text-lg">
                                             {cls.name}
-                                            <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all text-primary" />
+                                            <div className="flex items-center gap-2">
+                                                <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all text-primary" />
+                                                {isAdmin && (
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                                                                <MoreVertical className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditClass(cls);
+                                                                setEditClassName(cls.name);
+                                                            }}>
+                                                                <Edit className="mr-2 h-4 w-4" /> Editar
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (confirm("Tem certeza que deseja inativar esta turma?")) {
+                                                                    deleteClassMutation.mutate(cls.id);
+                                                                }
+                                                            }}>
+                                                                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                )}
+                                            </div>
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>

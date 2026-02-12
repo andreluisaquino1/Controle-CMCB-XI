@@ -13,24 +13,34 @@ import {
   MapperMetadata
 } from "@/lib/mappers/transactionMapper";
 
-export function useAssociacaoTransactions() {
+export function useAssociacaoTransactions(startDate?: string, endDate?: string) {
   const { isDemo } = useAuth();
   const { getTransactions, getAccounts, getMerchants } = useDemoData();
   const { data: meta } = useTransactionMetadata();
 
   const query = useQuery({
-    queryKey: ["transactions", "associacao"],
+    queryKey: ["transactions", "associacao", startDate, endDate],
     queryFn: async () => {
-      const { data: ledgerData, error } = await extendedSupabase
+      let queryBuilder = extendedSupabase
         .from("ledger_transactions")
         .select("*")
         .or('metadata->>module.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual"),metadata->>modulo.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual"),metadata->>original_module.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual")')
-        .order("created_at", { ascending: false })
-        .limit(100);
+        .order("created_at", { ascending: false });
+
+      if (startDate) queryBuilder = queryBuilder.gte("created_at", `${startDate}T00:00:00`);
+      if (endDate) queryBuilder = queryBuilder.lte("created_at", `${endDate}T23:59:59`);
+
+      const { data: ledgerData, error } = await queryBuilder.limit(200);
 
       if (error) throw error;
 
-      return (ledgerData || []).map((l) => mapLedgerTransaction(l as unknown as LedgerTransaction & Record<string, unknown>, meta as MapperMetadata));
+      return (ledgerData || [])
+        .map((l) => mapLedgerTransaction(l as unknown as LedgerTransaction & Record<string, unknown>, meta as MapperMetadata))
+        .sort((a, b) => {
+          const dateA = a.transaction_date ? new Date(a.transaction_date) : new Date(a.created_at);
+          const dateB = b.transaction_date ? new Date(b.transaction_date) : new Date(b.created_at);
+          return dateB.getTime() - dateA.getTime();
+        });
     },
     enabled: !isDemo && !!meta,
   });
@@ -54,13 +64,13 @@ export function useAssociacaoTransactions() {
   return query;
 }
 
-export function useRecursosTransactions() {
+export function useRecursosTransactions(startDate?: string, endDate?: string) {
   const { isDemo } = useAuth();
   const { getTransactions, getAccounts, getMerchants } = useDemoData();
   const { data: meta } = useTransactionMetadata();
 
   const query = useQuery({
-    queryKey: ["transactions", "recursos"],
+    queryKey: ["transactions", "recursos", startDate, endDate],
     queryFn: async () => {
       const { data: entities } = await supabase.from("entities").select("id, name, type, cnpj");
       const ueEntity = entities?.find(e => e.type === 'ue');
@@ -76,16 +86,26 @@ export function useRecursosTransactions() {
       const resourceAccountIds = resourceAccounts?.map(a => a.id) || [];
       if (resourceAccountIds.length === 0) return [];
 
-      const { data: ledgerData, error } = await extendedSupabase
+      let queryBuilder = extendedSupabase
         .from("ledger_transactions")
         .select("*")
         .or(`source_account.in.(${resourceAccountIds.join(',')}),destination_account.in.(${resourceAccountIds.join(',')})`)
-        .order("created_at", { ascending: false })
-        .limit(100);
+        .order("created_at", { ascending: false });
+
+      if (startDate) queryBuilder = queryBuilder.gte("created_at", `${startDate}T00:00:00`);
+      if (endDate) queryBuilder = queryBuilder.lte("created_at", `${endDate}T23:59:59`);
+
+      const { data: ledgerData, error } = await queryBuilder.limit(200);
 
       if (error) throw error;
 
-      return (ledgerData || []).map((l) => mapLedgerTransaction(l as unknown as LedgerTransaction & Record<string, unknown>, meta as MapperMetadata));
+      return (ledgerData || [])
+        .map((l) => mapLedgerTransaction(l as unknown as LedgerTransaction & Record<string, unknown>, meta as MapperMetadata))
+        .sort((a, b) => {
+          const dateA = a.transaction_date ? new Date(a.transaction_date) : new Date(a.created_at);
+          const dateB = b.transaction_date ? new Date(b.transaction_date) : new Date(b.created_at);
+          return dateB.getTime() - dateA.getTime();
+        });
     },
     enabled: !isDemo && !!meta,
   });
@@ -105,29 +125,38 @@ export function useRecursosTransactions() {
   return query;
 }
 
-export function useSaldosTransactions() {
+export function useSaldosTransactions(startDate?: string, endDate?: string) {
   const { isDemo } = useAuth();
   const { getTransactions, getAccounts, getMerchants } = useDemoData();
   const { data: meta } = useTransactionMetadata();
 
   const query = useQuery({
-    queryKey: ["transactions", "saldos"],
+    queryKey: ["transactions", "saldos", startDate, endDate],
     queryFn: async () => {
-      const legacyPromise = supabase
+      let legacyPromise = supabase
         .from("transactions")
         .select("*")
         .in("module", ["aporte_saldo", "consumo_saldo"])
-        .order("transaction_date", { ascending: false })
-        .limit(100);
+        .order("transaction_date", { ascending: false });
 
-      const ledgerPromise = extendedSupabase
+      if (startDate) legacyPromise = legacyPromise.gte("transaction_date", startDate);
+      if (endDate) legacyPromise = legacyPromise.lte("transaction_date", endDate);
+
+      // limit applies after filter
+      const legacyQuery = legacyPromise.limit(200);
+
+      let ledgerPromise = extendedSupabase
         .from("ledger_transactions")
         .select("*")
         .or('metadata->>module.in.("aporte_saldo","consumo_saldo"),metadata->>modulo.in.("aporte_saldo","consumo_saldo"),metadata->>original_module.in.("aporte_saldo","consumo_saldo")')
-        .order("created_at", { ascending: false })
-        .limit(100);
+        .order("created_at", { ascending: false });
 
-      const [legacyRes, ledgerRes] = await Promise.all([legacyPromise, ledgerPromise]);
+      if (startDate) ledgerPromise = ledgerPromise.gte("created_at", `${startDate}T00:00:00`);
+      if (endDate) ledgerPromise = ledgerPromise.lte("created_at", `${endDate}T23:59:59`);
+
+      const ledgerQuery = ledgerPromise.limit(200);
+
+      const [legacyRes, ledgerRes] = await Promise.all([legacyQuery, ledgerQuery]);
 
       if (legacyRes.error) throw legacyRes.error;
       if (ledgerRes.error) throw ledgerRes.error;
@@ -136,9 +165,12 @@ export function useSaldosTransactions() {
       const ledgerMapped = (ledgerRes.data || []).map((l) => mapLedgerTransaction(l as unknown as LedgerTransaction & Record<string, unknown>, meta as MapperMetadata));
 
       return [...legacyMapped, ...ledgerMapped]
-        .sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime() ||
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 100);
+        .sort((a, b) => {
+          const dateA = a.transaction_date ? new Date(a.transaction_date) : new Date(a.created_at);
+          const dateB = b.transaction_date ? new Date(b.transaction_date) : new Date(b.created_at);
+          return dateB.getTime() - dateA.getTime();
+        })
+        .slice(0, 200);
     },
     enabled: !isDemo && !!meta,
   });

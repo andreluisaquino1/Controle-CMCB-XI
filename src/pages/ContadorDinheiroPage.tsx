@@ -1,179 +1,203 @@
-import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select";
-import { Banknote, Coins, RotateCcw, Calculator, TrendingUp, TrendingDown, Equal } from "lucide-react";
+import { Calculator, Banknote, Coins, RotateCcw, TrendingUp, TrendingDown, Equal } from "lucide-react";
+import { useState, useEffect } from "react";
 import { formatCurrencyBRL } from "@/lib/currency";
-import { useAssociacaoAccounts } from "@/hooks/use-accounts";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { graduationModuleService } from "@/services/graduationModuleService";
 import { ACCOUNT_NAMES } from "@/lib/constants";
 
-interface Denomination {
-    label: string;
-    value: number;
-    type: 'note' | 'coin';
-}
-
-const NOTES: Denomination[] = [
-    { label: "R$ 200", value: 200, type: 'note' },
-    { label: "R$ 100", value: 100, type: 'note' },
-    { label: "R$ 50", value: 50, type: 'note' },
-    { label: "R$ 20", value: 20, type: 'note' },
-    { label: "R$ 10", value: 10, type: 'note' },
-    { label: "R$ 5", value: 5, type: 'note' },
-    { label: "R$ 2", value: 2, type: 'note' },
-];
-
-const COINS: Denomination[] = [
-    { label: "R$ 1,00", value: 1, type: 'coin' },
-    { label: "R$ 0,50", value: 0.5, type: 'coin' },
-    { label: "R$ 0,25", value: 0.25, type: 'coin' },
-    { label: "R$ 0,10", value: 0.1, type: 'coin' },
-    { label: "R$ 0,05", value: 0.05, type: 'coin' },
-];
+const NOTES = [200, 100, 50, 20, 10, 5, 2];
+const COINS = [1, 0.50, 0.25, 0.10, 0.05];
 
 export default function ContadorDinheiroPage() {
+    const { isSecretaria } = useAuth();
     const [counts, setCounts] = useState<Record<string, number>>({});
     const [sourceType, setSourceType] = useState<string>("associacao");
     const [selectedGraduationId, setSelectedGraduationId] = useState<string>("");
+    const [systemBalance, setSystemBalance] = useState<number>(0);
 
-    // Data fetching
-    const { data: assocAccounts } = useAssociacaoAccounts();
     const { data: graduations } = useQuery({
-        queryKey: ["graduations-module"],
-        queryFn: () => graduationModuleService.listGraduations(),
+        queryKey: ["graduations-list"],
+        queryFn: async () => {
+            return await graduationModuleService.listGraduations();
+        },
+        enabled: !isSecretaria
     });
 
-    const { data: gradSummary } = useQuery({
-        queryKey: ["graduation-summary", selectedGraduationId],
-        queryFn: () => graduationModuleService.getFinancialSummary(selectedGraduationId),
-        enabled: !!selectedGraduationId && (sourceType === "grad_cash" || sourceType === "grad_treasurer"),
-    });
+    const handleCountChange = (value: string, denomination: number) => {
+        const qty = parseInt(value) || 0;
+        setCounts(prev => ({
+            ...prev,
+            [denomination]: qty
+        }));
+    };
 
-    // Calculations
-    const totalNotes = NOTES.reduce((acc, note) => acc + (counts[note.label] || 0) * note.value, 0);
-    const totalCoins = COINS.reduce((acc, coin) => acc + (counts[coin.label] || 0) * coin.value, 0);
-    const totalCounted = totalNotes + totalCoins;
+    const calculateTotal = () => {
+        return Object.entries(counts).reduce((acc, [denom, qty]) => {
+            return acc + (parseFloat(denom) * qty);
+        }, 0);
+    };
 
-    const systemBalance = useMemo(() => {
-        if (sourceType === "associacao") {
-            const especieAcc = assocAccounts?.find(a => a.name === ACCOUNT_NAMES.ESPECIE);
-            return especieAcc?.balance || 0;
-        }
-        if (sourceType === "grad_cash") {
-            return gradSummary?.balanceCash || 0;
-        }
-        if (sourceType === "grad_treasurer") {
-            return gradSummary?.totalWithTreasurer || 0;
-        }
-        return 0;
-    }, [sourceType, assocAccounts, gradSummary]);
+    const totalCounted = calculateTotal();
+    const totalNotes = NOTES.reduce((acc, note) => acc + (note * (counts[note] || 0)), 0);
+    const totalCoins = COINS.reduce((acc, coin) => acc + (coin * (counts[coin] || 0)), 0);
 
     const difference = totalCounted - systemBalance;
 
-    const handleClear = () => {
+    const resetCounts = () => {
         setCounts({});
+        toast.info("Contagem reiniciada.");
     };
 
-    const updateCount = (label: string, value: string) => {
-        const numValue = parseInt(value) || 0;
-        setCounts(prev => ({ ...prev, [label]: Math.max(0, numValue) }));
-    };
+    useEffect(() => {
+        if (isSecretaria) return;
+
+        const fetchBalance = async () => {
+            try {
+                let balance = 0;
+
+                if (sourceType === "associacao") {
+                    // Busca conta Espécie da Associação explicitamente pelo nome constante
+                    const { data: especieAccount } = await supabase
+                        .from("accounts")
+                        .select("balance")
+                        .eq("name", ACCOUNT_NAMES.ESPECIE)
+                        .maybeSingle();
+
+                    if (especieAccount) {
+                        balance = Number(especieAccount.balance);
+                    } else {
+                        // Fallback: try finding by type 'cash' and entity 'associacao' if constant name check fails
+                        // Note: This requires knowing the entity ID for association, which we might not have handy without another query.
+                        // Sticking to name check is safer if constants match DB.
+                    }
+                } else if (selectedGraduationId) {
+                    // Usa o serviço para buscar saldo calculado das formaturas
+                    const summary = await graduationModuleService.getFinancialSummary(selectedGraduationId);
+
+                    if (sourceType === "grad_cash") {
+                        balance = summary.balanceCash;
+                    } else if (sourceType === "grad_treasurer") {
+                        balance = summary.totalWithTreasurer;
+                    }
+                }
+
+                setSystemBalance(balance);
+            } catch (error) {
+                console.error("Error fetching balance:", error);
+                toast.error("Erro ao buscar saldo para conferência.");
+            }
+        };
+
+        fetchBalance();
+    }, [sourceType, selectedGraduationId, isSecretaria]);
 
     return (
         <DashboardLayout>
-            <div className="space-y-4 animate-fade-in">
-                <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div className="space-y-6 animate-fade-in">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Contador de Dinheiro</h1>
-                        <p className="text-xs text-muted-foreground">Conte notas e moedas e compare com o saldo do sistema.</p>
+                        <h1 className="text-2xl font-bold text-foreground">Contador de Dinheiro</h1>
+                        <p className="text-muted-foreground">{isSecretaria ? "Ferramenta de auxílio para contagem de valores em espécie." : "Ferramenta para conferência de caixa e fechamento."}</p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={handleClear} className="h-8 shadow-sm">
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Limpar Tudo
+                    <Button variant="outline" size="sm" onClick={resetCounts} className="flex items-center gap-2">
+                        <RotateCcw className="h-4 w-4" />
+                        Limpar
                     </Button>
-                </header>
+                </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-                    {/* Inputs Section */}
-                    <div className="xl:col-span-3 space-y-4">
-                        <Card className="shadow-sm">
-                            <CardHeader className="py-3">
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                    <Banknote className="h-5 w-5 text-primary" />
-                                    Cédulas
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pt-0">
-                                {NOTES.map((note) => (
-                                    <div key={note.label} className="flex flex-col gap-1 p-2 rounded-lg border bg-card/50">
-                                        <div className="flex justify-between items-center">
-                                            <Label htmlFor={`note-${note.label}`} className="text-xs font-bold">{note.label}</Label>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {/* Notes Section */}
+                            <Card className="shadow-sm">
+                                <CardHeader className="py-4 bg-muted/20">
+                                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                        <Banknote className="h-4 w-4 text-primary" />
+                                        Cédulas
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3 pt-4">
+                                    {NOTES.map(note => (
+                                        <div key={note} className="flex items-center justify-between gap-3">
+                                            <Label className="w-16 font-mono text-right text-sm">R$ {note}</Label>
+                                            <div className="flex-1">
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    placeholder="0"
+                                                    className="h-9 text-right font-medium"
+                                                    value={counts[note] || ""}
+                                                    onChange={(e) => handleCountChange(e.target.value, note)}
+                                                />
+                                            </div>
+                                            <div className="w-20 text-right text-xs text-muted-foreground font-medium">
+                                                {formatCurrencyBRL(note * (counts[note] || 0))}
+                                            </div>
                                         </div>
-                                        <Input
-                                            id={`note-${note.label}`}
-                                            type="number"
-                                            className="h-8 text-right text-sm"
-                                            placeholder="0"
-                                            min="0"
-                                            value={counts[note.label] || ""}
-                                            onChange={(e) => updateCount(note.label, e.target.value)}
-                                        />
-                                        <p className="text-[10px] text-muted-foreground text-right truncate">
-                                            {formatCurrencyBRL((counts[note.label] || 0) * note.value)}
-                                        </p>
+                                    ))}
+                                    <Separator className="my-2" />
+                                    <div className="flex justify-between items-center pt-1">
+                                        <span className="text-sm font-bold">Total Cédulas</span>
+                                        <span className="text-sm font-bold text-primary">{formatCurrencyBRL(totalNotes)}</span>
                                     </div>
-                                ))}
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
 
-                        <Card className="shadow-sm">
-                            <CardHeader className="py-3">
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                    <Coins className="h-5 w-5 text-yellow-500" />
-                                    Moedas
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="grid grid-cols-2 lg:grid-cols-5 gap-2 pt-0">
-                                {COINS.map((coin) => (
-                                    <div key={coin.label} className="flex flex-col gap-1 p-2 rounded-lg border bg-card/50">
-                                        <Label htmlFor={`coin-${coin.label}`} className="text-xs font-bold">{coin.label}</Label>
-                                        <Input
-                                            id={`coin-${coin.label}`}
-                                            type="number"
-                                            className="h-8 text-right text-sm"
-                                            placeholder="0"
-                                            min="0"
-                                            value={counts[coin.label] || ""}
-                                            onChange={(e) => updateCount(coin.label, e.target.value)}
-                                        />
-                                        <p className="text-[10px] text-muted-foreground text-right truncate">
-                                            {formatCurrencyBRL((counts[coin.label] || 0) * coin.value)}
-                                        </p>
+                            {/* Coins Section */}
+                            <Card className="shadow-sm">
+                                <CardHeader className="py-4 bg-muted/20">
+                                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                        <Coins className="h-4 w-4 text-primary" />
+                                        Moedas
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3 pt-4">
+                                    {COINS.map(coin => (
+                                        <div key={coin} className="flex items-center justify-between gap-3">
+                                            <Label className="w-16 font-mono text-right text-sm">R$ {coin.toFixed(2)}</Label>
+                                            <div className="flex-1">
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    placeholder="0"
+                                                    className="h-9 text-right font-medium"
+                                                    value={counts[coin] || ""}
+                                                    onChange={(e) => handleCountChange(e.target.value, coin)}
+                                                />
+                                            </div>
+                                            <div className="w-20 text-right text-xs text-muted-foreground font-medium">
+                                                {formatCurrencyBRL(coin * (counts[coin] || 0))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <Separator className="my-2" />
+                                    <div className="flex justify-between items-center pt-1">
+                                        <span className="text-sm font-bold">Total Moedas</span>
+                                        <span className="text-sm font-bold text-primary">{formatCurrencyBRL(totalCoins)}</span>
                                     </div>
-                                ))}
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        </div>
                     </div>
 
-                    {/* Results Section */}
-                    <div className="space-y-4">
+                    {/* Results/Summary Section */}
+                    <div className="lg:col-span-1 space-y-4">
                         <Card className="sticky top-6 shadow-md border-primary/20 bg-primary/5">
                             <CardHeader className="py-4">
                                 <CardTitle className="text-lg flex items-center gap-2">
                                     <Calculator className="h-5 w-5 text-primary" />
-                                    Conferência
+                                    {isSecretaria ? "Resumo" : "Conferência"}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4 pt-0">
@@ -192,70 +216,74 @@ export default function ContadorDinheiroPage() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-3">
-                                    <div className="space-y-1">
-                                        <Label className="text-xs">Comparar Com:</Label>
-                                        <Select value={sourceType} onValueChange={setSourceType}>
-                                            <SelectTrigger className="h-8 text-xs">
-                                                <SelectValue placeholder="Selecione a origem" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="associacao">Associação (Espécie)</SelectItem>
-                                                <SelectItem value="grad_cash">Formatura (Saldo em Caixa)</SelectItem>
-                                                <SelectItem value="grad_treasurer">Formatura (Com Tesoureiros)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                {!isSecretaria && (
+                                    <>
+                                        <div className="space-y-3">
+                                            <div className="space-y-1">
+                                                <Label className="text-xs">Comparar Com:</Label>
+                                                <Select value={sourceType} onValueChange={setSourceType}>
+                                                    <SelectTrigger className="h-8 text-xs">
+                                                        <SelectValue placeholder="Selecione a origem" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="associacao">Associação (Espécie)</SelectItem>
+                                                        <SelectItem value="grad_cash">Formatura (Saldo em Caixa)</SelectItem>
+                                                        <SelectItem value="grad_treasurer">Formatura (Com Tesoureiros)</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
 
-                                    {(sourceType === "grad_cash" || sourceType === "grad_treasurer") && (
-                                        <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
-                                            <Label className="text-xs">Formaturas Ativas:</Label>
-                                            <Select value={selectedGraduationId} onValueChange={setSelectedGraduationId}>
-                                                <SelectTrigger className="h-8 text-xs">
-                                                    <SelectValue placeholder="Selecione" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {graduations?.map((grad) => (
-                                                        <SelectItem key={grad.id} value={grad.id}>
-                                                            {grad.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="space-y-3 pt-3 border-t">
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-muted-foreground uppercase text-[10px] font-bold">Saldo Sistema</span>
-                                        <span className="font-bold">{formatCurrencyBRL(systemBalance)}</span>
-                                    </div>
-
-                                    <div className={`p-3 rounded-lg border-l-4 flex flex-col gap-1 ${difference === 0
-                                        ? "bg-green-500/10 border-green-500"
-                                        : difference > 0
-                                            ? "bg-blue-500/10 border-blue-500"
-                                            : "bg-destructive/10 border-destructive"
-                                        }`}>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                                Diferença
-                                            </span>
-                                            {difference === 0 ? (
-                                                <Badge variant="outline" className="h-4 text-[9px] bg-green-500 text-white border-none"><Equal className="h-2 w-2 mr-1" /> OK</Badge>
-                                            ) : difference > 0 ? (
-                                                <Badge variant="outline" className="h-4 text-[9px] bg-blue-500 text-white border-none"><TrendingUp className="h-2 w-2 mr-1" /> SOBRA</Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="h-4 text-[9px] bg-destructive text-white border-none"><TrendingDown className="h-2 w-2 mr-1" /> FALTA</Badge>
+                                            {(sourceType === "grad_cash" || sourceType === "grad_treasurer") && (
+                                                <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
+                                                    <Label className="text-xs">Formaturas Ativas:</Label>
+                                                    <Select value={selectedGraduationId} onValueChange={setSelectedGraduationId}>
+                                                        <SelectTrigger className="h-8 text-xs">
+                                                            <SelectValue placeholder="Selecione" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {graduations?.map((grad) => (
+                                                                <SelectItem key={grad.id} value={grad.id}>
+                                                                    {grad.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
                                             )}
                                         </div>
-                                        <span className={`text-xl font-black ${difference === 0 ? "text-green-600" : difference > 0 ? "text-blue-600" : "text-destructive"
-                                            }`}>
-                                            {formatCurrencyBRL(difference)}
-                                        </span>
-                                    </div>
-                                </div>
+
+                                        <div className="space-y-3 pt-3 border-t">
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-muted-foreground uppercase text-[10px] font-bold">Saldo Sistema</span>
+                                                <span className="font-bold">{formatCurrencyBRL(systemBalance)}</span>
+                                            </div>
+
+                                            <div className={`p-3 rounded-lg border-l-4 flex flex-col gap-1 ${difference === 0
+                                                ? "bg-green-500/10 border-green-500"
+                                                : difference > 0
+                                                    ? "bg-blue-500/10 border-blue-500"
+                                                    : "bg-destructive/10 border-destructive"
+                                                }`}>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                                        Diferença
+                                                    </span>
+                                                    {difference === 0 ? (
+                                                        <Badge variant="outline" className="h-4 text-[9px] bg-green-500 text-white border-none"><Equal className="h-2 w-2 mr-1" /> OK</Badge>
+                                                    ) : difference > 0 ? (
+                                                        <Badge variant="outline" className="h-4 text-[9px] bg-blue-500 text-white border-none"><TrendingUp className="h-2 w-2 mr-1" /> SOBRA</Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="h-4 text-[9px] bg-destructive text-white border-none"><TrendingDown className="h-2 w-2 mr-1" /> FALTA</Badge>
+                                                    )}
+                                                </div>
+                                                <span className={`text-xl font-black ${difference === 0 ? "text-green-600" : difference > 0 ? "text-blue-600" : "text-destructive"
+                                                    }`}>
+                                                    {formatCurrencyBRL(difference)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </CardContent>
                         </Card>
                     </div>

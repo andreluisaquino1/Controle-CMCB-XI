@@ -121,8 +121,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             // Restriction: Demo user cannot see Users
             if (isDemo && item.label === "Usuários") return null;
 
-            // Restriction for Secretaria: Only can see "Associação", "Formaturas" and "Perfil"
-            if (isSecretaria && item.label !== "Associação" && item.label !== "Formaturas" && item.label !== "Perfil") {
+            // Restriction for Secretaria: Only can see "Associação", "Contador de Dinheiro" and "Perfil"
+            if (isSecretaria && item.label !== "Associação" && item.label !== "Contador de Dinheiro" && item.label !== "Perfil") {
               return null;
             }
 
