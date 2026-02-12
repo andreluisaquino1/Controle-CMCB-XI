@@ -11,10 +11,11 @@ export function useTransactionMetadata() {
         queryKey: ["transaction-metadata"],
         queryFn: async () => {
             // Parallel fetching
-            const [profilesReq, accountsReq, merchantsReq] = await Promise.all([
+            const [profilesReq, accountsReq, merchantsReq, entitiesReq] = await Promise.all([
                 supabase.from("profiles").select("user_id, name"),
                 supabase.from("accounts").select("id, name, entity_id"),
-                supabase.from("merchants").select("id, name")
+                supabase.from("merchants").select("id, name"),
+                supabase.from("entities").select("id, type, name")
             ]);
 
             const profileMap = new Map(profilesReq.data?.map((p) => [p.user_id, p.name]) || []);
@@ -30,11 +31,14 @@ export function useTransactionMetadata() {
             const accounts = accountsReq.data || [];
             const merchants = merchantsReq.data || [];
             const profiles = profilesReq.data || [];
+            const entities = entitiesReq.data || [];
 
             const accountNameMap = new Map(accounts.map((a) => [a.id, a.name]));
             const merchantNameMap = new Map(merchants.map((m) => [m.id, m.name]));
             const profileNameMap = new Map(profiles.map((p) => [p.user_id, p.name]));
             const accountEntityMap = new Map(accounts.map((a) => [a.id, a.entity_id]));
+            const entityTypeMap = new Map(entities.map((e) => [e.id, e.type]));
+            const entityNameMap = new Map(entities.map((e) => [e.id, e.name]));
 
             return {
                 profiles,
@@ -43,7 +47,10 @@ export function useTransactionMetadata() {
                 profileNameMap,
                 accountNameMap,
                 merchantNameMap,
-                accountEntityMap
+                accountEntityMap,
+                entityTypeMap,
+                entityNameMap,
+                entities
             };
         },
         enabled: !isDemo,

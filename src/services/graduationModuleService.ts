@@ -178,6 +178,29 @@ export const graduationModuleService = {
         }));
     },
 
+    async getStudentsProgress(classId: string): Promise<Record<string, { paid: number; total: number }>> {
+        const { data, error } = await supabase
+            .from('graduation_student_obligations' as any)
+            .select('student_id, status')
+            .eq('class_id', classId)
+            .eq('kind', 'MENSALIDADE');
+
+        if (error) throw error;
+
+        const progress: Record<string, { paid: number; total: number }> = {};
+        (data || []).forEach((obs: any) => {
+            if (!progress[obs.student_id]) {
+                progress[obs.student_id] = { paid: 0, total: 0 };
+            }
+            progress[obs.student_id].total++;
+            if (obs.status === 'PAGO') {
+                progress[obs.student_id].paid++;
+            }
+        });
+        return progress;
+    },
+
+
     async createStudent(classId: string, fullName: string): Promise<GraduationStudent> {
         const { data, error } = await supabase
             .from('graduation_class_students' as any)

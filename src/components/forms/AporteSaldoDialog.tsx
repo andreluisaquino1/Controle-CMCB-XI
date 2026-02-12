@@ -115,6 +115,7 @@ export function AporteSaldoDialog({
                     notes: state.obs,
                     transaction_date: state.date,
                     account_id: state.conta,
+                    entity_id: sourceAccountInfo.entity_id,
                     merchant_id: state.merchant
                 }
             });

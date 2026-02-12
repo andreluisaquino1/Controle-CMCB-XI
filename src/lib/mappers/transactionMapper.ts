@@ -7,6 +7,9 @@ export interface MapperMetadata {
     accountNameMap: Map<string, string>;
     merchantNameMap: Map<string, string>;
     accountEntityMap?: Map<string, string>;
+    entityTypeMap?: Map<string, string>;
+    entityNameMap?: Map<string, string>;
+    entities?: any[];
 }
 
 /**
@@ -18,8 +21,8 @@ export const mapLegacyTransaction = (
 ): TransactionWithCreator => ({
     ...t,
     creator_name: meta.profileNameMap.get(t.created_by) || null,
-    source_account_name: t.source_account_id ? meta.accountNameMap.get(t.source_account_id) || t.source_account_id : null,
-    destination_account_name: t.destination_account_id ? meta.accountNameMap.get(t.destination_account_id) || t.destination_account_id : null,
+    source_account_name: t.source_account_id ? meta.accountNameMap.get(t.source_account_id) || meta.merchantNameMap.get(t.source_account_id) || t.source_account_id : null,
+    destination_account_name: t.destination_account_id ? meta.accountNameMap.get(t.destination_account_id) || meta.merchantNameMap.get(t.destination_account_id) || t.destination_account_id : null,
     merchant_name: t.merchant_id ? meta.merchantNameMap.get(t.merchant_id) || t.merchant_id : null,
 });
 
@@ -44,12 +47,21 @@ export const mapLedgerTransaction = (
 
     const resolveAccountName = (key: string | null) => {
         if (!key) return null;
-        return meta.accountNameMap.get(key) || LEDGER_KEY_TO_ACCOUNT_NAME[key] || key;
+        return meta.accountNameMap.get(key) || meta.merchantNameMap.get(key) || LEDGER_KEY_TO_ACCOUNT_NAME[key] || key;
     };
 
     const resolveMerchantName = (key: string | null) => {
         if (!key) return null;
         return meta.merchantNameMap.get(key) || key;
+    };
+
+    const resolveEntityIdFromAccount = (key: string | null) => {
+        if (!key) return null;
+        if (meta.accountEntityMap?.has(key)) return meta.accountEntityMap.get(key);
+        if (LEDGER_KEY_TO_ACCOUNT_NAME[key]) {
+            return meta.entities?.find(e => e.type === 'associacao')?.id;
+        }
+        return null;
     };
 
     // Lógica de exibição de conta (priorizar real vs externo)
@@ -67,6 +79,8 @@ export const mapLedgerTransaction = (
 
     const metadata = l.metadata as Record<string, unknown> || {};
     const mod = (l.module || metadata.module || metadata.modulo || metadata.original_module || 'outros') as string;
+
+    const resolvedEntityId = l.entity_id || (metadata.entity_id as string) || resolveEntityIdFromAccount(l.source_account) || resolveEntityIdFromAccount(l.destination_account) || null;
 
     return {
         id: l.id,
@@ -87,10 +101,12 @@ export const mapLedgerTransaction = (
         source_account_id: null,
         destination_account_id: null,
         merchant_id: (metadata.merchant_id as string) || null,
-        entity_id: l.entity_id || (metadata.entity_id as string) || null,
+        entity_id: resolvedEntityId,
         payment_method: l.payment_method || (metadata.payment_method as string) || null,
         shift: (metadata.shift as string) || (metadata.turno as string) || null,
-        origin_fund: null,
+        origin_fund: (metadata.origin_fund as string) || (resolvedEntityId ? meta.entityTypeMap?.get(resolvedEntityId as string)?.toUpperCase() : null) || null,
+        entity_type: resolvedEntityId ? meta.entityTypeMap?.get(resolvedEntityId as string) as string : null,
+        entity_name: resolvedEntityId ? meta.entityNameMap?.get(resolvedEntityId as string) as string : null,
         parent_transaction_id: null
     } as TransactionWithCreator;
 };

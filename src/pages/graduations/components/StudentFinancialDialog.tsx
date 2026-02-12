@@ -13,6 +13,8 @@ import { formatCurrencyBRL } from "@/lib/currency";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+
 
 interface Props {
     studentId: string | null;
@@ -22,6 +24,8 @@ interface Props {
 
 export function StudentFinancialDialog({ studentId, open, onOpenChange }: Props) {
     const queryClient = useQueryClient();
+    const { profile } = useAuth();
+
 
     const { data: obligations, isLoading } = useQuery({
         queryKey: ["student-obligations", studentId],
@@ -32,8 +36,9 @@ export function StudentFinancialDialog({ studentId, open, onOpenChange }: Props)
     const mutationPay = useMutation({
         mutationFn: (id: string) => graduationModuleService.markObligationPaid(id, {
             paid_at: new Date().toISOString(),
-            received_by: "Sistema (Admin)", // TODO: Get logged user name from auth context if available
+            received_by: profile?.name || "Sistema",
         }),
+
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["student-obligations"] });
             queryClient.invalidateQueries({ queryKey: ["graduation-summary-module"] }); // Update summary

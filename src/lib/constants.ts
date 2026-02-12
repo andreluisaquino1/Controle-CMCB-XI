@@ -32,10 +32,13 @@ export const ACCOUNT_NAME_TO_LEDGER_KEY: Record<string, string> = {
   "Conta CX": LEDGER_KEYS.CX,
 };
 
-export const LEDGER_KEY_TO_ACCOUNT_NAME: Record<string, string> = Object.entries(ACCOUNT_NAME_TO_LEDGER_KEY).reduce((acc, [name, key]) => {
-  acc[key] = name;
-  return acc;
-}, {} as Record<string, string>);
+export const LEDGER_KEY_TO_ACCOUNT_NAME: Record<string, string> = {
+  ...Object.entries(ACCOUNT_NAME_TO_LEDGER_KEY).reduce((acc, [name, key]) => {
+    acc[key] = name;
+    return acc;
+  }, {} as Record<string, string>),
+  "external_expense": "Gasto Externo",
+};
 
 /**
  * Entity names

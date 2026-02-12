@@ -125,6 +125,7 @@ export function ConsumoSaldoDialog({
                         transaction_date: item.date,
                         notes: state.obs,
                         merchant_id: state.merchant,
+                        entity_id: associacaoEntity.id,
                     }
                 });
             }

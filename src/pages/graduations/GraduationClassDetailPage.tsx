@@ -133,46 +133,72 @@ export default function GraduationClassDetailPage() {
                                             <TableHead className="w-[50px]"></TableHead>
                                             <TableHead>Nome</TableHead>
                                             <TableHead>Status</TableHead>
+                                            <TableHead>Progresso Pagto.</TableHead>
                                             <TableHead className="text-right">Ações</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {students?.length === 0 && (
                                             <TableRow>
-                                                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                                                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                                                     Nenhum aluno cadastrado nesta turma.
                                                 </TableCell>
                                             </TableRow>
                                         )}
-                                        {students?.map((student) => (
-                                            <TableRow key={student.id} className="group">
-                                                <TableCell>
-                                                    <Avatar className="h-8 w-8">
-                                                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${student.full_name}`} />
-                                                        <AvatarFallback>{student.full_name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                                                    </Avatar>
-                                                </TableCell>
-                                                <TableCell className="font-medium">{student.full_name}</TableCell>
-                                                <TableCell>
-                                                    <span className={cn(
-                                                        "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
-                                                        student.active ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-800"
-                                                    )}>
-                                                        {student.active ? "Ativo" : "Inativo"}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        onClick={() => setSelectedStudentId(student.id)}
-                                                    >
-                                                        <Wallet className="h-4 w-4 mr-2" /> Financeiro
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
+                                        {students?.map((student) => {
+                                            const studentProgress = progress?.[student.id];
+                                            const isComplete = studentProgress && studentProgress.paid >= studentProgress.total && studentProgress.total > 0;
+
+                                            return (
+                                                <TableRow key={student.id} className="group">
+                                                    <TableCell>
+                                                        <Avatar className="h-8 w-8">
+                                                            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${student.full_name}`} />
+                                                            <AvatarFallback>{student.full_name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                                        </Avatar>
+                                                    </TableCell>
+                                                    <TableCell className="font-medium">{student.full_name}</TableCell>
+                                                    <TableCell>
+                                                        <span className={cn(
+                                                            "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
+                                                            student.active ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-800"
+                                                        )}>
+                                                            {student.active ? "Ativo" : "Inativo"}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {studentProgress ? (
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className={cn(
+                                                                    "text-xs font-bold",
+                                                                    isComplete ? "text-emerald-600" : "text-amber-600"
+                                                                )}>
+                                                                    {studentProgress.paid} / {studentProgress.total} pg
+                                                                </span>
+                                                                <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
+                                                                    <div
+                                                                        className={cn("h-full transition-all", isComplete ? "bg-emerald-500" : "bg-amber-500")}
+                                                                        style={{ width: `${(studentProgress.paid / studentProgress.total) * 100}%` }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-xs text-muted-foreground italic">Sem parcelas</span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            onClick={() => setSelectedStudentId(student.id)}
+                                                        >
+                                                            <Wallet className="h-4 w-4 mr-2" /> Financeiro
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
                                     </TableBody>
                                 </Table>
                             </div>

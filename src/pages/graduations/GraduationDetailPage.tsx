@@ -273,7 +273,21 @@ export default function GraduationDetailPage() {
                                     </p>
                                 </CardContent>
                             </Card>
+                            <Card className="glass-card border-none bg-amber-50/50 dark:bg-amber-950/20">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-xs font-semibold uppercase text-amber-600 dark:text-amber-400">Com Tesoureiro</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-xl font-bold text-amber-700 dark:text-amber-300">
+                                        {formatCurrencyBRL(summary?.totalWithTreasurer || 0)}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1 italic">
+                                        Pendente de Depósito
+                                    </p>
+                                </CardContent>
+                            </Card>
                             <Card className="glass-card border-none bg-slate-100 dark:bg-slate-900">
+
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Pendente (À Receber)</CardTitle>
                                 </CardHeader>
