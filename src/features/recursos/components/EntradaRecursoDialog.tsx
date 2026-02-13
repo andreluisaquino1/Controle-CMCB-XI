@@ -69,9 +69,9 @@ export function EntradaRecursoDialog({
                         <DateInput id="ent-date" value={state.date} onChange={setters.setDate} />
                     </div>
                     <div className="space-y-2">
-                        <Label>Entidade *</Label>
+                        <Label htmlFor="ent-entity">Entidade *</Label>
                         <Select value={state.entityId} onValueChange={setters.setEntityId}>
-                            <SelectTrigger>
+                            <SelectTrigger id="ent-entity">
                                 <SelectValue placeholder="Selecione" />
                             </SelectTrigger>
                             <SelectContent>
@@ -84,9 +84,9 @@ export function EntradaRecursoDialog({
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>Conta *</Label>
+                        <Label htmlFor="ent-account">Conta *</Label>
                         <Select value={state.accountId} onValueChange={setters.setAccountId} disabled={!state.entityId}>
-                            <SelectTrigger>
+                            <SelectTrigger id="ent-account">
                                 <SelectValue placeholder={state.entityId ? "Selecione a conta" : "Selecione entidade primeiro"} />
                             </SelectTrigger>
                             <SelectContent>

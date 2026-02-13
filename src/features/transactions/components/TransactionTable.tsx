@@ -86,10 +86,10 @@ export function TransactionTable({
                             </TableCell>
                             <TableCell>
                                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${t.direction === "in" || t.module === "aporte_saldo"
-                                        ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                                        : t.direction === "transfer"
-                                            ? "bg-blue-100 text-blue-700 border border-blue-200"
-                                            : "bg-rose-100 text-rose-700 border border-rose-200"
+                                    ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                    : t.direction === "transfer"
+                                        ? "bg-blue-100 text-blue-700 border border-blue-200"
+                                        : "bg-rose-100 text-rose-700 border border-rose-200"
                                     }`}>
                                     {MODULE_LABELS[t.module] || t.module}
                                 </span>
@@ -110,7 +110,7 @@ export function TransactionTable({
                             )}
                             {showMerchant && <TableCell className="text-sm">{t.merchant_name || "-"}</TableCell>}
                             <TableCell className={`text-right font-bold whitespace-nowrap ${t.direction === "in" || t.module === "aporte_saldo" ? "text-emerald-600" :
-                                    t.direction === "transfer" ? "text-blue-600" : "text-rose-600"
+                                t.direction === "transfer" ? "text-blue-600" : "text-rose-600"
                                 }`}>
                                 {t.direction === "in" || t.module === "aporte_saldo" ? "+" : "-"}
                                 {formatCurrencyBRL(Number(t.amount))}
@@ -153,6 +153,7 @@ export function TransactionTable({
                                                 className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                                                 onClick={() => setSelectedBatchId(t.id)}
                                                 title="Ver Itens do Lote"
+                                                aria-label="Ver Itens do Lote"
                                             >
                                                 <FileText className="h-4 w-4" />
                                             </Button>
@@ -165,6 +166,7 @@ export function TransactionTable({
                                                 onClick={() => onValidate(t.id)}
                                                 disabled={isValidating}
                                                 title="Validar Lançamento"
+                                                aria-label="Validar Lançamento"
                                             >
                                                 {isValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                                             </Button>
@@ -176,6 +178,7 @@ export function TransactionTable({
                                                 className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                                                 onClick={() => onVoid(t.id)}
                                                 title="Anular Transação"
+                                                aria-label="Anular Transação"
                                             >
                                                 <XCircle className="h-4 w-4" />
                                             </Button>

@@ -62,9 +62,9 @@ export function MensalidadeDialog({
                         <DateInput id="mensalidade-date" value={state.date} onChange={setters.setDate} />
                     </div>
                     <div className="space-y-2">
-                        <Label>Turno *</Label>
+                        <Label htmlFor="mensalidade-turno">Turno *</Label>
                         <Select value={state.turno} onValueChange={setters.setTurno}>
-                            <SelectTrigger>
+                            <SelectTrigger id="mensalidade-turno">
                                 <SelectValue placeholder="Selecione o turno" />
                             </SelectTrigger>
                             <SelectContent>
@@ -74,12 +74,12 @@ export function MensalidadeDialog({
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>Espécie (R$)</Label>
-                        <CurrencyInput value={state.cash} onChange={setters.setCash} />
+                        <Label htmlFor="mensalidade-cash">Espécie (R$)</Label>
+                        <CurrencyInput id="mensalidade-cash" value={state.cash} onChange={setters.setCash} />
                     </div>
                     <div className="space-y-2">
-                        <Label>PIX (R$)</Label>
-                        <CurrencyInput value={state.pix} onChange={setters.setPix} />
+                        <Label htmlFor="mensalidade-pix">PIX (R$)</Label>
+                        <CurrencyInput id="mensalidade-pix" value={state.pix} onChange={setters.setPix} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="mensalidade-obs">Observação</Label>

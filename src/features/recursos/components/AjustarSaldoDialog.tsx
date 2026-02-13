@@ -129,9 +129,9 @@ export function AjustarSaldoDialog({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Conta a Ajustar *</Label>
+                        <Label htmlFor="adj-account">Conta a Ajustar *</Label>
                         <Select value={state.accountId} onValueChange={setAccountId}>
-                            <SelectTrigger>
+                            <SelectTrigger id="adj-account">
                                 <SelectValue placeholder="Selecione a conta" />
                             </SelectTrigger>
                             <SelectContent>

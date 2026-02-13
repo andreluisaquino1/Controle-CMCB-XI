@@ -144,13 +144,13 @@ export function AporteSaldoDialog({
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                     <div className="space-y-2">
-                        <Label>Data *</Label>
-                        <DateInput value={state.date} onChange={setters.setDate} />
+                        <Label htmlFor="aporte-data">Data *</Label>
+                        <DateInput id="aporte-data" value={state.date} onChange={setters.setDate} />
                     </div>
                     <div className="space-y-2">
-                        <Label>Origem do Recurso *</Label>
+                        <Label htmlFor="aporte-origem">Origem do Recurso *</Label>
                         <Select value={state.origem} onValueChange={setters.setOrigem}>
-                            <SelectTrigger>
+                            <SelectTrigger id="aporte-origem">
                                 <SelectValue placeholder="Selecione" />
                             </SelectTrigger>
                             <SelectContent>
@@ -161,9 +161,9 @@ export function AporteSaldoDialog({
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>Conta *</Label>
+                        <Label htmlFor="aporte-conta">Conta *</Label>
                         <Select value={state.conta} onValueChange={setters.setAccount} disabled={!state.origem}>
-                            <SelectTrigger>
+                            <SelectTrigger id="aporte-conta">
                                 <SelectValue placeholder={state.origem ? "Selecione a conta" : "Selecione origem primeiro"} />
                             </SelectTrigger>
                             <SelectContent>
@@ -176,9 +176,9 @@ export function AporteSaldoDialog({
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>Estabelecimento *</Label>
+                        <Label htmlFor="aporte-merchant">Estabelecimento *</Label>
                         <Select value={state.merchant} onValueChange={setters.setMerchant}>
-                            <SelectTrigger>
+                            <SelectTrigger id="aporte-merchant">
                                 <SelectValue placeholder="Selecione" />
                             </SelectTrigger>
                             <SelectContent>
@@ -191,8 +191,8 @@ export function AporteSaldoDialog({
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>Valor (R$) *</Label>
-                        <CurrencyInput value={state.valor} onChange={setters.setValor} />
+                        <Label htmlFor="aporte-valor">Valor (R$) *</Label>
+                        <CurrencyInput id="aporte-valor" value={state.valor} onChange={setters.setValor} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="aporte-descricao">Descrição *</Label>

@@ -24,7 +24,8 @@ import { AlertCircle, Plus, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { useState } from "react";
 import { toast } from "sonner";
-import { accountService } from "@/shared/services/accountService";
+// Shared services
+import { accountService } from "../../../shared/services/accountService";
 import { transactionService } from "@/features/transactions/services/transactionService";
 import { useQueryClient } from "@tanstack/react-query";
 import { invalidateFinance } from "@/shared/query/invalidation";
@@ -162,9 +163,9 @@ export function GastoRecursoDialog({
 
                 <div className="space-y-4 pt-4">
                     <div className="space-y-2">
-                        <Label>Entidade *</Label>
+                        <Label htmlFor="gasto-entity">Entidade *</Label>
                         <Select value={state.entityId} onValueChange={setters.setEntityId}>
-                            <SelectTrigger>
+                            <SelectTrigger id="gasto-entity">
                                 <SelectValue placeholder="Selecione" />
                             </SelectTrigger>
                             <SelectContent>
@@ -178,9 +179,9 @@ export function GastoRecursoDialog({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Conta *</Label>
+                        <Label htmlFor="gasto-account">Conta *</Label>
                         <Select value={state.accountId} onValueChange={setters.setAccountId} disabled={!state.entityId}>
-                            <SelectTrigger>
+                            <SelectTrigger id="gasto-account">
                                 <SelectValue placeholder={state.entityId ? "Selecione a conta" : "Selecione entidade primeiro"} />
                             </SelectTrigger>
                             <SelectContent>
@@ -199,9 +200,9 @@ export function GastoRecursoDialog({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Estabelecimento (Para) *</Label>
+                        <Label htmlFor="gasto-merchant">Estabelecimento (Para) *</Label>
                         <Select value={state.merchantId} onValueChange={setters.setMerchantId}>
-                            <SelectTrigger>
+                            <SelectTrigger id="gasto-merchant">
                                 <SelectValue placeholder="Selecione o estabelecimento" />
                             </SelectTrigger>
                             <SelectContent>
@@ -272,8 +273,8 @@ export function GastoRecursoDialog({
 
 
                     <div className="space-y-2">
-                        <Label>Observação</Label>
-                        <Input value={state.notes} onChange={(e) => setters.setNotes(e.target.value)} placeholder="Opcional" />
+                        <Label htmlFor="gasto-obs">Observação</Label>
+                        <Input id="gasto-obs" value={state.notes} onChange={(e) => setters.setNotes(e.target.value)} placeholder="Opcional" />
                     </div>
 
                     {willBeNegative && (

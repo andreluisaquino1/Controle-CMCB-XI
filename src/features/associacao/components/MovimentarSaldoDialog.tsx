@@ -90,9 +90,9 @@ export function MovimentarSaldoDialog({
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>De *</Label>
+                            <Label htmlFor="mov-de">De *</Label>
                             <Select value={state.de} onValueChange={setters.setDe}>
-                                <SelectTrigger>
+                                <SelectTrigger id="mov-de">
                                     <SelectValue placeholder="Origem" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -107,9 +107,9 @@ export function MovimentarSaldoDialog({
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label>Para *</Label>
+                            <Label htmlFor="mov-para">Para *</Label>
                             <Select value={state.para} onValueChange={setters.setPara}>
-                                <SelectTrigger>
+                                <SelectTrigger id="mov-para">
                                     <SelectValue placeholder="Destino" />
                                 </SelectTrigger>
                                 <SelectContent>

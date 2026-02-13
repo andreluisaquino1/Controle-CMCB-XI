@@ -137,8 +137,9 @@ export default function SaldosPage() {
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <Label>Nome do Estabelecimento</Label>
+                    <Label htmlFor="new-merchant-name">Nome do Estabelecimento</Label>
                     <Input
+                      id="new-merchant-name"
                       placeholder="Ex: Supermercado XYZ"
                       value={newMerchantName}
                       onChange={(e) => setNewMerchantName(e.target.value)}
@@ -245,8 +246,9 @@ export default function SaldosPage() {
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label>Nome</Label>
+                <Label htmlFor="edit-merchant-name">Nome</Label>
                 <Input
+                  id="edit-merchant-name"
                   value={editingMerchant?.name || ""}
                   onChange={(e) => setEditingMerchant(prev => prev ? { ...prev, name: e.target.value } : null)}
                 />

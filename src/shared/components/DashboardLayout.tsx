@@ -77,6 +77,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             size="icon"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="text-sidebar-foreground hover:bg-sidebar-accent"
+            aria-label={sidebarOpen ? "Fechar menu" : "Abrir menu"}
           >
             {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </Button>

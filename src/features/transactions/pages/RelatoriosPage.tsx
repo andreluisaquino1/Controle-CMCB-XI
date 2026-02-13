@@ -87,12 +87,12 @@ export default function RelatoriosPage() {
           <CardContent className="pt-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Data Inicial</Label>
-                <DateInput value={startDate} onChange={setStartDate} />
+                <Label htmlFor="start-date">Data Inicial</Label>
+                <DateInput id="start-date" value={startDate} onChange={setStartDate} />
               </div>
               <div className="space-y-2">
-                <Label>Data Final</Label>
-                <DateInput value={endDate} onChange={setEndDate} />
+                <Label htmlFor="end-date">Data Final</Label>
+                <DateInput id="end-date" value={endDate} onChange={setEndDate} />
               </div>
             </div>
           </CardContent>
@@ -164,33 +164,39 @@ export default function RelatoriosPage() {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
+                    id="transaction-search"
+                    name="transaction-search"
                     placeholder="Buscar transações..."
                     className="pl-10"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    aria-label="Buscar transações"
                   />
                 </div>
-                <Select value={filter} onValueChange={setFilter}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Filtrar por tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="mensalidade">Mensalidades</SelectItem>
-                    <SelectItem value="gasto_associacao">Gastos Associação</SelectItem>
-                    <SelectItem value="assoc_transfer">Movimentações Associação</SelectItem>
-                    <SelectItem value="especie_transfer">Movimentações Gerais</SelectItem>
-                    <SelectItem value="conta_digital_taxa">Taxas Escolaweb</SelectItem>
-                    <SelectItem value="conta_digital_ajuste">Ajustes Conta Digital</SelectItem>
-                    <SelectItem value="especie_ajuste">Ajustes Espécie</SelectItem>
-                    <SelectItem value="pix_ajuste">Ajustes PIX</SelectItem>
-                    <SelectItem value="cofre_ajuste">Ajustes Cofre</SelectItem>
-                    <SelectItem value="aporte_saldo">Aportes Estabelecimento</SelectItem>
-                    <SelectItem value="consumo_saldo">Consumos Estabelecimento</SelectItem>
-                    <SelectItem value="pix_direto_uecx">Gasto de Recurso (UE/CX)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-full sm:w-48 space-y-2">
+                  <Label htmlFor="report-filter" className="sr-only">Filtrar por tipo</Label>
+                  <Select value={filter} onValueChange={setFilter}>
+                    <SelectTrigger id="report-filter" className="w-full" aria-label="Filtrar por tipo de transação">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Filtrar por tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="mensalidade">Mensalidades</SelectItem>
+                      <SelectItem value="gasto_associacao">Gastos Associação</SelectItem>
+                      <SelectItem value="assoc_transfer">Movimentações Associação</SelectItem>
+                      <SelectItem value="especie_transfer">Movimentações Gerais</SelectItem>
+                      <SelectItem value="conta_digital_taxa">Taxas Escolaweb</SelectItem>
+                      <SelectItem value="conta_digital_ajuste">Ajustes Conta Digital</SelectItem>
+                      <SelectItem value="especie_ajuste">Ajustes Espécie</SelectItem>
+                      <SelectItem value="pix_ajuste">Ajustes PIX</SelectItem>
+                      <SelectItem value="cofre_ajuste">Ajustes Cofre</SelectItem>
+                      <SelectItem value="aporte_saldo">Aportes Estabelecimento</SelectItem>
+                      <SelectItem value="consumo_saldo">Consumos Estabelecimento</SelectItem>
+                      <SelectItem value="pix_direto_uecx">Gasto de Recurso (UE/CX)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {transactionsLoading ? (

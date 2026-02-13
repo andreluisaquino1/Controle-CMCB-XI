@@ -107,8 +107,9 @@ export function PixFeeBatchDialog({ open, onOpenChange, entityId }: PixFeeBatchD
                 <div className="space-y-6 pt-4">
                     {/* Header Fields */}
                     <div className="space-y-2">
-                        <Label>Referência do Lote *</Label>
+                        <Label htmlFor="batch-ref">Referência do Lote *</Label>
                         <Input
+                            id="batch-ref"
                             placeholder="Ex: Semana 1 - Março"
                             value={reference}
                             onChange={(e) => setReference(e.target.value)}
@@ -131,23 +132,26 @@ export function PixFeeBatchDialog({ open, onOpenChange, entityId }: PixFeeBatchD
                                         #{index + 1}
                                     </div>
                                     <div className="col-span-3 space-y-1">
-                                        <Label className="text-xs">Valor</Label>
+                                        <Label htmlFor={`item-amount-${item.id}`} className="text-xs">Valor</Label>
                                         <CurrencyInput
+                                            id={`item-amount-${item.id}`}
                                             value={item.amount}
                                             onChange={(v) => updateItem(item.id, 'amount', v)}
                                         />
                                     </div>
                                     <div className="col-span-4 space-y-1">
-                                        <Label className="text-xs">Descrição</Label>
+                                        <Label htmlFor={`item-desc-${item.id}`} className="text-xs">Descrição</Label>
                                         <Input
+                                            id={`item-desc-${item.id}`}
                                             value={item.description}
                                             onChange={(e) => updateItem(item.id, 'description', e.target.value)}
                                             placeholder="Taxa PIX"
                                         />
                                     </div>
                                     <div className="col-span-3 space-y-1">
-                                        <Label className="text-xs">Data (Opcional)</Label>
+                                        <Label htmlFor={`item-date-${item.id}`} className="text-xs">Data (Opcional)</Label>
                                         <DateInput
+                                            id={`item-date-${item.id}`}
                                             value={item.occurred_at || ""}
                                             onChange={(v) => updateItem(item.id, 'occurred_at', v)}
                                         />

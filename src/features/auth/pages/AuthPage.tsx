@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { Button } from "@/shared/ui/button";
@@ -12,19 +12,25 @@ type AuthMode = "login" | "register" | "forgot-password";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>("login");
+  const { signIn, signUp, resetPassword, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp, resetPassword, user } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
 
   // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      const from = location.state?.from?.pathname || "/";
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, location]);
+
   if (user) {
-    const from = location.state?.from?.pathname || "/";
-    navigate(from, { replace: true });
     return null;
   }
 

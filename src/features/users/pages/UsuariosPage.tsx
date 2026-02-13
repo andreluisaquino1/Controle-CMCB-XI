@@ -171,7 +171,7 @@ export default function UsuariosPage() {
                                             }
                                             disabled={updateRole.isPending || p.user_id === profile?.user_id}
                                         >
-                                            <SelectTrigger className="w-[110px] h-8 text-xs">
+                                            <SelectTrigger className="w-[110px] h-8 text-xs" aria-label={`Alterar função de ${p.name}`}>
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -213,6 +213,7 @@ export default function UsuariosPage() {
                                                     toggleActivation.mutate({ id: p.id, active: checked })
                                                 }
                                                 disabled={toggleActivation.isPending || p.user_id === profile?.user_id}
+                                                aria-label={p.active ? `Desativar usuário ${p.name}` : `Ativar usuário ${p.name}`}
                                             />
 
                                             <Button
@@ -224,6 +225,7 @@ export default function UsuariosPage() {
                                                     setEditingUser(p);
                                                     setNewName(p.name);
                                                 }}
+                                                aria-label={`Editar ${p.name}`}
                                             >
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
@@ -235,6 +237,7 @@ export default function UsuariosPage() {
                                                         size="icon"
                                                         className="h-8 w-8 text-destructive hover:bg-destructive/10"
                                                         disabled={p.user_id === profile?.user_id}
+                                                        aria-label={`Remover ${p.name}`}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>

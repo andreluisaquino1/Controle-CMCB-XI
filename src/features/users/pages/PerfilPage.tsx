@@ -142,13 +142,16 @@ export default function PerfilPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Email</Label>
-              <Input value={profile?.email || ""} disabled />
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" name="email" autoComplete="email" value={profile?.email || ""} disabled />
               <p className="text-xs text-muted-foreground">O email não pode ser alterado</p>
             </div>
             <div className="space-y-2">
-              <Label>Nome</Label>
+              <Label htmlFor="name">Nome</Label>
               <Input
+                id="name"
+                name="name"
+                autoComplete="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Seu nome"
@@ -156,7 +159,7 @@ export default function PerfilPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Status da Conta</Label>
+                <span className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Status da Conta</span>
                 <div>
                   <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${profile?.active ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
                     {profile?.active ? "Ativo" : "Aguardando liberação"}
@@ -164,7 +167,7 @@ export default function PerfilPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Nível de Acesso</Label>
+                <span className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Nível de Acesso</span>
                 <div>
                   <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary uppercase">
                     {profile?.role === "admin" ? "Administrador" : profile?.role === "demo" ? "Demonstração" : "Usuário"}
@@ -189,8 +192,11 @@ export default function PerfilPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Senha Atual *</Label>
+              <Label htmlFor="current-password">Senha Atual *</Label>
               <Input
+                id="current-password"
+                name="current-password"
+                autoComplete="current-password"
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -198,8 +204,11 @@ export default function PerfilPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Nova Senha *</Label>
+              <Label htmlFor="new-password">Nova Senha *</Label>
               <Input
+                id="new-password"
+                name="new-password"
+                autoComplete="new-password"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -207,8 +216,11 @@ export default function PerfilPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Confirmar Nova Senha *</Label>
+              <Label htmlFor="confirm-password">Confirmar Nova Senha *</Label>
               <Input
+                id="confirm-password"
+                name="confirm-password"
+                autoComplete="new-password"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}

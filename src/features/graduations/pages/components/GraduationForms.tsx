@@ -31,18 +31,18 @@ export function EntryForm({ onSubmit, isLoading }: { onSubmit: (data: any) => vo
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-2">
-                <Label>Descrição</Label>
-                <Input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: Rifa de Páscoa" required />
+                <Label htmlFor="entry-desc">Descrição</Label>
+                <Input id="entry-desc" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: Rifa de Páscoa" required />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                    <Label>Valor (R$)</Label>
-                    <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+                    <Label htmlFor="entry-amount">Valor (R$)</Label>
+                    <Input id="entry-amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
                 </div>
                 <div className="grid gap-2">
-                    <Label>Método</Label>
+                    <Label htmlFor="entry-method">Método</Label>
                     <Select value={method} onValueChange={(v: any) => setMethod(v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger id="entry-method"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="PIX">PIX</SelectItem>
                             <SelectItem value="ESPECIE">Dinheiro</SelectItem>
@@ -51,9 +51,9 @@ export function EntryForm({ onSubmit, isLoading }: { onSubmit: (data: any) => vo
                 </div>
             </div>
             <div className="grid gap-2">
-                <Label>Tipo de Entrada</Label>
+                <Label htmlFor="entry-type">Tipo de Entrada</Label>
                 <Select value={type} onValueChange={(v: any) => setType(v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="entry-type"><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="OUTROS">Outros</SelectItem>
                         <SelectItem value="RIFA">Rifa</SelectItem>
@@ -85,18 +85,18 @@ export function ExpenseForm({ onSubmit, isLoading }: { onSubmit: (data: any) => 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-2">
-                <Label>Descrição da Despesa</Label>
-                <Input value={desc} onChange={e => setDesc(e.target.value)} required />
+                <Label htmlFor="exp-desc">Descrição da Despesa</Label>
+                <Input id="exp-desc" value={desc} onChange={e => setDesc(e.target.value)} required />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                    <Label>Valor (R$)</Label>
-                    <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+                    <Label htmlFor="exp-amount">Valor (R$)</Label>
+                    <Input id="exp-amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
                 </div>
                 <div className="grid gap-2">
-                    <Label>Método Pagamento</Label>
+                    <Label htmlFor="exp-method">Método Pagamento</Label>
                     <Select value={method} onValueChange={(v: any) => setMethod(v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger id="exp-method"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="PIX">PIX</SelectItem>
                             <SelectItem value="ESPECIE">Dinheiro</SelectItem>
@@ -128,14 +128,14 @@ export function TransferForm({ onSubmit, isLoading }: { onSubmit: (data: any) =>
         <form onSubmit={handleSubmit} className="space-y-4">
             <p className="text-sm text-muted-foreground">Registrar transferência entre contas.</p>
             <div className="grid gap-2">
-                <Label>Valor</Label>
-                <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+                <Label htmlFor="trans-amount">Valor</Label>
+                <Input id="trans-amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                    <Label>De (Origem)</Label>
+                    <Label htmlFor="trans-from">De (Origem)</Label>
                     <Select value={from} onValueChange={(v: any) => setFrom(v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger id="trans-from"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="PIX">PIX / Banco</SelectItem>
                             <SelectItem value="ESPECIE">Dinheiro em Mãos</SelectItem>
@@ -143,9 +143,9 @@ export function TransferForm({ onSubmit, isLoading }: { onSubmit: (data: any) =>
                     </Select>
                 </div>
                 <div className="grid gap-2">
-                    <Label>Para (Destino)</Label>
+                    <Label htmlFor="trans-to">Para (Destino)</Label>
                     <Select value={to} onValueChange={(v: any) => setTo(v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger id="trans-to"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="PIX">PIX / Banco</SelectItem>
                             <SelectItem value="ESPECIE">Dinheiro em Mãos</SelectItem>
@@ -154,8 +154,8 @@ export function TransferForm({ onSubmit, isLoading }: { onSubmit: (data: any) =>
                 </div>
             </div>
             <div className="grid gap-2">
-                <Label>Descrição</Label>
-                <Input value={desc} onChange={e => setDesc(e.target.value)} />
+                <Label htmlFor="trans-desc">Descrição</Label>
+                <Input id="trans-desc" value={desc} onChange={e => setDesc(e.target.value)} />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>Registrar Transferência</Button>
         </form>
@@ -194,21 +194,21 @@ export function ConfigForm({ current, onSubmit, isLoading }: {
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-2">
-                <Label>Valor da Mensalidade (R$)</Label>
-                <Input type="number" step="0.01" value={val} onChange={e => setVal(e.target.value)} required />
+                <Label htmlFor="cfg-val">Valor da Mensalidade (R$)</Label>
+                <Input id="cfg-val" type="number" step="0.01" value={val} onChange={e => setVal(e.target.value)} required />
             </div>
             <div className="grid gap-2">
-                <Label>Quantidade de Parcelas</Label>
-                <Input type="number" value={count} onChange={e => setCount(e.target.value)} required />
+                <Label htmlFor="cfg-count">Quantidade de Parcelas</Label>
+                <Input id="cfg-count" type="number" value={count} onChange={e => setCount(e.target.value)} required />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                    <Label>Dia Venc.</Label>
-                    <Input type="number" value={day} onChange={e => setDay(e.target.value)} required />
+                    <Label htmlFor="cfg-day">Dia Venc.</Label>
+                    <Input id="cfg-day" type="number" value={day} onChange={e => setDay(e.target.value)} required />
                 </div>
                 <div className="grid gap-2">
-                    <Label>Mês Início</Label>
-                    <Input type="number" value={month} onChange={e => setMonth(e.target.value)} required />
+                    <Label htmlFor="cfg-month">Mês Início</Label>
+                    <Input id="cfg-month" type="number" value={month} onChange={e => setMonth(e.target.value)} required />
                 </div>
             </div>
             <div className="pt-4 border-t border-dashed mt-4">
@@ -236,8 +236,8 @@ export function ClassForm({ onSubmit, isLoading }: { onSubmit: (name: string) =>
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-2">
-                <Label>Nome da Turma</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: 3º Ano A" required />
+                <Label htmlFor="class-name">Nome da Turma</Label>
+                <Input id="class-name" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: 3º Ano A" required />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin" /> : "Criar Turma"}</Button>
         </form>

@@ -108,18 +108,19 @@ export function PixNaoIdentificadoDialog({ open, onOpenChange, entityId }: PixNa
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Data *</Label>
-                        <DateInput value={date} onChange={setDate} />
+                        <Label htmlFor="ghost-date">Data *</Label>
+                        <DateInput id="ghost-date" value={date} onChange={setDate} />
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Valor *</Label>
-                        <CurrencyInput value={amount} onChange={setAmount} />
+                        <Label htmlFor="ghost-amount">Valor *</Label>
+                        <CurrencyInput id="ghost-amount" value={amount} onChange={setAmount} />
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Descrição / Referência *</Label>
+                        <Label htmlFor="ghost-desc">Descrição / Referência *</Label>
                         <Input
+                            id="ghost-desc"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Ex: Diferença fechamento semana 1"

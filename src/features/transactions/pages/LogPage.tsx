@@ -173,8 +173,9 @@ export default function LogPage() {
                     {!isDemo && (
                         <div className="flex flex-wrap gap-2 bg-muted/30 p-2 rounded-lg border border-border/50">
                             <div className="space-y-1">
-                                <Label className="text-[10px] uppercase ml-1">Início</Label>
+                                <Label htmlFor="start-date" className="text-[10px] uppercase ml-1">Início</Label>
                                 <Input
+                                    id="start-date"
                                     type="date"
                                     className="h-8 text-xs w-[130px]"
                                     value={startDate}
@@ -182,8 +183,9 @@ export default function LogPage() {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <Label className="text-[10px] uppercase ml-1">Fim</Label>
+                                <Label htmlFor="end-date" className="text-[10px] uppercase ml-1">Fim</Label>
                                 <Input
+                                    id="end-date"
                                     type="date"
                                     className="h-8 text-xs w-[130px]"
                                     value={endDate}
@@ -191,9 +193,9 @@ export default function LogPage() {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <Label className="text-[10px] uppercase ml-1">Usuário</Label>
+                                <Label htmlFor="log-user" className="text-[10px] uppercase ml-1">Usuário</Label>
                                 <Select value={selectedUser} onValueChange={setSelectedUser}>
-                                    <SelectTrigger className="h-8 text-xs w-[150px]">
+                                    <SelectTrigger id="log-user" className="h-8 text-xs w-[150px]" aria-label="Filtrar por usuário">
                                         <SelectValue placeholder="Todos" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -205,9 +207,9 @@ export default function LogPage() {
                                 </Select>
                             </div>
                             <div className="space-y-1">
-                                <Label className="text-[10px] uppercase ml-1">Ação</Label>
+                                <Label htmlFor="log-action" className="text-[10px] uppercase ml-1">Ação</Label>
                                 <Select value={selectedAction} onValueChange={setSelectedAction}>
-                                    <SelectTrigger className="h-8 text-xs w-[110px]">
+                                    <SelectTrigger id="log-action" className="h-8 text-xs w-[110px]" aria-label="Filtrar por ação">
                                         <SelectValue placeholder="Todas" />
                                     </SelectTrigger>
                                     <SelectContent>

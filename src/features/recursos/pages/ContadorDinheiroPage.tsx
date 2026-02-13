@@ -132,9 +132,10 @@ export default function ContadorDinheiroPage() {
                                 <CardContent className="space-y-3 pt-4">
                                     {NOTES.map(note => (
                                         <div key={note} className="flex items-center justify-between gap-3">
-                                            <Label className="w-16 font-mono text-right text-sm">R$ {note}</Label>
+                                            <Label htmlFor={`note-${note}`} className="w-16 font-mono text-right text-sm">R$ {note}</Label>
                                             <div className="flex-1">
                                                 <Input
+                                                    id={`note-${note}`}
                                                     type="number"
                                                     min="0"
                                                     placeholder="0"
@@ -167,9 +168,10 @@ export default function ContadorDinheiroPage() {
                                 <CardContent className="space-y-3 pt-4">
                                     {COINS.map(coin => (
                                         <div key={coin} className="flex items-center justify-between gap-3">
-                                            <Label className="w-16 font-mono text-right text-sm">R$ {coin.toFixed(2)}</Label>
+                                            <Label htmlFor={`coin-${coin}`} className="w-16 font-mono text-right text-sm">R$ {coin.toFixed(2)}</Label>
                                             <div className="flex-1">
                                                 <Input
+                                                    id={`coin-${coin}`}
                                                     type="number"
                                                     min="0"
                                                     placeholder="0"
@@ -222,9 +224,9 @@ export default function ContadorDinheiroPage() {
                                     <>
                                         <div className="space-y-3">
                                             <div className="space-y-1">
-                                                <Label className="text-xs">Comparar Com:</Label>
+                                                <Label htmlFor="source-type" className="text-xs">Comparar Com:</Label>
                                                 <Select value={sourceType} onValueChange={setSourceType}>
-                                                    <SelectTrigger className="h-8 text-xs">
+                                                    <SelectTrigger id="source-type" className="h-8 text-xs">
                                                         <SelectValue placeholder="Selecione a origem" />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -237,9 +239,9 @@ export default function ContadorDinheiroPage() {
 
                                             {(sourceType === "grad_cash" || sourceType === "grad_treasurer") && (
                                                 <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
-                                                    <Label className="text-xs">Formaturas Ativas:</Label>
+                                                    <Label htmlFor="grad-select" className="text-xs">Formaturas Ativas:</Label>
                                                     <Select value={selectedGraduationId} onValueChange={setSelectedGraduationId}>
-                                                        <SelectTrigger className="h-8 text-xs">
+                                                        <SelectTrigger id="grad-select" className="h-8 text-xs">
                                                             <SelectValue placeholder="Selecione" />
                                                         </SelectTrigger>
                                                         <SelectContent>
