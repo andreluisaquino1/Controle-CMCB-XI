@@ -228,7 +228,7 @@ export function ConfigForm({ current, onSubmit, isLoading }: {
                     Salvar e Regenerar Prestações
                 </Button>
             </div>
-        </form>
+        </form >
     );
 }
 

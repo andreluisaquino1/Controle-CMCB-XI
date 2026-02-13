@@ -21,33 +21,51 @@ export function useAssociacaoTransactions(startDate?: string, endDate?: string) 
   const query = useQuery({
     queryKey: ["transactions", "associacao", startDate, endDate],
     queryFn: async () => {
-      const allowedModules = '("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual")';
+      const allowedModules = ["mensalidade", "mensalidade_pix", "pix_nao_identificado", "gasto_associacao", "assoc_transfer", "especie_transfer", "especie_deposito_pix", "especie_ajuste", "pix_ajuste", "cofre_ajuste", "conta_digital_ajuste", "conta_digital_taxa", "taxa_pix_bb"];
+      const allowedModulesString = `("${allowedModules.join('","')}")`;
 
-      let queryBuilder = extendedSupabase
+      // 1. Legacy Transactions
+      let legacyPromise = supabase
+        .from("transactions")
+        .select("*")
+        .in("module", allowedModules as any)
+        .order("transaction_date", { ascending: false });
+
+      if (startDate) legacyPromise = legacyPromise.gte("transaction_date", startDate);
+      if (endDate) legacyPromise = legacyPromise.lte("transaction_date", endDate);
+
+      // 2. Ledger Transactions
+      let ledgerPromise = extendedSupabase
         .from("ledger_transactions")
         .select("*")
         .or([
-          `module.in.${allowedModules}`,
-          `metadata->>module.in.${allowedModules}`,
-          `metadata->>modulo.in.${allowedModules}`,
-          `metadata->>original_module.in.${allowedModules}`
+          `metadata->>module.in.${allowedModulesString}`,
+          `metadata->>modulo.in.${allowedModulesString}`,
+          `metadata->>original_module.in.${allowedModulesString}`
         ].join(","))
         .order("created_at", { ascending: false });
 
-      if (startDate) queryBuilder = queryBuilder.gte("created_at", `${startDate}T00:00:00`);
-      if (endDate) queryBuilder = queryBuilder.lte("created_at", `${endDate}T23:59:59`);
+      if (startDate) ledgerPromise = ledgerPromise.gte("created_at", `${startDate}T00:00:00`);
+      if (endDate) ledgerPromise = ledgerPromise.lte("created_at", `${endDate}T23:59:59`);
 
-      const { data: ledgerData, error } = await queryBuilder.limit(200);
+      const [legacyRes, ledgerRes] = await Promise.all([
+        legacyPromise.limit(200),
+        ledgerPromise.limit(200)
+      ]);
 
-      if (error) throw error;
+      if (legacyRes.error) throw legacyRes.error;
+      if (ledgerRes.error) throw ledgerRes.error;
 
-      return (ledgerData || [])
-        .map((l) => mapLedgerTransaction(l as unknown as LedgerTransaction & Record<string, unknown>, meta as MapperMetadata))
+      const legacyMapped = (legacyRes.data || []).map((t) => mapLegacyTransaction(t as unknown as Transaction, meta as MapperMetadata));
+      const ledgerMapped = (ledgerRes.data || []).map((l) => mapLedgerTransaction(l as unknown as LedgerTransaction & Record<string, unknown>, meta as MapperMetadata));
+
+      return [...legacyMapped, ...ledgerMapped]
         .sort((a, b) => {
           const dateA = a.transaction_date ? new Date(a.transaction_date) : new Date(a.created_at);
           const dateB = b.transaction_date ? new Date(b.transaction_date) : new Date(b.created_at);
           return dateB.getTime() - dateA.getTime();
-        });
+        })
+        .slice(0, 200);
     },
     enabled: !isDemo && !!meta,
   });

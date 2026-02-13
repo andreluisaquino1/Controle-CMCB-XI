@@ -104,5 +104,42 @@ export const studentService = {
             .update({ active: false })
             .eq('id', studentId);
         if (error) throw error;
+    },
+
+    async updateStudent(studentId: string, updates: Partial<{ name: string; guardian_name: string; active: boolean }>): Promise<void> {
+        const { error } = await fromTable('graduation_class_students')
+            .update(updates)
+            .eq('id', studentId);
+        if (error) throw error;
+    },
+
+    async deleteAllStudentsFromClass(classId: string): Promise<void> {
+        // 1. Buscar todos os IDs de alunos da turma
+        const { data: students, error: listError } = await fromTable('graduation_class_students')
+            .select('id')
+            .eq('class_id', classId);
+
+        if (listError) throw listError;
+        const studentIds = (students as unknown as { id: string }[]).map(s => s.id);
+
+        if (studentIds.length === 0) return;
+
+        // 2. Apagar parcelas (graduation_installments)
+        const { error: errorInst } = await fromTable('graduation_installments')
+            .delete()
+            .in('student_id', studentIds);
+        if (errorInst) throw errorInst;
+
+        // 3. Apagar obrigações (graduation_student_obligations - se existir via listEvents)
+        const { error: errorObl } = await fromTable('graduation_student_obligations')
+            .delete()
+            .in('student_id', studentIds);
+        if (errorObl) throw errorObl;
+
+        // 4. Finalmente apagar os alunos
+        const { error: errorStudents } = await fromTable('graduation_class_students')
+            .delete()
+            .eq('class_id', classId);
+        if (errorStudents) throw errorStudents;
     }
 };

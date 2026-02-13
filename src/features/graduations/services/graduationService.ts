@@ -56,7 +56,6 @@ export interface GraduationCarnetConfig {
     due_day: number;
     start_month: number;
     version: number;
-    is_current: boolean;
     created_by?: string;
     created_at: string;
 }
@@ -220,21 +219,14 @@ export const graduationService = {
         return this.getCurrentCarnetConfig(graduationId);
     },
 
-    async createCarnetConfig(config: Omit<GraduationCarnetConfig, 'id' | 'version' | 'created_at' | 'is_current'>): Promise<GraduationCarnetConfig> {
+    async createCarnetConfig(config: Omit<GraduationCarnetConfig, 'id' | 'version' | 'created_at'>): Promise<GraduationCarnetConfig> {
         const current = await this.getCurrentCarnetConfig(config.graduation_id);
         const version = current ? current.version + 1 : 1;
-
-        // Inactivate current if exists
-        if (current) {
-            await fromTable("graduation_carnet_configs")
-                .update({ is_current: false })
-                .eq("id", current.id);
-        }
 
         const { data: { user } } = await supabase.auth.getUser();
 
         const { data, error } = await fromTable("graduation_carnet_configs")
-            .insert({ ...config, version, is_current: true, created_by: user?.id })
+            .insert({ ...config, version, created_by: user?.id })
             .select()
             .single();
 
@@ -242,7 +234,7 @@ export const graduationService = {
         return data as unknown as GraduationCarnetConfig;
     },
 
-    async createNewConfigVersion(graduationId: string, config: Omit<GraduationCarnetConfig, 'id' | 'version' | 'created_at' | 'is_current' | 'graduation_id'>): Promise<GraduationCarnetConfig> {
+    async createNewConfigVersion(graduationId: string, config: Omit<GraduationCarnetConfig, 'id' | 'version' | 'created_at' | 'graduation_id'>): Promise<GraduationCarnetConfig> {
         return this.createCarnetConfig({ ...config, graduation_id: graduationId });
     },
 
@@ -284,11 +276,14 @@ export const graduationService = {
         if (count && count > 0) return; // Already generated
 
         // Generate installments
+        const { data: gradData } = await fromTable("graduations").select("year").eq("id", graduationId).single();
+        const baseYear = (gradData as any)?.year || 2026;
         const installments = [];
-        const baseDate = new Date(2026, 0, 1); // Start of 2026
 
         for (let i = 1; i <= config.installments_count; i++) {
-            const dueDate = setDate(addMonths(baseDate, i - 1), config.due_day);
+            const monthIndex = (config.start_month - 1) + (i - 1);
+            const dueDate = new Date(baseYear, monthIndex, config.due_day);
+
             installments.push({
                 student_id: studentId,
                 carnet_config_id: config.id,

@@ -12,7 +12,6 @@ export interface GraduationConfig {
     installments_count: number;
     due_day: number;
     start_month: number;
-    is_current: boolean;
 }
 
 export interface Graduation {

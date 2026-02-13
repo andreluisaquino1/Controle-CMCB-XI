@@ -116,6 +116,16 @@ export default function GraduationClassDetailPage() {
         onError: (err: Error) => toast.error("Erro: " + err.message)
     });
 
+    const mutationDeleteStudents = useMutation({
+        mutationFn: () => graduationModuleService.deleteAllStudentsFromClass(classId!),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["graduation-students"] });
+            queryClient.invalidateQueries({ queryKey: ["graduation-students-progress"] });
+            toast.success("Todos os alunos foram removidos com sucesso!");
+        },
+        onError: (err: Error) => toast.error("Erro ao remover alunos: " + err.message)
+    });
+
     const handleExportCarnets = async () => {
         if (!config || !students || students.length === 0) {
             toast.error("Dados insuficientes para gerar carnês. Verifique se a turma possui alunos e se a configuração financeira foi salva.");
@@ -205,6 +215,20 @@ export default function GraduationClassDetailPage() {
                             </Button>
                             <Button onClick={handleExportTreasurer} variant="outline" size="sm" className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50">
                                 <Download className="h-4 w-4" /> Exportar Controle Tesoureiro
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    if (confirm("ATENÇÃO: Isso apagará PERMANENTEMENTE todos os alunos e seus registros financeiros desta turma. Esta ação não pode ser desfeita. Deseja continuar?")) {
+                                        mutationDeleteStudents.mutate();
+                                    }
+                                }}
+                                variant="outline"
+                                size="sm"
+                                className="gap-2 border-destructive/20 text-destructive hover:bg-destructive/5"
+                                disabled={mutationDeleteStudents.isPending}
+                            >
+                                {mutationDeleteStudents.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserX className="h-4 w-4" />}
+                                Zerar Alunos
                             </Button>
                         </div>
                     </div>
