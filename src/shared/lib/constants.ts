@@ -78,6 +78,16 @@ export const MODULE_LABELS: Record<string, string> = {
 } as const;
 
 /**
+ * User roles labels
+ */
+export const ROLE_LABELS: Record<string, string> = {
+  admin: "Administrador",
+  user: "Usuário",
+  demo: "Demonstração",
+  secretaria: "Secretaria",
+} as const;
+
+/**
  * Fund origins
  */
 export const FUND_ORIGINS = {

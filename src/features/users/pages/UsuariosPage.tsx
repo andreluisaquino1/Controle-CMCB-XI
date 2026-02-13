@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/shared/components/DashboardLayout";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { profileService, Profile } from "@/features/users/services/profileService";
+import { ROLE_LABELS } from "@/shared/lib/constants";
 // ... (imports remain the same)
 import {
     Table,
@@ -49,12 +50,7 @@ import { Loader2, UserCheck, UserX, Trash2, ShieldAlert, Pencil } from "lucide-r
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const ROLE_LABELS = {
-    admin: "Administrador",
-    user: "Usuário",
-    demo: "Demonstração",
-    secretaria: "Secretaria",
-};
+
 
 export default function UsuariosPage() {
     const { profile, isAdmin } = useAuth();

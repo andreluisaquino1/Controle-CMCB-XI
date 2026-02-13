@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { User, KeyRound, LogOut, Loader2, Mail } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { profileService } from "@/features/users/services/profileService";
+import { ROLE_LABELS } from "@/shared/lib/constants";
 
 export default function PerfilPage() {
   const { profile, signOut, user } = useAuth();
@@ -170,7 +171,7 @@ export default function PerfilPage() {
                 <span className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Nível de Acesso</span>
                 <div>
                   <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary uppercase">
-                    {profile?.role === "admin" ? "Administrador" : profile?.role === "demo" ? "Demonstração" : "Usuário"}
+                    {profile?.role ? ROLE_LABELS[profile.role] || profile.role : "Usuário"}
                   </div>
                 </div>
               </div>
