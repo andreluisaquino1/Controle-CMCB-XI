@@ -418,7 +418,7 @@ export function useAssociacaoActions(
         } finally {
             setIsSubmitting(false);
         }
-    }, [state.ajuste, accountsMap, associacaoEntity, queryClient, resetAjuste, onSuccess]);
+    }, [state.ajuste, accountsMap, associacaoEntity, queryClient, resetAjuste, onSuccess, isSecretaria]);
 
     const handlers = useMemo(() => ({
         handleMensalidadeSubmit,

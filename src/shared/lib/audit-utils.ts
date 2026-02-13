@@ -48,7 +48,7 @@ export function renderSecurityDiff(
     const USER_KEYS = ['user_id', 'user', 'actor', 'created_by'];
     const ACCOUNT_KEYS = ['account_id', 'source_account_id', 'destination_account_id'];
 
-    const resolveValue = (key: string, val: any) => {
+    const resolveValue = (key: string, val: unknown) => {
         const strVal = String(val ?? 'Nulo');
 
         // Se for uma chave de usuário e tivermos o lookup

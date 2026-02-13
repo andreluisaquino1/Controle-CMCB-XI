@@ -46,7 +46,7 @@ export function StudentFinancialDialog({ studentId, open, onOpenChange }: Props)
     });
 
     const mutationPay = useMutation({
-        mutationFn: (data: { id: string, details: any }) =>
+        mutationFn: (data: { id: string, details: { paid_at: string; received_by: string; financial_responsible?: string; signature?: string } }) =>
             graduationModuleService.markObligationPaid(data.id, data.details),
 
         onSuccess: () => {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from "vitest";
 import { mapLedgerTransaction, mapLegacyTransaction, MapperMetadata } from "../transactionMapper";
 import { Transaction } from "@/types";

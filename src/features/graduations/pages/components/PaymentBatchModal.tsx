@@ -39,7 +39,7 @@ export function PaymentBatchModal({ open, onOpenChange, classId, students }: Pay
     });
 
     const mutation = useMutation({
-        mutationFn: (data: any) => graduationModuleService.batchMarkObligationsPaid(data),
+        mutationFn: (data: { class_id: string; student_ids: string[]; reference_label: string; paid_at: string; received_by: string }) => graduationModuleService.batchMarkObligationsPaid(data),
         onSuccess: (count) => {
             queryClient.invalidateQueries({ queryKey: ["graduation-students-progress"] });
             queryClient.invalidateQueries({ queryKey: ["open-obligation-labels"] });
@@ -47,7 +47,7 @@ export function PaymentBatchModal({ open, onOpenChange, classId, students }: Pay
             onOpenChange(false);
             resetForm();
         },
-        onError: (err: any) => toast.error("Erro: " + err.message)
+        onError: (err: Error) => toast.error("Erro: " + err.message)
     });
 
     const resetForm = () => {

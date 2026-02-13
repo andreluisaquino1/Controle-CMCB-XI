@@ -87,6 +87,7 @@ export function AjustarSaldoDialog({
         setAdjustment(0);
         setFinalBalance(currentBalance);
         if (state.valor !== 0) setValor(0);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [state.accountId, currentBalance, setValor]);
 
     // Se o pai resetar valor enquanto não há campo ativo, refletir aqui

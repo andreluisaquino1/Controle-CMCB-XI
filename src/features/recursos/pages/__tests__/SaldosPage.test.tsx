@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createMockQueryResult } from "@/test/test-utils";
 import { render, screen } from "@testing-library/react";

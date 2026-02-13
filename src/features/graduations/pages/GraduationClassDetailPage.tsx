@@ -82,7 +82,7 @@ export default function GraduationClassDetailPage() {
             if (data.count > 0) toast.success(`${data.count} alunos importados!`);
             setImporting(false);
         },
-        onError: (err: any) => {
+        onError: (err: Error) => {
             toast.error("Erro na importação: " + err.message);
             setImporting(false);
         }
@@ -95,7 +95,7 @@ export default function GraduationClassDetailPage() {
             toast.success("Aluno adicionado!");
             setOpenStudent(false);
         },
-        onError: (err: any) => toast.error("Erro: " + err.message)
+        onError: (err: Error) => toast.error("Erro: " + err.message)
     });
 
     const mutationInactivate = useMutation({
@@ -104,7 +104,7 @@ export default function GraduationClassDetailPage() {
             queryClient.invalidateQueries({ queryKey: ["graduation-students"] });
             toast.success("Aluno inativado!");
         },
-        onError: (err: any) => toast.error("Erro: " + err.message)
+        onError: (err: Error) => toast.error("Erro: " + err.message)
     });
 
     const mutationGenerate = useMutation({
@@ -113,7 +113,7 @@ export default function GraduationClassDetailPage() {
             queryClient.invalidateQueries({ queryKey: ["graduation-students-progress"] });
             toast.success("Prestações geradas com sucesso!");
         },
-        onError: (err: any) => toast.error("Erro: " + err.message)
+        onError: (err: Error) => toast.error("Erro: " + err.message)
     });
 
     const handleExportCarnets = () => {

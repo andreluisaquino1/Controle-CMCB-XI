@@ -13,7 +13,12 @@ import {
 } from "@/shared/ui/select";
 import { GraduationPayMethod, GraduationEntryType, GraduationConfig } from "@/features/graduations/services";
 
-export function EntryForm({ onSubmit, isLoading }: { onSubmit: (data: any) => void; isLoading: boolean }) {
+interface EntryFormData { amount: number; description: string; payment_method: GraduationPayMethod; entry_type: GraduationEntryType }
+interface ExpenseFormData { amount: number; description: string; payment_method: GraduationPayMethod }
+interface TransferFormData { amount: number; description: string; from_account: GraduationPayMethod; to_account: GraduationPayMethod }
+interface ConfigFormData { installment_value: number; installments_count: number; due_day: number; start_month: number }
+
+export function EntryForm({ onSubmit, isLoading }: { onSubmit: (data: EntryFormData) => void; isLoading: boolean }) {
     const [amount, setAmount] = useState("");
     const [desc, setDesc] = useState("");
     const [method, setMethod] = useState<GraduationPayMethod>('PIX');
@@ -41,7 +46,7 @@ export function EntryForm({ onSubmit, isLoading }: { onSubmit: (data: any) => vo
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="entry-method">Método</Label>
-                    <Select value={method} onValueChange={(v: any) => setMethod(v)}>
+                    <Select value={method} onValueChange={(v) => setMethod(v as GraduationPayMethod)}>
                         <SelectTrigger id="entry-method"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="PIX">PIX</SelectItem>
@@ -52,7 +57,7 @@ export function EntryForm({ onSubmit, isLoading }: { onSubmit: (data: any) => vo
             </div>
             <div className="grid gap-2">
                 <Label htmlFor="entry-type">Tipo de Entrada</Label>
-                <Select value={type} onValueChange={(v: any) => setType(v)}>
+                <Select value={type} onValueChange={(v) => setType(v as GraduationEntryType)}>
                     <SelectTrigger id="entry-type"><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="OUTROS">Outros</SelectItem>
@@ -69,7 +74,7 @@ export function EntryForm({ onSubmit, isLoading }: { onSubmit: (data: any) => vo
     );
 }
 
-export function ExpenseForm({ onSubmit, isLoading }: { onSubmit: (data: any) => void; isLoading: boolean }) {
+export function ExpenseForm({ onSubmit, isLoading }: { onSubmit: (data: ExpenseFormData) => void; isLoading: boolean }) {
     const [amount, setAmount] = useState("");
     const [desc, setDesc] = useState("");
     const [method, setMethod] = useState<GraduationPayMethod>('PIX');
@@ -95,7 +100,7 @@ export function ExpenseForm({ onSubmit, isLoading }: { onSubmit: (data: any) => 
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="exp-method">Método Pagamento</Label>
-                    <Select value={method} onValueChange={(v: any) => setMethod(v)}>
+                    <Select value={method} onValueChange={(v) => setMethod(v as GraduationPayMethod)}>
                         <SelectTrigger id="exp-method"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="PIX">PIX</SelectItem>
@@ -109,7 +114,7 @@ export function ExpenseForm({ onSubmit, isLoading }: { onSubmit: (data: any) => 
     );
 }
 
-export function TransferForm({ onSubmit, isLoading }: { onSubmit: (data: any) => void; isLoading: boolean }) {
+export function TransferForm({ onSubmit, isLoading }: { onSubmit: (data: TransferFormData) => void; isLoading: boolean }) {
     const [amount, setAmount] = useState("");
     const [desc, setDesc] = useState("Transferência");
     const [from, setFrom] = useState<GraduationPayMethod>('ESPECIE');
@@ -134,7 +139,7 @@ export function TransferForm({ onSubmit, isLoading }: { onSubmit: (data: any) =>
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="trans-from">De (Origem)</Label>
-                    <Select value={from} onValueChange={(v: any) => setFrom(v)}>
+                    <Select value={from} onValueChange={(v) => setFrom(v as GraduationPayMethod)}>
                         <SelectTrigger id="trans-from"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="PIX">PIX / Banco</SelectItem>
@@ -144,7 +149,7 @@ export function TransferForm({ onSubmit, isLoading }: { onSubmit: (data: any) =>
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="trans-to">Para (Destino)</Label>
-                    <Select value={to} onValueChange={(v: any) => setTo(v)}>
+                    <Select value={to} onValueChange={(v) => setTo(v as GraduationPayMethod)}>
                         <SelectTrigger id="trans-to"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="PIX">PIX / Banco</SelectItem>
@@ -164,7 +169,7 @@ export function TransferForm({ onSubmit, isLoading }: { onSubmit: (data: any) =>
 
 export function ConfigForm({ current, onSubmit, isLoading }: {
     current: GraduationConfig | null | undefined;
-    onSubmit: (data: any) => void;
+    onSubmit: (data: ConfigFormData) => void;
     isLoading: boolean;
 }) {
     const [val, setVal] = useState<string>(current?.installment_value?.toString() || "");

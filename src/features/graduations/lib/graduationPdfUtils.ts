@@ -36,11 +36,11 @@ export const graduationPdfUtils = {
             head: [["Parcela", "Vencimento", "Valor", "Status", "Data Pagamento"]],
             body: tableData,
             theme: "grid",
-            headStyles: { fillGray: 200, textColor: 0, fontStyle: "bold" },
+            headStyles: { fillColor: 200, textColor: 0, fontStyle: "bold" },
         });
 
         // Manual Fields for Signature
-        const finalY = (doc as any).lastAutoTable.finalY + 20;
+        const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20;
         doc.setFontSize(10);
         doc.line(20, finalY, 80, finalY);
         doc.text("Assinatura / Recebido por", 20, finalY + 5);

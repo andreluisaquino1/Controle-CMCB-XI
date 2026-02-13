@@ -8,6 +8,52 @@ import {
     StudentObligation
 } from "@/features/graduations/services/types";
 
+// Helper para tabelas fora do schema gerado pelo Supabase
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const fromTable = (table: string) => supabase.from(table as any);
+
+// Interfaces auxiliares para rows intermediários
+interface EntryRow {
+    id: string;
+    date: string;
+    entry_type: GraduationEntryType;
+    pix_amount: number;
+    cash_amount: number;
+    notes?: string;
+}
+
+interface ExpenseRow {
+    id: string;
+    date: string;
+    description: string;
+    amount: number;
+    method: GraduationPayMethod;
+}
+
+interface TransferRow {
+    id: string;
+    date: string;
+    from_account: GraduationPayMethod;
+    to_account: GraduationPayMethod;
+    amount: number;
+}
+
+interface AdjustmentRow {
+    id: string;
+    date: string;
+    account: GraduationPayMethod;
+    direction: 'POS' | 'NEG';
+    amount: number;
+}
+
+interface AmountRow {
+    amount: number;
+}
+
+interface RefLabelRow {
+    reference_label: string;
+}
+
 export const financeService = {
     async createEntry(data: {
         graduation_id: string;
@@ -18,8 +64,7 @@ export const financeService = {
         pix_amount: number;
         notes?: string;
     }): Promise<void> {
-        const { error } = await supabase
-            .from('graduation_fin_entries' as any)
+        const { error } = await fromTable('graduation_fin_entries')
             .insert(data);
         if (error) throw error;
     },
@@ -32,8 +77,7 @@ export const financeService = {
         amount: number;
         description: string;
     }): Promise<void> {
-        const { error } = await supabase
-            .from('graduation_fin_expenses' as any)
+        const { error } = await fromTable('graduation_fin_expenses')
             .insert(data);
         if (error) throw error;
     },
@@ -46,8 +90,7 @@ export const financeService = {
         amount: number;
         notes?: string;
     }): Promise<void> {
-        const { error } = await supabase
-            .from('graduation_fin_transfers' as any)
+        const { error } = await fromTable('graduation_fin_transfers')
             .insert(data);
         if (error) throw error;
     },
@@ -60,18 +103,17 @@ export const financeService = {
         amount: number;
         notes?: string;
     }): Promise<void> {
-        const { error } = await supabase
-            .from('graduation_fin_adjustments' as any)
+        const { error } = await fromTable('graduation_fin_adjustments')
             .insert(data);
         if (error) throw error;
     },
 
     async getFinancialSummary(graduationId: string): Promise<GraduationFinancialCard> {
         const [entries, expenses, transfers, adjustments] = await Promise.all([
-            supabase.from('graduation_fin_entries' as any).select('*').eq('graduation_id', graduationId),
-            supabase.from('graduation_fin_expenses' as any).select('*').eq('graduation_id', graduationId),
-            supabase.from('graduation_fin_transfers' as any).select('*').eq('graduation_id', graduationId),
-            supabase.from('graduation_fin_adjustments' as any).select('*').eq('graduation_id', graduationId)
+            fromTable('graduation_fin_entries').select('*').eq('graduation_id', graduationId),
+            fromTable('graduation_fin_expenses').select('*').eq('graduation_id', graduationId),
+            fromTable('graduation_fin_transfers').select('*').eq('graduation_id', graduationId),
+            fromTable('graduation_fin_adjustments').select('*').eq('graduation_id', graduationId)
         ]);
 
         if (entries.error) throw entries.error;
@@ -84,7 +126,7 @@ export const financeService = {
         let totalExp = 0;
         let totalInc = 0;
 
-        (entries.data || []).forEach((e: any) => {
+        ((entries.data || []) as unknown as EntryRow[]).forEach((e) => {
             const p = Number(e.pix_amount || 0);
             const c = Number(e.cash_amount || 0);
             pix += p;
@@ -92,14 +134,14 @@ export const financeService = {
             totalInc += (p + c);
         });
 
-        (expenses.data || []).forEach((e: any) => {
+        ((expenses.data || []) as unknown as ExpenseRow[]).forEach((e) => {
             const val = Number(e.amount);
             totalExp += val;
             if (e.method === 'PIX') pix -= val;
             else cash -= val;
         });
 
-        (transfers.data || []).forEach((t: any) => {
+        ((transfers.data || []) as unknown as TransferRow[]).forEach((t) => {
             const val = Number(t.amount);
             if (t.from_account === 'PIX') pix -= val;
             else cash -= val;
@@ -108,7 +150,7 @@ export const financeService = {
             else cash += val;
         });
 
-        (adjustments.data || []).forEach((a: any) => {
+        ((adjustments.data || []) as unknown as AdjustmentRow[]).forEach((a) => {
             const val = Number(a.amount);
             const isPos = a.direction === 'POS';
             if (a.account === 'PIX') {
@@ -118,28 +160,26 @@ export const financeService = {
             }
         });
 
-        const { data: paidObs } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { data: paidObs } = await fromTable('graduation_student_obligations')
             .select('amount')
             .eq('graduation_id', graduationId)
             .eq('kind', 'MENSALIDADE')
             .eq('status', 'PAGO');
 
-        const totalPaidObligations = (paidObs || []).reduce((acc: any, curr: any) => acc + Number(curr.amount), 0);
+        const totalPaidObligations = ((paidObs || []) as unknown as AmountRow[]).reduce((acc, curr) => acc + Number(curr.amount), 0);
 
-        const totalEntriesTuition = (entries.data || [])
-            .filter((e: any) => e.entry_type === 'MENSALIDADE')
-            .reduce((acc: number, curr: any) => acc + Number(curr.pix_amount) + Number(curr.cash_amount), 0);
+        const totalEntriesTuition = ((entries.data || []) as unknown as EntryRow[])
+            .filter((e) => e.entry_type === 'MENSALIDADE')
+            .reduce((acc: number, curr) => acc + Number(curr.pix_amount) + Number(curr.cash_amount), 0);
 
         const totalWithTreasurer = totalPaidObligations - totalEntriesTuition;
 
-        const { data: openObs } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { data: openObs } = await fromTable('graduation_student_obligations')
             .select('amount')
             .eq('graduation_id', graduationId)
             .eq('status', 'EM_ABERTO');
 
-        const pendingIncome = (openObs || []).reduce((acc: any, curr: any) => acc + Number(curr.amount), 0);
+        const pendingIncome = ((openObs || []) as unknown as AmountRow[]).reduce((acc, curr) => acc + Number(curr.amount), 0);
 
         return {
             totalIncome: totalInc,
@@ -154,15 +194,15 @@ export const financeService = {
 
     async getHistory(graduationId: string): Promise<FinancialTransaction[]> {
         const [entries, expenses, transfers, adjustments] = await Promise.all([
-            supabase.from('graduation_fin_entries' as any).select('*').eq('graduation_id', graduationId),
-            supabase.from('graduation_fin_expenses' as any).select('*').eq('graduation_id', graduationId),
-            supabase.from('graduation_fin_transfers' as any).select('*').eq('graduation_id', graduationId),
-            supabase.from('graduation_fin_adjustments' as any).select('*').eq('graduation_id', graduationId)
+            fromTable('graduation_fin_entries').select('*').eq('graduation_id', graduationId),
+            fromTable('graduation_fin_expenses').select('*').eq('graduation_id', graduationId),
+            fromTable('graduation_fin_transfers').select('*').eq('graduation_id', graduationId),
+            fromTable('graduation_fin_adjustments').select('*').eq('graduation_id', graduationId)
         ]);
 
         const history: FinancialTransaction[] = [];
 
-        (entries.data || []).forEach((e: any) => history.push({
+        ((entries.data || []) as unknown as EntryRow[]).forEach((e) => history.push({
             id: e.id,
             date: e.date,
             type: 'ENTRADA',
@@ -172,7 +212,7 @@ export const financeService = {
             method: e.pix_amount > 0 && e.cash_amount > 0 ? 'MISTO' : e.pix_amount > 0 ? 'PIX' : 'ESPECIE'
         }));
 
-        (expenses.data || []).forEach((e: any) => history.push({
+        ((expenses.data || []) as unknown as ExpenseRow[]).forEach((e) => history.push({
             id: e.id,
             date: e.date,
             type: 'DESPESA',
@@ -181,7 +221,7 @@ export const financeService = {
             method: e.method
         }));
 
-        (transfers.data || []).forEach((e: any) => history.push({
+        ((transfers.data || []) as unknown as TransferRow[]).forEach((e) => history.push({
             id: e.id,
             date: e.date,
             type: 'TRANSFERENCIA',
@@ -189,7 +229,7 @@ export const financeService = {
             amount: Number(e.amount)
         }));
 
-        (adjustments.data || []).forEach((e: any) => history.push({
+        ((adjustments.data || []) as unknown as AdjustmentRow[]).forEach((e) => history.push({
             id: e.id,
             date: e.date,
             type: 'AJUSTE',
@@ -202,8 +242,7 @@ export const financeService = {
     },
 
     async getStudentObligations(studentId: string): Promise<StudentObligation[]> {
-        const { data, error } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { data, error } = await fromTable('graduation_student_obligations')
             .select('*')
             .eq('student_id', studentId)
             .order('due_date', { ascending: true });
@@ -218,8 +257,7 @@ export const financeService = {
         financial_responsible?: string;
         signature?: string;
     }): Promise<void> {
-        const { error } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { error } = await fromTable('graduation_student_obligations')
             .update({
                 status: 'PAGO',
                 ...details
@@ -229,8 +267,7 @@ export const financeService = {
     },
 
     async revertObligationToOpen(id: string): Promise<void> {
-        const { error } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { error } = await fromTable('graduation_student_obligations')
             .update({
                 status: 'EM_ABERTO',
                 paid_at: null,
@@ -251,8 +288,7 @@ export const financeService = {
     }): Promise<number> {
         const { student_ids, class_id, reference_label, paid_at, received_by } = data;
 
-        const { data: updated, error } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { data: updated, error } = await fromTable('graduation_student_obligations')
             .update({
                 status: 'PAGO',
                 paid_at,
@@ -265,12 +301,11 @@ export const financeService = {
             .select('id');
 
         if (error) throw error;
-        return updated?.length || 0;
+        return (updated as unknown as { id: string }[])?.length || 0;
     },
 
     async getOpenObligationLabels(classId: string): Promise<string[]> {
-        const { data, error } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { data, error } = await fromTable('graduation_student_obligations')
             .select('reference_label')
             .eq('class_id', classId)
             .eq('status', 'EM_ABERTO');
@@ -278,7 +313,7 @@ export const financeService = {
         if (error) throw error;
 
         // Extract unique labels and filter nulls/empty
-        const labels = Array.from(new Set((data || []).map((d: any) => d.reference_label)))
+        const labels = Array.from(new Set(((data || []) as unknown as RefLabelRow[]).map((d) => d.reference_label)))
             .filter(Boolean) as string[];
 
         return labels.sort();

@@ -6,10 +6,42 @@ import { graduationService } from "@/features/graduations/services/graduationSer
 import { formatDateString } from "@/shared/lib/date-utils";
 import { studentService } from "@/features/graduations/services/studentService";
 
+// Helper para tabelas fora do schema gerado pelo Supabase
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const fromTable = (table: string) => supabase.from(table as any);
+
+interface ObligationInsert {
+    graduation_id: string;
+    class_id: string;
+    student_id: string;
+    kind: string;
+    reference_label: string;
+    installment_number?: number;
+    amount: number;
+    due_date: string;
+    status: string;
+}
+
+interface ClassRow {
+    class_id: string;
+}
+
+interface GradRow {
+    graduation_id: string;
+}
+
+interface YearRow {
+    year: number;
+}
+
+interface StudentRow {
+    id: string;
+    class_id: string;
+}
+
 export const classService = {
     async listClasses(graduationId: string): Promise<GraduationClass[]> {
-        const { data, error } = await supabase
-            .from('graduation_classes' as any)
+        const { data, error } = await fromTable('graduation_classes')
             .select('*')
             .eq('graduation_id', graduationId)
             .eq('active', true)
@@ -22,8 +54,7 @@ export const classService = {
     async createClass(graduationId: string, name: string): Promise<GraduationClass> {
         const slug = `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}`.replace(/^-+|-+$/g, '');
 
-        const { data, error } = await supabase
-            .from('graduation_classes' as any)
+        const { data, error } = await fromTable('graduation_classes')
             .upsert({ graduation_id: graduationId, name, active: true, slug }, { onConflict: 'graduation_id, slug' })
             .select()
             .single();
@@ -35,24 +66,21 @@ export const classService = {
     async updateClass(id: string, name: string): Promise<void> {
         const slug = `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}`.replace(/^-+|-+$/g, '');
 
-        const { error } = await supabase
-            .from('graduation_classes' as any)
+        const { error } = await fromTable('graduation_classes')
             .update({ name, slug })
             .eq('id', id);
         if (error) throw error;
     },
 
     async softDeleteClass(id: string): Promise<void> {
-        const { error } = await supabase
-            .from('graduation_classes' as any)
+        const { error } = await fromTable('graduation_classes')
             .update({ active: false })
             .eq('id', id);
         if (error) throw error;
     },
 
     async getClassBySlug(graduationId: string, slug: string): Promise<GraduationClass> {
-        const { data, error } = await supabase
-            .from('graduation_classes' as any)
+        const { data, error } = await fromTable('graduation_classes')
             .select('*')
             .eq('graduation_id', graduationId)
             .eq('slug', slug)
@@ -62,8 +90,7 @@ export const classService = {
         if (data) return data as unknown as GraduationClass;
 
         if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)) {
-            const { data: dataId, error: errorId } = await supabase
-                .from('graduation_classes' as any)
+            const { data: dataId, error: errorId } = await fromTable('graduation_classes')
                 .select('*')
                 .eq('graduation_id', graduationId)
                 .eq('id', slug)
@@ -77,27 +104,26 @@ export const classService = {
     },
 
     async generateInstallmentsForStudent(studentId: string): Promise<void> {
-        const { data: student, error: stError } = await supabase
-            .from('graduation_class_students' as any)
+        const { data: student, error: stError } = await fromTable('graduation_class_students')
             .select('class_id')
             .eq('id', studentId)
             .single();
 
         if (stError) throw stError;
-        const classId = (student as any).class_id;
+        const classId = (student as unknown as ClassRow).class_id;
 
-        const resultCls = await supabase.from('graduation_classes' as any).select('graduation_id').eq('id', classId).single();
-        const cls = resultCls.data as any;
+        const resultCls = await fromTable('graduation_classes').select('graduation_id').eq('id', classId).single();
+        const cls = resultCls.data as unknown as GradRow | null;
 
         if (!cls) throw new Error("Turma não encontrada");
 
         const config = await graduationService.getCurrentConfig(cls.graduation_id);
         if (!config) throw new Error("Nenhuma configuração vigente encontrada");
 
-        const resultGrad = await supabase.from('graduations' as any).select('year').eq('id', cls.graduation_id).single();
-        const baseYear = (resultGrad.data as any)?.year || 2026;
+        const resultGrad = await fromTable('graduations').select('year').eq('id', cls.graduation_id).single();
+        const baseYear = (resultGrad.data as unknown as YearRow | null)?.year || 2026;
 
-        const obligationsToInsert: any[] = [];
+        const obligationsToInsert: ObligationInsert[] = [];
         for (let i = 1; i <= config.installments_count; i++) {
             const monthIndex = (config.start_month - 1) + (i - 1);
             const dueDate = new Date(baseYear, monthIndex, config.due_day);
@@ -115,8 +141,7 @@ export const classService = {
             });
         }
 
-        const { error } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { error } = await fromTable('graduation_student_obligations')
             .upsert(obligationsToInsert, {
                 onConflict: 'student_id, kind, installment_number',
                 ignoreDuplicates: true
@@ -161,12 +186,13 @@ export const classService = {
                 try {
                     await this.generateInstallmentsForStudent(student.id);
                     installmentsCount++;
-                } catch (installErr: any) {
+                } catch (installErr: unknown) {
                     console.warn(`Erro ao gerar carnê para ${name}:`, installErr);
                 }
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error(`Erro ao importar ${name}:`, err);
-                errors.push(`Falha ao importar ${name}: ${err.message}`);
+                const message = err instanceof Error ? err.message : String(err);
+                errors.push(`Falha ao importar ${name}: ${message}`);
             }
         }
 
@@ -174,8 +200,8 @@ export const classService = {
     },
 
     async generateInstallmentsBatch(classId: string): Promise<void> {
-        const resultCls = await supabase.from('graduation_classes' as any).select('graduation_id').eq('id', classId).single();
-        const cls = resultCls.data as any;
+        const resultCls = await fromTable('graduation_classes').select('graduation_id').eq('id', classId).single();
+        const cls = resultCls.data as unknown as GradRow | null;
 
         if (!cls) throw new Error("Turma não encontrada");
 
@@ -183,10 +209,10 @@ export const classService = {
         if (!config) throw new Error("Nenhuma configuração vigente encontrada para esta formatura");
 
         const students = await studentService.listStudents(classId);
-        const resultGrad = await supabase.from('graduations' as any).select('year').eq('id', cls.graduation_id).single();
-        const baseYear = (resultGrad.data as any)?.year || 2026;
+        const resultGrad = await fromTable('graduations').select('year').eq('id', cls.graduation_id).single();
+        const baseYear = (resultGrad.data as unknown as YearRow | null)?.year || 2026;
 
-        const obligationsToInsert: any[] = [];
+        const obligationsToInsert: ObligationInsert[] = [];
 
         for (const student of students) {
             for (let i = 1; i <= config.installments_count; i++) {
@@ -209,8 +235,7 @@ export const classService = {
 
         if (obligationsToInsert.length === 0) return;
 
-        const { error } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { error } = await fromTable('graduation_student_obligations')
             .upsert(obligationsToInsert, {
                 onConflict: 'student_id,kind,installment_number',
                 ignoreDuplicates: true
@@ -239,8 +264,7 @@ export const classService = {
             status: 'EM_ABERTO'
         }));
 
-        const { error } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { error } = await fromTable('graduation_student_obligations')
             .upsert(payload, {
                 onConflict: 'student_id,kind,reference_label',
                 ignoreDuplicates: true
@@ -255,50 +279,48 @@ export const classService = {
         if (!config) throw new Error("Nenhuma configuração vigente encontrada para esta formatura");
 
         // 2. Get all classes for this graduation
-        const { data: classes, error: clsError } = await supabase
-            .from('graduation_classes' as any)
+        const { data: classes, error: clsError } = await fromTable('graduation_classes')
             .select('id')
             .eq('graduation_id', graduationId)
             .eq('active', true);
 
         if (clsError) throw clsError;
-        const classIds = (classes as any[] || []).map(c => c.id);
+        const classIds = ((classes as unknown as { id: string }[]) || []).map(c => c.id);
         if (classIds.length === 0) return;
 
         // 3. Get all active students in these classes
-        const { data: students, error: stError } = await supabase
-            .from('graduation_class_students' as any)
+        const { data: students, error: stError } = await fromTable('graduation_class_students')
             .select('id, class_id')
             .eq('active', true)
             .in('class_id', classIds);
 
         if (stError) throw stError;
-        if (!students || (students as any[]).length === 0) return;
+        const studentRows = (students as unknown as StudentRow[]) || [];
+        if (studentRows.length === 0) return;
 
         // 4. WIPE existing installments of type MENSALIDADE
-        const { error: delError } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { error: delError } = await fromTable('graduation_student_obligations')
             .delete()
             .eq('graduation_id', graduationId)
-            .eq('kind', 'MENSALIDADE' as any);
+            .eq('kind', 'MENSALIDADE');
 
         if (delError) throw delError;
 
         // 5. Generate new instalments
-        const resultGrad = await supabase.from('graduations' as any).select('year').eq('id', graduationId).single();
-        const baseYear = (resultGrad.data as any)?.year || 2026;
+        const resultGrad = await fromTable('graduations').select('year').eq('id', graduationId).single();
+        const baseYear = (resultGrad.data as unknown as YearRow | null)?.year || 2026;
 
-        const obligationsToInsert: any[] = [];
+        const obligationsToInsert: ObligationInsert[] = [];
 
-        for (const student of (students as any[])) {
+        for (const student of studentRows) {
             for (let i = 1; i <= config.installments_count; i++) {
                 const monthIndex = (config.start_month - 1) + (i - 1);
                 const dueDate = new Date(baseYear, monthIndex, config.due_day);
 
                 obligationsToInsert.push({
                     graduation_id: graduationId,
-                    class_id: (student as any).class_id,
-                    student_id: (student as any).id,
+                    class_id: student.class_id,
+                    student_id: student.id,
                     kind: 'MENSALIDADE',
                     reference_label: `Parcela ${i.toString().padStart(2, '0')}/${config.installments_count}`,
                     installment_number: i,
@@ -311,8 +333,7 @@ export const classService = {
 
         if (obligationsToInsert.length === 0) return;
 
-        const { error } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { error } = await fromTable('graduation_student_obligations')
             .insert(obligationsToInsert);
 
         if (error) throw error;
@@ -326,8 +347,7 @@ export const classService = {
         due_date?: string;
     }): Promise<number> {
         // 1. Get all students from all classes of this graduation
-        const { data: students, error: studentsError } = await supabase
-            .from('graduation_class_students' as any)
+        const { data: students, error: studentsError } = await fromTable('graduation_class_students')
             .select('id, class_id')
             .eq('graduation_id', data.graduation_id)
             .eq('status', 'ATIVO');
@@ -336,7 +356,8 @@ export const classService = {
         if (!students || students.length === 0) return 0;
 
         // 2. Map to obligations
-        const payload = (students as any[]).map(s => ({
+        const studentRows = students as unknown as StudentRow[];
+        const payload = studentRows.map(s => ({
             graduation_id: data.graduation_id,
             class_id: s.class_id,
             student_id: s.id,
@@ -348,8 +369,7 @@ export const classService = {
         }));
 
         // 3. Insert and return count
-        const { error } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { error } = await fromTable('graduation_student_obligations')
             .upsert(payload, {
                 onConflict: 'student_id,kind,reference_label',
                 ignoreDuplicates: true

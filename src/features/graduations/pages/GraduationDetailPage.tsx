@@ -2,6 +2,7 @@ import { DashboardLayout } from "@/shared/components/DashboardLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { graduationModuleService, GraduationPayMethod, GraduationEntryType, GraduationClass } from "@/features/graduations/services";
+import type { FinancialTransaction } from "@/features/graduations/services/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import {
@@ -120,7 +121,7 @@ export default function GraduationDetailPage() {
     // --- Mutations ---
 
     const mutationEntry = useMutation({
-        mutationFn: (data: any) => graduationModuleService.createEntry({
+        mutationFn: (data: { entry_type: GraduationEntryType; amount: number; payment_method: GraduationPayMethod; description?: string }) => graduationModuleService.createEntry({
             graduation_id: graduationId!,
             date: new Date().toISOString(),
             entry_type: data.entry_type,
@@ -134,11 +135,11 @@ export default function GraduationDetailPage() {
             toast.success("Entrada registrada!");
             setOpenEntry(false);
         },
-        onError: (err: any) => toast.error("Erro: " + err.message)
+        onError: (err: Error) => toast.error("Erro: " + err.message)
     });
 
     const mutationExpense = useMutation({
-        mutationFn: (data: any) => graduationModuleService.createExpense({
+        mutationFn: (data: { amount: number; payment_method: GraduationPayMethod; description: string }) => graduationModuleService.createExpense({
             graduation_id: graduationId!,
             date: new Date().toISOString(),
             method: data.payment_method,
@@ -151,11 +152,11 @@ export default function GraduationDetailPage() {
             toast.success("Despesa registrada!");
             setOpenExpense(false);
         },
-        onError: (err: any) => toast.error("Erro: " + err.message)
+        onError: (err: Error) => toast.error("Erro: " + err.message)
     });
 
     const mutationTransfer = useMutation({
-        mutationFn: (data: any) => graduationModuleService.createTransfer({
+        mutationFn: (data: { from_account: GraduationPayMethod; to_account: GraduationPayMethod; amount: number; description?: string }) => graduationModuleService.createTransfer({
             graduation_id: graduationId!,
             date: new Date().toISOString(),
             from_account: data.from_account,
@@ -169,15 +170,14 @@ export default function GraduationDetailPage() {
             toast.success("Transferência registrada!");
             setOpenTransfer(false);
         },
-        onError: (err: any) => toast.error("Erro: " + err.message)
+        onError: (err: Error) => toast.error("Erro: " + err.message)
     });
 
     const mutationConfig = useMutation({
-        mutationFn: async (newData: any) => {
-            // Check if anything changed
+        mutationFn: async (newData: { installment_value: number; installments_count: number; due_day: number; start_month: number }) => {
             await graduationModuleService.createNewConfigVersion(graduationId!, newData);
             await graduationModuleService.generateInstallmentsForGraduation(graduationId!);
-            return true; // Always true now because we are always regenerating if they click the button
+            return true;
         },
         onSuccess: (hasChanged) => {
             queryClient.invalidateQueries({ queryKey: ["graduation-config", graduationId] });
@@ -190,7 +190,7 @@ export default function GraduationDetailPage() {
             }
             setOpenConfig(false);
         },
-        onError: (err: any) => toast.error("Erro: " + err.message)
+        onError: (err: Error) => toast.error("Erro: " + err.message)
     });
 
     const mutationClass = useMutation({
@@ -200,7 +200,7 @@ export default function GraduationDetailPage() {
             toast.success("Turma criada!");
             setOpenClass(false);
         },
-        onError: (err: any) => toast.error("Erro: " + err.message)
+        onError: (err: Error) => toast.error("Erro: " + err.message)
     });
 
     const [editClass, setEditClass] = useState<GraduationClass | null>(null);
@@ -372,7 +372,7 @@ export default function GraduationDetailPage() {
                                                 Nenhuma movimentação registrada.
                                             </div>
                                         )}
-                                        {history?.map((entry: any, i: number) => (
+                                        {history?.map((entry: FinancialTransaction, i: number) => (
                                             <div key={i} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
                                                 <div className="flex items-center gap-3">
                                                     <div className={cn(

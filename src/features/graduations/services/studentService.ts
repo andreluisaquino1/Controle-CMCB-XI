@@ -3,17 +3,44 @@ import { supabase } from "@/integrations/supabase/client";
 import { GraduationStudent } from "@/features/graduations/services/types";
 import { formatDateString } from "@/shared/lib/date-utils";
 
+// Helper para tabelas fora do schema gerado pelo Supabase
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const fromTable = (table: string) => supabase.from(table as any);
+
+// Interfaces auxiliares para rows intermediários
+interface StudentDbRow {
+    id: string;
+    class_id: string;
+    full_name: string;
+    guardian_name?: string;
+    active: boolean;
+}
+
+interface ObligationRow {
+    student_id: string;
+    status: string;
+    due_date: string;
+    kind: string;
+}
+
+interface RawStudentRow {
+    id: string;
+    class_id: string;
+    name: string;
+    guardian_name?: string;
+    active: boolean;
+}
+
 export const studentService = {
     async listStudents(classId: string): Promise<GraduationStudent[]> {
-        const { data, error } = await supabase
-            .from('graduation_class_students' as any)
+        const { data, error } = await fromTable('graduation_class_students')
             .select('id, class_id, full_name:name, guardian_name, active')
             .eq('class_id', classId)
             .eq('active', true)
             .order('name');
 
         if (error) throw error;
-        return (data as any[]).map(d => ({
+        return ((data as unknown as StudentDbRow[]) || []).map(d => ({
             id: d.id,
             class_id: d.class_id,
             full_name: d.full_name,
@@ -23,8 +50,7 @@ export const studentService = {
     },
 
     async getStudentsProgress(classId: string): Promise<Record<string, { paid: number; total: number; hasOverdue: boolean }>> {
-        const { data, error } = await supabase
-            .from('graduation_student_obligations' as any)
+        const { data, error } = await fromTable('graduation_student_obligations')
             .select('student_id, status, due_date, kind')
             .eq('class_id', classId);
 
@@ -33,7 +59,7 @@ export const studentService = {
         const progress: Record<string, { paid: number; total: number; hasOverdue: boolean }> = {};
         const today = formatDateString(new Date());
 
-        (data || []).forEach((obs: any) => {
+        ((data || []) as unknown as ObligationRow[]).forEach((obs) => {
             if (!progress[obs.student_id]) {
                 progress[obs.student_id] = { paid: 0, total: 0, hasOverdue: false };
             }
@@ -54,28 +80,27 @@ export const studentService = {
     },
 
     async createStudent(classId: string, fullName: string, guardianName?: string): Promise<GraduationStudent> {
-        const insertData: any = { class_id: classId, name: fullName, active: true };
+        const insertData: Record<string, unknown> = { class_id: classId, name: fullName, active: true };
         if (guardianName) insertData.guardian_name = guardianName;
 
-        const { data, error } = await supabase
-            .from('graduation_class_students' as any)
+        const { data, error } = await fromTable('graduation_class_students')
             .insert(insertData)
             .select()
             .single();
 
         if (error) throw error;
+        const row = data as unknown as RawStudentRow;
         return {
-            id: (data as any).id,
-            class_id: (data as any).class_id,
-            full_name: (data as any).name,
-            guardian_name: (data as any).guardian_name || undefined,
-            active: (data as any).active
+            id: row.id,
+            class_id: row.class_id,
+            full_name: row.name,
+            guardian_name: row.guardian_name || undefined,
+            active: row.active
         };
     },
 
     async inactivateStudent(studentId: string): Promise<void> {
-        const { error } = await supabase
-            .from('graduation_class_students' as any)
+        const { error } = await fromTable('graduation_class_students')
             .update({ active: false })
             .eq('id', studentId);
         if (error) throw error;

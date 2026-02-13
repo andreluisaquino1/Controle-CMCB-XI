@@ -5,6 +5,8 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { ObligationKind, graduationModuleService } from "@/features/graduations/services";
+
+interface ChargeBatchData { graduation_id: string; kind: ObligationKind; reference_label: string; amount: number }
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, AlertTriangle } from "lucide-react";
@@ -22,7 +24,7 @@ export function GlobalChargeBatchModal({ open, onOpenChange, graduationId }: Glo
     const [amount, setAmount] = useState("");
 
     const mutation = useMutation({
-        mutationFn: (data: any) => graduationModuleService.createGlobalChargeBatch(data),
+        mutationFn: (data: ChargeBatchData) => graduationModuleService.createGlobalChargeBatch(data),
         onSuccess: (count: number) => {
             queryClient.invalidateQueries({ queryKey: ["graduation-students-progress"] });
             queryClient.invalidateQueries({ queryKey: ["graduation-summary-module"] });
@@ -30,7 +32,7 @@ export function GlobalChargeBatchModal({ open, onOpenChange, graduationId }: Glo
             onOpenChange(false);
             resetForm();
         },
-        onError: (err: any) => toast.error("Erro: " + err.message)
+        onError: (err: Error) => toast.error("Erro: " + err.message)
     });
 
     const resetForm = () => {
@@ -69,7 +71,7 @@ export function GlobalChargeBatchModal({ open, onOpenChange, graduationId }: Glo
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="grid gap-2">
                         <Label>Tipo de Cobrança</Label>
-                        <Select value={kind} onValueChange={(v: any) => setKind(v)}>
+                        <Select value={kind} onValueChange={(v) => setKind(v as ObligationKind)}>
                             <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>

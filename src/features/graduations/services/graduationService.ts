@@ -88,11 +88,28 @@ export interface GraduationFinancialSummary {
     pendingFromClasses: number; // Saldo que ainda está com os tesoureiros de turma
 }
 
+// Helper para tabelas fora do schema gerado pelo Supabase
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const fromTable = (table: string) => supabase.from(table as any);
+
+// Interfaces auxiliares para rows intermediários
+interface IdRow { id: string }
+interface ClassIdRow { class_id: string }
+interface ValueRow { value: number }
+interface GrossValueCostsRow { gross_value: number; costs: number }
+interface TreasuryRow { type: GraduationTreasuryType; location: GraduationMoneyLocation; value: number }
+
+interface InstallmentUpdateData {
+    status: GraduationInstallmentStatus;
+    paid_at?: string | null;
+    pay_method?: PaymentMethod | null;
+    notes?: string;
+}
+
 export const graduationService = {
     // Graduation & Classes
     async getGraduations(): Promise<Graduation[]> {
-        const { data, error } = await supabase
-            .from("graduations" as any)
+        const { data, error } = await fromTable("graduations")
             .select("*")
             .eq('active', true)
             .order("name");
@@ -106,8 +123,7 @@ export const graduationService = {
 
     async createGraduation(name: string, year: number): Promise<Graduation> {
         const slug = `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}`.replace(/^-+|-+$/g, '');
-        const { data, error } = await supabase
-            .from('graduations' as any)
+        const { data, error } = await fromTable('graduations')
             .insert({ name, year, active: true, slug })
             .select()
             .single();
@@ -121,24 +137,21 @@ export const graduationService = {
             updates.slug = `${updates.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}`.replace(/^-+|-+$/g, '');
         }
 
-        const { error } = await supabase
-            .from('graduations' as any)
+        const { error } = await fromTable('graduations')
             .update(updates)
             .eq('id', id);
         if (error) throw error;
     },
 
     async softDeleteGraduation(id: string): Promise<void> {
-        const { error } = await supabase
-            .from('graduations' as any)
+        const { error } = await fromTable('graduations')
             .update({ active: false })
             .eq('id', id);
         if (error) throw error;
     },
 
     async getGraduationBySlug(slug: string): Promise<Graduation> {
-        const { data, error } = await supabase
-            .from("graduations" as any)
+        const { data, error } = await fromTable("graduations")
             .select("*")
             .eq("slug", slug)
             .single();
@@ -147,8 +160,7 @@ export const graduationService = {
     },
 
     async getClasses(graduationId: string): Promise<GraduationClass[]> {
-        const { data, error } = await supabase
-            .from("graduation_classes" as any)
+        const { data, error } = await fromTable("graduation_classes")
             .select("*")
             .eq("graduation_id", graduationId)
             .order("name");
@@ -157,8 +169,7 @@ export const graduationService = {
     },
 
     async getClassBySlug(graduationId: string, slug: string): Promise<GraduationClass> {
-        const { data, error } = await supabase
-            .from("graduation_classes" as any)
+        const { data, error } = await fromTable("graduation_classes")
             .select("*")
             .eq("graduation_id", graduationId)
             .eq("slug", slug)
@@ -169,8 +180,7 @@ export const graduationService = {
 
     // Students
     async getStudentsByClass(classId: string): Promise<GraduationStudent[]> {
-        const { data, error } = await supabase
-            .from("graduation_class_students" as any)
+        const { data, error } = await fromTable("graduation_class_students")
             .select("*")
             .eq("class_id", classId)
             .order("name");
@@ -179,8 +189,7 @@ export const graduationService = {
     },
 
     async createStudent(student: { class_id: string; name: string }): Promise<GraduationStudent> {
-        const { data, error } = await supabase
-            .from("graduation_class_students" as any)
+        const { data, error } = await fromTable("graduation_class_students")
             .insert(student)
             .select()
             .single();
@@ -189,8 +198,7 @@ export const graduationService = {
     },
 
     async toggleStudentActivation(studentId: string, active: boolean): Promise<void> {
-        const { error } = await supabase
-            .from("graduation_class_students" as any)
+        const { error } = await fromTable("graduation_class_students")
             .update({ active })
             .eq("id", studentId);
         if (error) throw error;
@@ -198,8 +206,7 @@ export const graduationService = {
 
     // Carnet Config
     async getCurrentCarnetConfig(graduationId: string): Promise<GraduationCarnetConfig | null> {
-        const { data, error } = await supabase
-            .from("graduation_carnet_configs" as any)
+        const { data, error } = await fromTable("graduation_carnet_configs")
             .select("*")
             .eq("graduation_id", graduationId)
             .order("version", { ascending: false })
@@ -219,16 +226,14 @@ export const graduationService = {
 
         // Inactivate current if exists
         if (current) {
-            await supabase
-                .from("graduation_carnet_configs" as any)
+            await fromTable("graduation_carnet_configs")
                 .update({ is_current: false })
                 .eq("id", current.id);
         }
 
         const { data: { user } } = await supabase.auth.getUser();
 
-        const { data, error } = await supabase
-            .from("graduation_carnet_configs" as any)
+        const { data, error } = await fromTable("graduation_carnet_configs")
             .insert({ ...config, version, is_current: true, created_by: user?.id })
             .select()
             .single();
@@ -237,14 +242,13 @@ export const graduationService = {
         return data as unknown as GraduationCarnetConfig;
     },
 
-    async createNewConfigVersion(graduationId: string, config: any): Promise<GraduationCarnetConfig> {
+    async createNewConfigVersion(graduationId: string, config: Omit<GraduationCarnetConfig, 'id' | 'version' | 'created_at' | 'is_current' | 'graduation_id'>): Promise<GraduationCarnetConfig> {
         return this.createCarnetConfig({ ...config, graduation_id: graduationId });
     },
 
     // Installments
     async getInstallments(studentId: string): Promise<GraduationInstallment[]> {
-        const { data, error } = await supabase
-            .from("graduation_installments" as any)
+        const { data, error } = await fromTable("graduation_installments")
             .select("*")
             .eq("student_id", studentId)
             .order("installment_number");
@@ -254,28 +258,26 @@ export const graduationService = {
 
     async generateCarnetForStudent(studentId: string): Promise<void> {
         // 1. Find student
-        const { data: student, error: studentError } = await supabase
-            .from("graduation_class_students" as any)
+        const { data: student, error: studentError } = await fromTable("graduation_class_students")
             .select("class_id")
             .eq("id", studentId)
             .single();
         if (studentError) throw studentError;
 
         // 2. Find graduation from class
-        const { data: classData, error: classError } = await supabase
-            .from("graduation_classes" as any)
+        const studentRow = student as unknown as ClassIdRow;
+        const { data: classData, error: classError } = await fromTable("graduation_classes")
             .select("graduation_id")
-            .eq("id", (student as any).class_id)
+            .eq("id", studentRow.class_id)
             .single();
         if (classError) throw classError;
 
-        const graduationId = (classData as any).graduation_id;
+        const graduationId = (classData as unknown as { graduation_id: string }).graduation_id;
         const config = await this.getCurrentCarnetConfig(graduationId);
         if (!config) throw new Error("Configuração de carnê não encontrada para esta formatura.");
 
         // Check if carnet already exists
-        const { count, error: countError } = await supabase
-            .from("graduation_installments" as any)
+        const { count, error: countError } = await fromTable("graduation_installments")
             .select("*", { count: "exact", head: true })
             .eq("student_id", studentId);
         if (countError) throw countError;
@@ -297,8 +299,7 @@ export const graduationService = {
             });
         }
 
-        const { error: insertError } = await supabase
-            .from("graduation_installments" as any)
+        const { error: insertError } = await fromTable("graduation_installments")
             .insert(installments);
         if (insertError) throw insertError;
     },
@@ -308,7 +309,7 @@ export const graduationService = {
         status: GraduationInstallmentStatus,
         params?: { paid_at?: string; pay_method?: PaymentMethod; notes?: string }
     ): Promise<void> {
-        const updateData: any = { status };
+        const updateData: InstallmentUpdateData = { status };
         if (status === 'PAGO') {
             updateData.paid_at = params?.paid_at || new Date().toISOString();
             updateData.pay_method = params?.pay_method || 'cash';
@@ -318,8 +319,7 @@ export const graduationService = {
         }
         if (params?.notes !== undefined) updateData.notes = params.notes;
 
-        const { error } = await supabase
-            .from("graduation_installments" as any)
+        const { error } = await fromTable("graduation_installments")
             .update(updateData)
             .eq("id", installmentId);
         if (error) throw error;
@@ -336,7 +336,7 @@ export const graduationService = {
 
         if (studentIds.length === 0) return;
 
-        const updateData: any = { status };
+        const updateData: InstallmentUpdateData = { status };
         if (status === 'PAGO') {
             updateData.paid_at = new Date().toISOString();
             updateData.pay_method = 'cash';
@@ -345,8 +345,7 @@ export const graduationService = {
             updateData.pay_method = null;
         }
 
-        const { error } = await supabase
-            .from("graduation_installments" as any)
+        const { error } = await fromTable("graduation_installments")
             .update(updateData)
             .in("student_id", studentIds)
             .eq("installment_number", installmentNumber);
@@ -359,16 +358,14 @@ export const graduationService = {
 
     async registerExtraIncome(income: { graduation_id: string; class_id?: string; type: GraduationExtraType; gross_value: number; costs: number; notes?: string }): Promise<void> {
         const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase
-            .from("graduation_extra_incomes" as any)
+        const { error } = await fromTable("graduation_extra_incomes")
             .insert({ ...income, created_by: user?.id });
         if (error) throw error;
     },
 
     async registerExpense(expense: { graduation_id: string; class_id?: string; description: string; value: number; pay_method: PaymentMethod; is_paid: boolean; notes?: string }): Promise<void> {
         const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase
-            .from("graduation_expenses" as any)
+        const { error } = await fromTable("graduation_expenses")
             .insert({ ...expense, created_by: user?.id });
         if (error) throw error;
     },
@@ -376,13 +373,12 @@ export const graduationService = {
     // Consolidated
     async getFinancialSummary(graduationId: string): Promise<GraduationFinancialSummary> {
         // 1. Get all class IDs for this graduation
-        const { data: classes, error: classesError } = await supabase
-            .from("graduation_classes" as any)
+        const { data: classes, error: classesError } = await fromTable("graduation_classes")
             .select("id")
             .eq("graduation_id", graduationId);
 
         if (classesError) throw classesError;
-        const classIds = (classes as any[] || []).map(c => c.id);
+        const classIds = ((classes as unknown as IdRow[]) || []).map(c => c.id);
 
         if (classIds.length === 0) {
             return {
@@ -392,13 +388,12 @@ export const graduationService = {
         }
 
         // 2. Get all student IDs for these classes
-        const { data: students, error: studentsError } = await supabase
-            .from("graduation_class_students" as any)
+        const { data: students, error: studentsError } = await fromTable("graduation_class_students")
             .select("id")
             .in("class_id", classIds);
 
         if (studentsError) throw studentsError;
-        const studentIds = (students as any[] || []).map(s => s.id);
+        const studentIds = ((students as unknown as IdRow[]) || []).map(s => s.id);
 
         if (studentIds.length === 0) {
             return {
@@ -408,39 +403,35 @@ export const graduationService = {
         }
 
         // 3. Get total paid installments for these students
-        const { data: installments, error: installmentsError } = await supabase
-            .from("graduation_installments" as any)
+        const { data: installments, error: installmentsError } = await fromTable("graduation_installments")
             .select("value")
             .eq("status", "PAGO")
             .in("student_id", studentIds);
 
         if (installmentsError) throw installmentsError;
-        const totalPaid = (installments as any[] || []).reduce((acc, curr) => acc + Number(curr.value), 0);
+        const totalPaid = ((installments as unknown as ValueRow[]) || []).reduce((acc, curr) => acc + Number(curr.value), 0);
 
         // Total Extras
-        const { data: extras, error: extrasError } = await supabase
-            .from("graduation_extra_incomes" as any)
+        const { data: extras, error: extrasError } = await fromTable("graduation_extra_incomes")
             .select("gross_value, costs")
             .eq("graduation_id", graduationId);
 
         if (extrasError) throw extrasError;
-        const totalExtras = (extras as any[] || []).reduce((acc, curr) => acc + (Number(curr.gross_value) - Number(curr.costs)), 0);
+        const totalExtras = ((extras as unknown as GrossValueCostsRow[]) || []).reduce((acc, curr) => acc + (Number(curr.gross_value) - Number(curr.costs)), 0);
 
         // Total Expenses Paid
-        const { data: expenses, error: expensesError } = await supabase
-            .from("graduation_expenses" as any)
+        const { data: expenses, error: expensesError } = await fromTable("graduation_expenses")
             .select("value")
             .eq("graduation_id", graduationId)
             .eq("is_paid", true);
 
         if (expensesError) throw expensesError;
-        const totalExpenses = (expenses as any[] || []).reduce((acc, curr) => acc + Number(curr.value), 0);
+        const totalExpenses = ((expenses as unknown as ValueRow[]) || []).reduce((acc, curr) => acc + Number(curr.value), 0);
 
 
 
         // Treasury Summary (Custodian)
-        const { data: treasuryEntries, error: treasuryError } = await supabase
-            .from("graduation_treasury_entries" as any)
+        const { data: treasuryEntries, error: treasuryError } = await fromTable("graduation_treasury_entries")
             .select("type, location, value")
             .eq("graduation_id", graduationId);
 
@@ -450,7 +441,7 @@ export const graduationService = {
         let treasuryCash = 0;
         let totalReceivedByCustodian = 0;
 
-        (treasuryEntries as any[] || []).forEach(entry => {
+        ((treasuryEntries as unknown as TreasuryRow[]) || []).forEach(entry => {
             const val = Number(entry.value);
             if (entry.location === 'CONTA') treasuryBank += val;
             if (entry.location === 'ESPECIE') treasuryCash += val;
@@ -475,15 +466,13 @@ export const graduationService = {
 
     async registerTreasuryEntry(entry: Omit<GraduationTreasuryEntry, 'id' | 'created_at'>): Promise<void> {
         const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase
-            .from("graduation_treasury_entries" as any)
+        const { error } = await fromTable("graduation_treasury_entries")
             .insert({ ...entry, created_by: user?.id });
         if (error) throw error;
     },
 
     async getTreasuryEntries(graduationId: string): Promise<GraduationTreasuryEntry[]> {
-        const { data, error } = await supabase
-            .from("graduation_treasury_entries" as any)
+        const { data, error } = await fromTable("graduation_treasury_entries")
             .select("*")
             .eq("graduation_id", graduationId)
             .order("date", { ascending: false });

@@ -1,6 +1,7 @@
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { LedgerType, LedgerTransaction } from "@/domain/ledger";
 import { LedgerStatus } from "@/shared/constants/ledger";
+import type { Json } from "@/integrations/supabase/types";
 
 export const transactionService = {
     /**
@@ -38,7 +39,7 @@ export const transactionService = {
             module: (input.metadata?.module as string) ?? null,
             entity_id: (input.metadata?.entity_id as string) ?? null,
             payment_method: (input.metadata?.payment_method as string) ?? null,
-            metadata: (input.metadata as any) ?? {},
+            metadata: (input.metadata as Json) ?? {},
         })
             .select()
             .single();

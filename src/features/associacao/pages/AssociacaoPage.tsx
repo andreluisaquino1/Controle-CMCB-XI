@@ -367,7 +367,7 @@ export default function AssociacaoPage() {
               const searchLower = searchTerm.toLowerCase();
               const description = t.description?.toLowerCase() || '';
               const amount = t.amount?.toString() || '';
-              const tx = t as any;
+              const tx = t as unknown as { account?: { name?: string }; category?: string; metadata?: Record<string, string> | null; description?: string; amount?: number; status?: string; created_by?: string };
               const accountName = tx.account?.name?.toLowerCase() || '';
               const category = tx.category?.toLowerCase() || '';
               const obs = tx.metadata && typeof tx.metadata === 'object' ?

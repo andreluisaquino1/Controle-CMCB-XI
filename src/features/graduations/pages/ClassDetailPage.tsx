@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/shared/components/DashboardLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
-import { graduationService, GraduationStudent, GraduationInstallment, GraduationInstallmentStatus } from "@/features/graduations/services/graduationService";
+import { graduationService, GraduationStudent, GraduationInstallment, GraduationInstallmentStatus, PaymentMethod } from "@/features/graduations/services/graduationService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import {
@@ -121,7 +121,7 @@ export default function ClassDetailPage() {
             toast.success("Aluno cadastrado e carnê gerado!");
             setOpenAddStudent(false);
         },
-        onError: (error: any) => toast.error(`Erro: ${error.message}`),
+        onError: (error: Error) => toast.error(`Erro: ${error.message}`),
     });
 
     const mutationToggleStudent = useMutation({
@@ -133,7 +133,7 @@ export default function ClassDetailPage() {
     });
 
     const mutationUpdatePayment = useMutation({
-        mutationFn: ({ id, status, params }: any) => graduationService.updateInstallmentStatus(id, status, params),
+        mutationFn: ({ id, status, params }: { id: string; status: GraduationInstallmentStatus; params?: { paid_at?: string; pay_method?: PaymentMethod; notes?: string } }) => graduationService.updateInstallmentStatus(id, status, params),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["class-installments", classId] });
             queryClient.invalidateQueries({ queryKey: ["graduation-summary", graduation?.id] });
@@ -150,7 +150,7 @@ export default function ClassDetailPage() {
             queryClient.invalidateQueries({ queryKey: ["graduation-summary", graduation?.id] });
             toast.success("Mês atualizado com sucesso!");
         },
-        onError: (error: any) => toast.error(`Erro ao atualizar turma: ${error.message}`),
+        onError: (error: Error) => toast.error(`Erro ao atualizar turma: ${error.message}`),
     });
 
     const mutationImportExcel = useMutation({
@@ -160,7 +160,7 @@ export default function ClassDetailPage() {
             toast.success(`${data.count} alunos importados com sucesso!`);
             setOpenImportExcel(false);
         },
-        onError: (error: any) => toast.error(`Erro na importação: ${error.message}`),
+        onError: (error: Error) => toast.error(`Erro na importação: ${error.message}`),
     });
 
     if (loadingGrad || loadingClass || loadingStudents) {
@@ -395,9 +395,9 @@ export default function ClassDetailPage() {
     );
 }
 
-function AddStudentDialog({ open, onOpenChange, onSubmit, isLoading }: any) {
+function AddStudentDialog({ open, onOpenChange, onSubmit, isLoading }: { open: boolean; onOpenChange: (open: boolean) => void; onSubmit: (name: string) => void; isLoading: boolean }) {
     const [name, setName] = useState("");
-    const handleS = (e: any) => {
+    const handleS = (e: React.FormEvent) => {
         e.preventDefault();
         onSubmit(name);
         setName("");
@@ -423,12 +423,12 @@ function AddStudentDialog({ open, onOpenChange, onSubmit, isLoading }: any) {
     );
 }
 
-function PaymentDialog({ open, onOpenChange, studentName, installment, onSubmit, isLoading }: any) {
-    const [status, setStatus] = useState<any>(installment.status);
-    const [method, setMethod] = useState<any>(installment.pay_method || "pix");
+function PaymentDialog({ open, onOpenChange, studentName, installment, onSubmit, isLoading }: { open: boolean; onOpenChange: (open: boolean) => void; studentName: string; installment: GraduationInstallment; onSubmit: (status: GraduationInstallmentStatus, params: { pay_method: PaymentMethod; notes: string }) => void; isLoading: boolean }) {
+    const [status, setStatus] = useState<GraduationInstallmentStatus>(installment.status);
+    const [method, setMethod] = useState<PaymentMethod>(installment.pay_method || "pix");
     const [notes, setNotes] = useState(installment.notes || "");
 
-    const handleS = (e: any) => {
+    const handleS = (e: React.FormEvent) => {
         e.preventDefault();
         onSubmit(status, { pay_method: method, notes });
     };
@@ -448,7 +448,7 @@ function PaymentDialog({ open, onOpenChange, studentName, installment, onSubmit,
                     <form onSubmit={handleS} className="space-y-4">
                         <div className="grid gap-2">
                             <Label>Status</Label>
-                            <Select value={status} onValueChange={setStatus}>
+                            <Select value={status} onValueChange={(v) => setStatus(v as GraduationInstallmentStatus)}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="EM_ABERTO">EM ABERTO</SelectItem>
@@ -462,7 +462,7 @@ function PaymentDialog({ open, onOpenChange, studentName, installment, onSubmit,
                         {status === 'PAGO' && (
                             <div className="grid gap-2 animate-in fade-in slide-in-from-top-2">
                                 <Label>Forma de Pagamento</Label>
-                                <Select value={method} onValueChange={setMethod}>
+                                <Select value={method} onValueChange={(v) => setMethod(v as PaymentMethod)}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="pix">PIX</SelectItem>
@@ -493,10 +493,10 @@ function PaymentDialog({ open, onOpenChange, studentName, installment, onSubmit,
     );
 }
 
-function ImportExcelDialog({ open, onOpenChange, onImport, isLoading }: any) {
+function ImportExcelDialog({ open, onOpenChange, onImport, isLoading }: { open: boolean; onOpenChange: (open: boolean) => void; onImport: (file: File) => void; isLoading: boolean }) {
     const [file, setFile] = useState<File | null>(null);
 
-    const handleS = (e: any) => {
+    const handleS = (e: React.FormEvent) => {
         e.preventDefault();
         if (file) onImport(file);
     };

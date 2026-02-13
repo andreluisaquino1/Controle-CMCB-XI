@@ -42,9 +42,10 @@ interface AuditLog {
     id: string;
     created_at: string;
     action: string;
-    before: Record<string, any>;
-    after: Record<string, any>;
+    before: Record<string, unknown>;
+    after: Record<string, unknown>;
     actor_profile: { name: string | null } | null;
+    reason?: string;
 }
 
 export default function LogPage() {
@@ -280,16 +281,17 @@ export default function LogPage() {
                                         </TableHeader>
                                         <TableBody>
                                             {logs.map((log) => {
-                                                const data = log.after || log.before || {};
+                                                const data = (log.after || log.before || {}) as Record<string, unknown>;
                                                 const isVoid = log.action === 'VOID_LEDGER';
                                                 const isSecurity = log.action === 'SECURITY_CHANGE';
 
                                                 // Extrair dados da transação do JSON
                                                 const amount = data.amount_cents ? Number(data.amount_cents) / 100 : 0;
-                                                const module = data.module;
-                                                const description = data.description || "Sem descrição";
+                                                const module = data.module as string | undefined;
+                                                const description = (data.description as string) || "Sem descrição";
                                                 const direction = data.type === 'income' ? 'in' : 'out';
-                                                const reason = data.metadata?.void_reason || log.reason || null;
+                                                const metadata = data.metadata as Record<string, string> | null | undefined;
+                                                const reason = metadata?.void_reason || log.reason || null;
 
                                                 return (
                                                     <TableRow key={log.id} className={isSecurity ? "bg-muted/5 italic" : "bg-card"}>
