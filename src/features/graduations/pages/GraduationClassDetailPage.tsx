@@ -153,8 +153,8 @@ export default function GraduationClassDetailPage() {
     };
 
     const handleExportTreasurer = async () => {
-        if (!students || students.length === 0) {
-            toast.error("Não há alunos nesta turma para gerar o controle.");
+        if (!config || !students || students.length === 0) {
+            toast.error("Dados insuficientes para gerar o controle. Verifique se a turma possui alunos e se a configuração financeira foi salva.");
             return;
         }
 
@@ -163,6 +163,12 @@ export default function GraduationClassDetailPage() {
             await generateTreasurerControlPDF({
                 graduation: { name: graduation!.name, year: graduation!.year },
                 class: { name: classData!.name },
+                config: {
+                    installment_value: config.installment_value,
+                    installments_count: config.installments_count,
+                    due_day: config.due_day,
+                    start_month: config.start_month
+                },
                 students: students.map(s => ({ id: s.id, full_name: s.full_name, guardian_name: s.guardian_name }))
             });
             toast.success("Controle gerado com sucesso!", { id: toastId });
