@@ -82,11 +82,19 @@ export const transactionService = {
         const { data, error } = await extendedSupabase
             .from("ledger_transactions")
             .select("id")
-            .eq("metadata->>module", module)
             .eq("status", "validated")
             .eq("metadata->>shift", turno)
             .gte("created_at", `${date}T00:00:00`)
-            .lte("created_at", `${date}T23:59:59.999`);
+            .lte("created_at", `${date}T23:59:59.999`)
+            // Compatível com registros novos (coluna module) e antigos (metadata)
+            .or(
+                [
+                    `module.eq.${module}`,
+                    `metadata->>module.eq.${module}`,
+                    `metadata->>modulo.eq.${module}`,
+                    `metadata->>original_module.eq.${module}`,
+                ].join(",")
+            );
 
         if (error) throw error;
         return data || [];

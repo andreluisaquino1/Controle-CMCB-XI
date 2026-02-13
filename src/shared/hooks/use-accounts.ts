@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Account, Entity, EntityType } from "@/types";
@@ -262,7 +263,6 @@ export function useActivateAccount() {
   });
 }
 
-import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 
 // Helpers
 async function fetchLedgerBalancesMap() {

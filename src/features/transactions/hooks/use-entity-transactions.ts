@@ -21,10 +21,17 @@ export function useAssociacaoTransactions(startDate?: string, endDate?: string) 
   const query = useQuery({
     queryKey: ["transactions", "associacao", startDate, endDate],
     queryFn: async () => {
+      const allowedModules = '("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual")';
+
       let queryBuilder = extendedSupabase
         .from("ledger_transactions")
         .select("*")
-        .or('metadata->>module.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual"),metadata->>modulo.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual"),metadata->>original_module.in.("mensalidade","mensalidade_pix","pix_nao_identificado","gasto_associacao","assoc_transfer","especie_transfer","especie_deposito_pix","especie_ajuste","pix_ajuste","cofre_ajuste","conta_digital_ajuste","conta_digital_taxa","taxa_pix_bb","ajuste_manual")')
+        .or([
+          `module.in.${allowedModules}`,
+          `metadata->>module.in.${allowedModules}`,
+          `metadata->>modulo.in.${allowedModules}`,
+          `metadata->>original_module.in.${allowedModules}`
+        ].join(","))
         .order("created_at", { ascending: false });
 
       if (startDate) queryBuilder = queryBuilder.gte("created_at", `${startDate}T00:00:00`);

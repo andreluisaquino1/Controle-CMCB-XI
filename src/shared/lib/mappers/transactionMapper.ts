@@ -82,7 +82,8 @@ export const mapLedgerTransaction = (
     }
 
     const metadata = l.metadata as Record<string, unknown> || {};
-    const mod = (l.module || metadata.module || metadata.modulo || metadata.original_module || TransactionModuleKey.OUTROS) as string;
+    // Preferir coluna "module" (modelo atual) e manter fallback para legado (metadata)
+    const mod = (l.module ?? metadata.module ?? metadata.modulo ?? metadata.original_module ?? TransactionModuleKey.OUTROS) as string;
 
     const resolvedEntityId = l.entity_id || (metadata.entity_id as string) || resolveEntityIdFromAccount(l.source_account) || resolveEntityIdFromAccount(l.destination_account) || null;
 
