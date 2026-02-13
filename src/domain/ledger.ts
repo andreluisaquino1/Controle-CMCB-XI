@@ -10,5 +10,9 @@ export interface LedgerTransaction {
     amount_cents: number;
     description: string | null;
     reference_id: string | null;
+    status: string;
+    module: string | null;
+    entity_id: string | null;
+    payment_method: string | null;
     metadata: Record<string, unknown>;
 }

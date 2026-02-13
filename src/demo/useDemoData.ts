@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { demoStore } from "./demoStore";
 import { DemoAccount, DemoTransaction, DemoAuditLog } from "./demoSeed";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 
 // Event listener for storage changes to sync across tabs/components
 // Simple implementation: Custom Event

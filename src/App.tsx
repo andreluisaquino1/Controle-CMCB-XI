@@ -1,29 +1,28 @@
 import { Suspense, lazy } from "react";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster as Sonner } from "@/shared/ui/sonner";
+import { TooltipProvider } from "@/shared/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { PageLoader } from "@/components/PageLoader";
+import { AuthProvider } from "@/features/auth/contexts/AuthContext";
+import { ProtectedRoute } from "@/shared/components/ProtectedRoute";
+import { PageLoader } from "@/shared/components/PageLoader";
 
 // Lazy Pages
-// Lazy Pages
-const AuthPage = lazy(() => import("./pages/AuthPage"));
-const DashboardPage = lazy(() => import("./pages/DashboardPage"));
-const AssociacaoPage = lazy(() => import("./pages/AssociacaoPage"));
-const SaldosPage = lazy(() => import("./pages/SaldosPage"));
-const RecursosPage = lazy(() => import("./pages/RecursosPage"));
-const RelatoriosPage = lazy(() => import("./pages/RelatoriosPage"));
-const PerfilPage = lazy(() => import("./pages/PerfilPage"));
-const UsuariosPage = lazy(() => import("./pages/UsuariosPage"));
-const LogPage = lazy(() => import("./pages/LogPage"));
-const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
-const FormaturasPage = lazy(() => import("@/pages/graduations/FormaturasPage"));
-const GraduationDetailPage = lazy(() => import("@/pages/graduations/GraduationDetailPage"));
-const GraduationClassDetailPage = lazy(() => import("@/pages/graduations/GraduationClassDetailPage"));
-const ContadorDinheiroPage = lazy(() => import("./pages/ContadorDinheiroPage"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+const AuthPage = lazy(() => import("@/features/auth/pages/AuthPage"));
+const DashboardPage = lazy(() => import("@/features/dashboard/pages/DashboardPage"));
+const AssociacaoPage = lazy(() => import("@/features/associacao/pages/AssociacaoPage"));
+const SaldosPage = lazy(() => import("@/features/recursos/pages/SaldosPage"));
+const RecursosPage = lazy(() => import("@/features/recursos/pages/RecursosPage"));
+const RelatoriosPage = lazy(() => import("@/features/transactions/pages/RelatoriosPage"));
+const PerfilPage = lazy(() => import("@/features/users/pages/PerfilPage"));
+const UsuariosPage = lazy(() => import("@/features/users/pages/UsuariosPage"));
+const LogPage = lazy(() => import("@/features/transactions/pages/LogPage"));
+const ResetPasswordPage = lazy(() => import("@/features/auth/pages/ResetPasswordPage"));
+const FormaturasPage = lazy(() => import("@/features/graduations/pages/FormaturasPage"));
+const GraduationDetailPage = lazy(() => import("@/features/graduations/pages/GraduationDetailPage"));
+const GraduationClassDetailPage = lazy(() => import("@/features/graduations/pages/GraduationClassDetailPage"));
+const ContadorDinheiroPage = lazy(() => import("@/features/recursos/pages/ContadorDinheiroPage"));
+const NotFound = lazy(() => import("@/shared/components/NotFound"));
 
 
 // Optimized QueryClient
@@ -67,7 +66,7 @@ const App = () => (
               <Route
                 path="/saldos"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute blockedRoles={["secretaria"]}>
                     <SaldosPage />
                   </ProtectedRoute>
                 }
@@ -75,7 +74,7 @@ const App = () => (
               <Route
                 path="/recursos"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute blockedRoles={["secretaria"]}>
                     <RecursosPage />
                   </ProtectedRoute>
                 }
@@ -83,7 +82,7 @@ const App = () => (
               <Route
                 path="/relatorios"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute blockedRoles={["secretaria"]}>
                     <RelatoriosPage />
                   </ProtectedRoute>
                 }
@@ -107,7 +106,7 @@ const App = () => (
               <Route
                 path="/logs"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute blockedRoles={["secretaria"]}>
                     <LogPage />
                   </ProtectedRoute>
                 }
@@ -115,7 +114,7 @@ const App = () => (
               <Route
                 path="/formaturas"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute blockedRoles={["secretaria"]}>
                     <FormaturasPage />
                   </ProtectedRoute>
                 }
@@ -123,7 +122,7 @@ const App = () => (
               <Route
                 path="/formaturas/:slug"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute blockedRoles={["secretaria"]}>
                     <GraduationDetailPage />
                   </ProtectedRoute>
                 }
@@ -131,7 +130,7 @@ const App = () => (
               <Route
                 path="/formaturas/:slug/:classSlug"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute blockedRoles={["secretaria"]}>
                     <GraduationClassDetailPage />
                   </ProtectedRoute>
                 }

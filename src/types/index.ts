@@ -1,3 +1,5 @@
+export type EntityType = "associacao" | "ue" | "cx";
+
 export interface Entity {
     id: string;
     name: string;
@@ -61,6 +63,7 @@ export interface MerchantBalance {
     name: string;
     balance: number;
     mode: string;
+    active: boolean;
 }
 
 export interface DashboardData {

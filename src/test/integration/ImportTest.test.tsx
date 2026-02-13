@@ -11,21 +11,20 @@ describe("Import Test - Category Coverage 100%", () => {
     describe("Pages", () => {
         it("should import all page modules", async () => {
             const modules = await Promise.all([
-                import("@/pages/DashboardPage"),
-                import("@/pages/AssociacaoPage"),
-                import("@/pages/RecursosPage"),
-                import("@/pages/RelatoriosPage"),
-                import("@/pages/LogPage"),
+                import("@/features/dashboard/pages/DashboardPage"),
+                import("@/features/associacao/pages/AssociacaoPage"),
+                import("@/features/recursos/pages/RecursosPage"),
+                import("@/features/transactions/pages/RelatoriosPage"),
+                import("@/features/transactions/pages/LogPage"),
 
-                import("@/pages/SaldosPage"),
-                import("@/pages/AuthPage"),
-                import("@/pages/PerfilPage"),
-                import("@/pages/UsuariosPage"),
-                import("@/pages/ResetPasswordPage"),
-                import("@/pages/NotFound"),
-                import("@/pages/Index"),
+                import("@/features/recursos/pages/SaldosPage"),
+                import("@/features/auth/pages/AuthPage"),
+                import("@/features/users/pages/PerfilPage"),
+                import("@/features/users/pages/UsuariosPage"),
+                import("@/features/auth/pages/ResetPasswordPage"),
+                import("@/shared/components/NotFound"),
             ]);
-            expect(modules).toHaveLength(12);
+            expect(modules).toHaveLength(11);
             modules.forEach(m => expect(m.default).toBeDefined());
         }, 30000); // 30 second timeout for heavy imports
     });
@@ -33,18 +32,18 @@ describe("Import Test - Category Coverage 100%", () => {
     describe("Hooks", () => {
         it("should import all hook modules", async () => {
             const modules = await Promise.all([
-                import("@/hooks/use-accounts"),
-                import("@/hooks/use-associacao-actions"),
-                import("@/hooks/use-dashboard-data"),
-                import("@/hooks/use-entity-transactions"),
-                import("@/hooks/use-expense-shortcuts"),
-                import("@/hooks/use-merchants"),
-                import("@/hooks/use-mobile"),
-                import("@/hooks/use-pix-batch"),
-                import("@/hooks/use-reports"),
-                import("@/hooks/use-saldos-actions"),
-                import("@/hooks/use-transaction-metadata"),
-                import("@/hooks/use-transactions"),
+                import("@/shared/hooks/use-accounts"),
+                import("@/features/associacao/hooks/use-associacao-actions"),
+                import("@/features/dashboard/hooks/use-dashboard-data"),
+                import("@/features/transactions/hooks/use-entity-transactions"),
+                import("@/features/transactions/hooks/use-expense-shortcuts"),
+                import("@/features/merchants/hooks/use-merchants"),
+                import("@/shared/hooks/use-mobile"),
+                import("@/features/associacao/hooks/use-pix-batch"),
+                import("@/features/transactions/hooks/use-reports"),
+                import("@/features/recursos/hooks/use-saldos-actions"),
+                import("@/features/transactions/hooks/use-transaction-metadata"),
+                import("@/features/transactions/hooks/use-transactions"),
             ]);
             expect(modules).toHaveLength(12);
         });
@@ -61,16 +60,16 @@ describe("Import Test - Category Coverage 100%", () => {
     describe("Core Components", () => {
         it("should import transaction components", async () => {
             const modules = await Promise.all([
-                import("@/components/transactions/TransactionTable"),
-                import("@/components/transactions/TransactionItemsDialog"),
+                import("@/features/transactions/components/TransactionTable"),
+                import("@/features/transactions/components/TransactionItemsDialog"),
             ]);
             expect(modules).toHaveLength(2);
         });
 
         it("should import form dialogs", async () => {
             const modules = await Promise.all([
-                import("@/components/forms/AporteSaldoDialog"),
-                import("@/components/forms/ConsumoSaldoDialog"),
+                import("@/features/recursos/components/AporteSaldoDialog"),
+                import("@/features/recursos/components/ConsumoSaldoDialog"),
             ]);
             expect(modules).toHaveLength(2);
         });
