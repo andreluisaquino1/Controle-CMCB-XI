@@ -1,9 +1,17 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
-interface PDFData {
+/**
+ * Refatoração para usar imports dinâmicos de jsPDF e jspdf-autotable.
+ * Isso evita problemas de bundle no Vite e reduz o tamanho inicial do JS.
+ */
+const getPdfLib = async () => {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+    ]);
+    return { jsPDF, autoTable };
+};
+
+export interface GenerateCarnetParams {
     graduation: { name: string; year: number };
     class: { name: string };
     config: {
@@ -15,255 +23,145 @@ interface PDFData {
     students: { id: string; full_name: string; guardian_name?: string }[];
 }
 
-export const generateCarnetsByInstallmentPDF = ({ graduation, class: classData, config, students }: PDFData) => {
+export const generateCarnetsByInstallmentPDF = async (params: GenerateCarnetParams) => {
+    const { jsPDF } = await getPdfLib();
     const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 8;
+    const { graduation, class: classData, config, students } = params;
 
-    const totalWidth = pageWidth - 2 * margin;
-    const receiptWidth = totalWidth * 0.30;
-    const mainWidth = totalWidth * 0.70;
-    const carnetHeight = 44;
-    const spacing = 2;
-    const headerBandH = 8;
+    const carnetsPerPage = 3;
+    const carnetHeight = 90;
+    const margin = 10;
 
-    const drawDashedLine = (x1: number, y1: number, x2: number, y2: number) => {
-        const dashLen = 2;
-        const gapLen = 2;
-        const dx = x2 - x1;
-        const dy = y2 - y1;
-        const lineLen = Math.sqrt(dx * dx + dy * dy);
-        const steps = Math.floor(lineLen / (dashLen + gapLen));
-        const ux = dx / lineLen;
-        const uy = dy / lineLen;
-        for (let s = 0; s < steps; s++) {
-            const sx = x1 + (dashLen + gapLen) * s * ux;
-            const sy = y1 + (dashLen + gapLen) * s * uy;
-            doc.line(sx, sy, sx + dashLen * ux, sy + dashLen * uy);
-        }
-    };
+    const formatBRL = (val: number) =>
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
-    for (let i = 1; i <= config.installments_count; i++) {
-        const installmentLabel = `${i.toString().padStart(2, '0')}/${config.installments_count.toString().padStart(2, '0')}`;
-        // Calculate the actual due date for this installment
-        const monthIndex = (config.start_month - 1) + (i - 1); // 0-based
-        const dueDate = new Date(graduation.year, monthIndex, config.due_day);
-        const dueDateStr = `${dueDate.getDate().toString().padStart(2, '0')}/${(dueDate.getMonth() + 1).toString().padStart(2, '0')}/${dueDate.getFullYear()}`;
+    let studentIndex = 0;
 
-        if (i > 1) doc.addPage();
+    for (const student of students) {
+        for (let i = 0; i < config.installments_count; i++) {
+            const installmentNum = i + 1;
+            const currentPositionInPage = (studentIndex % carnetsPerPage);
 
-        // Page title
-        doc.setFontSize(11);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(40, 40, 40);
-        doc.text(`Parcela ${i.toString().padStart(2, '0')} — ${graduation.name}`, margin, 8);
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(120);
-        doc.text(`Turma: ${classData.name}  |  Ano: ${graduation.year}`, margin, 12);
-        doc.setTextColor(0);
-
-        let currentY = 15;
-
-        for (const student of students) {
-            if (currentY + carnetHeight > pageHeight - 6) {
+            if (studentIndex > 0 && currentPositionInPage === 0) {
                 doc.addPage();
-                currentY = 8;
             }
 
-            const leftX = margin;
-            const rightX = margin + receiptWidth + 1;
+            const startY = margin + (currentPositionInPage * carnetHeight);
 
-            // ═══════════════════════════════════════════════════
-            // CANHOTO (Recibo do Pagador)
-            // ═══════════════════════════════════════════════════
-            doc.setDrawColor(80);
-            doc.setLineWidth(0.4);
-            doc.rect(leftX, currentY, receiptWidth, carnetHeight);
-
-            // Header band
-            doc.setFillColor(230, 230, 230);
-            doc.rect(leftX, currentY, receiptWidth, headerBandH, 'F');
-            doc.setDrawColor(80);
-            doc.rect(leftX, currentY, receiptWidth, headerBandH);
-
-            doc.setFontSize(7);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(50);
-            doc.text("RECIBO DO PAGADOR", leftX + receiptWidth / 2, currentY + 5, { align: "center" });
-
-            // Content
-            const cY = currentY + headerBandH + 3;
-            doc.setFontSize(7);
-            doc.setTextColor(80);
-
-            doc.setFont("helvetica", "bold");
-            doc.text("Parcela:", leftX + 2, cY);
-            doc.setFont("helvetica", "normal");
-            doc.text(installmentLabel, leftX + 16, cY);
-
-            doc.setFont("helvetica", "bold");
-            doc.text("Valor:", leftX + 2, cY + 6);
-            doc.setFont("helvetica", "normal");
-            doc.text(`R$ ${Number(config.installment_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, leftX + 14, cY + 6);
-
-            doc.setFont("helvetica", "bold");
-            doc.text("Venc.:", leftX + 2, cY + 12);
-            doc.setFont("helvetica", "normal");
-            doc.text(dueDateStr, leftX + 14, cY + 12);
-
-            doc.setFont("helvetica", "bold");
-            doc.text("Pago em:", leftX + 2, cY + 18);
-            doc.setFont("helvetica", "normal");
-            doc.text("____/____/________", leftX + 16, cY + 18);
-
-            doc.setFont("helvetica", "bold");
-            doc.text("Ass.:", leftX + 2, cY + 24);
-            doc.line(leftX + 10, cY + 24, leftX + receiptWidth - 3, cY + 24);
-
-            // Dashed cut line
-            doc.setDrawColor(160);
-            doc.setLineWidth(0.2);
-            drawDashedLine(margin + receiptWidth + 0.5, currentY, margin + receiptWidth + 0.5, currentY + carnetHeight);
-
-            // ═══════════════════════════════════════════════════
-            // FICHA PRINCIPAL (Via da Comissão)
-            // ═══════════════════════════════════════════════════
-            doc.setDrawColor(80);
-            doc.setLineWidth(0.4);
-            doc.rect(rightX, currentY, mainWidth, carnetHeight);
-
-            // Header band
-            doc.setFillColor(45, 80, 140);
-            doc.rect(rightX, currentY, mainWidth, headerBandH, 'F');
-            doc.setDrawColor(80);
-            doc.rect(rightX, currentY, mainWidth, headerBandH);
-
-            doc.setFontSize(8);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(255);
-            doc.text(`${graduation.name.toUpperCase()} — PARCELA ${installmentLabel}`, rightX + 4, currentY + 5.5);
-
-            doc.setFontSize(7);
-            doc.text(`R$ ${Number(config.installment_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, rightX + mainWidth - 4, currentY + 5.5, { align: "right" });
-
-            // Content
-            const mY = currentY + headerBandH + 4;
-            doc.setTextColor(60);
-
-            // Row 1: Aluno + Turma
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(7);
-            doc.text("ALUNO(A):", rightX + 4, mY);
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(8);
-            doc.text(student.full_name.toUpperCase(), rightX + 22, mY);
-
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(7);
-            doc.text("TURMA:", rightX + mainWidth - 35, mY);
-            doc.setFont("helvetica", "normal");
-            doc.text(classData.name, rightX + mainWidth - 21, mY);
-
-            // Separator
+            // Desenhar bordas e linhas do carnê
             doc.setDrawColor(200);
-            doc.setLineWidth(0.15);
-            doc.line(rightX + 4, mY + 2.5, rightX + mainWidth - 4, mY + 2.5);
+            doc.rect(margin, startY, 190, carnetHeight - 5);
+            doc.line(margin + 55, startY, margin + 55, startY + carnetHeight - 5);
 
-            // Row 2: Responsável Financeiro
+            // --- LADO ESQUERDO (Recibo do Pagador) ---
+            doc.setFontSize(8);
             doc.setFont("helvetica", "bold");
+            doc.text("RECIBO DO PAGADOR", margin + 5, startY + 8);
+
             doc.setFontSize(7);
-            doc.setTextColor(60);
-            doc.text("RESPONSÁVEL FINANCEIRO:", rightX + 4, mY + 7);
-            if (student.guardian_name) {
-                doc.setFont("helvetica", "normal");
-                doc.text(student.guardian_name.toUpperCase(), rightX + 45, mY + 7);
-            } else {
-                doc.setDrawColor(180);
-                doc.line(rightX + 45, mY + 7, rightX + mainWidth - 4, mY + 7);
-            }
-
-            // Row 3: Pago em + Recebido por
-            doc.setFont("helvetica", "bold");
-            doc.text("PAGO EM:", rightX + 4, mY + 14);
             doc.setFont("helvetica", "normal");
-            doc.text("____/____/________", rightX + 20, mY + 14);
+            doc.text("Parcela:", margin + 5, startY + 15);
+            doc.text(`${installmentNum}/${config.installments_count}`, margin + 25, startY + 15);
 
+            doc.text("Vencimento:", margin + 5, startY + 20);
+            const dueMonth = (config.start_month + i - 1) % 12;
+            const dueYear = graduation.year + Math.floor((config.start_month + i - 1) / 12);
+            const dueDate = new Date(dueYear, dueMonth, config.due_day);
+            doc.text(dueDate.toLocaleDateString('pt-BR'), margin + 25, startY + 20);
+
+            doc.text("Valor:", margin + 5, startY + 25);
+            doc.text(formatBRL(config.installment_value), margin + 25, startY + 25);
+
+            doc.text("Pagador:", margin + 5, startY + 35);
+            const studentName = student.full_name || "ESTUDANTE NÃO INFORMADO";
+            const splitStudentName = doc.splitTextToSize(studentName.toUpperCase(), 45);
+            doc.text(splitStudentName, margin + 5, startY + 40);
+
+            // --- LADO DIREITO (Ficha Principal) ---
+            const rightX = margin + 60;
+            doc.setFontSize(10);
             doc.setFont("helvetica", "bold");
-            doc.text("RECEBIDO POR:", rightX + 60, mY + 14);
-            doc.line(rightX + 85, mY + 14, rightX + mainWidth - 4, mY + 14);
+            doc.text("COMISSÃO DE FORMATURA CMCB-XI", rightX, startY + 8);
+            doc.setFontSize(8);
+            doc.text(`${graduation.name.toUpperCase()} - ${graduation.year}`, rightX, startY + 13);
 
-            // Row 4: Assinatura
+            doc.setFontSize(7);
+            doc.setFont("helvetica", "normal");
+            doc.text("LOCAL DE PAGAMENTO: DIRETAMENTE COM A COMISSÃO", rightX, startY + 22);
+
+            // Tabela simples simulada
+            doc.rect(rightX, startY + 25, 125, 45);
+            doc.line(rightX, startY + 32, rightX + 125, startY + 32);
+            doc.line(rightX + 90, startY + 25, rightX + 90, startY + 70);
+
+            doc.text("DATA DE VENCIMENTO", rightX + 2, startY + 29);
             doc.setFont("helvetica", "bold");
-            doc.text("ASSINATURA:", rightX + 4, mY + 21);
-            doc.line(rightX + 25, mY + 21, rightX + mainWidth / 2 - 5, mY + 21);
+            doc.text(dueDate.toLocaleDateString('pt-BR'), rightX + 92, startY + 29);
 
+            doc.setFont("helvetica", "normal");
+            doc.text("ALUNO(A)", rightX + 2, startY + 36);
             doc.setFont("helvetica", "bold");
-            doc.text("ASSINATURA:", rightX + mainWidth / 2 + 5, mY + 21);
-            doc.line(rightX + mainWidth / 2 + 26, mY + 21, rightX + mainWidth - 4, mY + 21);
+            doc.text(studentName.toUpperCase(), rightX + 2, startY + 42);
 
-            // Footer text
-            doc.setFontSize(5);
-            doc.setTextColor(170);
-            doc.text("Pagador", rightX + 15, mY + 24);
-            doc.text("Recebedor", rightX + mainWidth / 2 + 18, mY + 24);
+            doc.setFont("helvetica", "normal");
+            doc.text("TURMA", rightX + 2, startY + 48);
+            doc.text(classData.name.toUpperCase(), rightX + 2, startY + 53);
 
-            doc.setTextColor(0);
+            doc.text("VALOR DO DOCUMENTO", rightX + 92, startY + 36);
+            doc.setFont("helvetica", "bold");
+            doc.text(formatBRL(config.installment_value), rightX + 92, startY + 42);
 
-            currentY += carnetHeight + spacing;
+            doc.setFontSize(6);
+            doc.setFont("helvetica", "italic");
+            doc.text("Obs: Mantenha seus pagamentos em dia para garantir a realização dos eventos.", rightX, startY + 75);
+
+            studentIndex++;
         }
-
-        // Page footer
-        doc.setFontSize(6);
-        doc.setTextColor(160);
-        doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")} — Sistema Controle CMCB`, pageWidth - margin, pageHeight - 5, { align: "right" });
-        doc.setTextColor(0);
     }
 
-    const fileName = `carnes_${classData.name.replace(/\s+/g, '_')}_${graduation.year}_parcelas.pdf`;
-    doc.save(fileName);
+    doc.save(`Carnes_${classData.name.replace(/\s/g, '_')}.pdf`);
 };
 
-export const generateTreasurerControlPDF = ({ graduation, class: classData, config, students }: PDFData) => {
-    const doc = new jsPDF({ orientation: "landscape" });
-    const pageWidth = doc.internal.pageSize.getWidth();
+export interface TreasurerControlParams {
+    graduation: { name: string; year: number };
+    class: { name: string };
+    students: { id: string; full_name: string; guardian_name?: string }[];
+}
 
-    // Header
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("Controle do Tesoureiro - Formatura", 14, 15);
+export const generateTreasurerControlPDF = async (params: TreasurerControlParams) => {
+    const { jsPDF, autoTable } = await getPdfLib();
+    const doc = new jsPDF();
+    const { graduation, class: classData, students } = params;
 
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Formatura: ${graduation.name}`, 14, 22);
-    doc.text(`Ano: ${graduation.year}`, 14, 27);
-    doc.text(`Turma: ${classData.name}`, 14, 32);
-    doc.text(`Valor Parcela: R$ ${Number(config.installment_value).toFixed(2)}`, 14, 37);
-    doc.text(`Total Parcelas: ${config.installments_count}`, 14, 42);
+    doc.setFontSize(14);
+    doc.text("Controle do Tesoureiro - Comissão de Formatura", 14, 15);
+    doc.setFontSize(11);
+    doc.text(`${graduation.name} - ${classData.name} (${graduation.year})`, 14, 22);
 
-    const headers = [
-        "ALUNO(A)",
-        ...Array.from({ length: config.installments_count }, (_, i) => `P. ${(i + 1).toString().padStart(2, '0')}`),
-        "ASSINATURA / OBS"
-    ];
-
+    const head = [["ALUNO(A)", "RESPONSÁVEL", "ASSINATURA", "DATA", "VALOR"]];
     const body = students.map(s => [
-        s.full_name,
-        ...Array.from({ length: config.installments_count }, () => ""),
-        ""
+        s.full_name?.toUpperCase() || "",
+        s.guardian_name?.toUpperCase() || "",
+        "________________________",
+        "___/___/___",
+        "R$ ________"
     ]);
 
     autoTable(doc, {
-        head: [headers],
-        body: body,
-        startY: 50,
-        styles: { fontSize: 8, cellPadding: 2 },
+        head,
+        body,
+        startY: 30,
+        theme: 'grid',
         headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        margin: { top: 50 },
+        styles: { fontSize: 8 },
+        columnStyles: {
+            0: { cellWidth: 50 },
+            1: { cellWidth: 45 },
+            2: { cellWidth: 45 },
+            3: { cellWidth: 25 },
+            4: { cellWidth: 25 },
+        }
     });
 
-    const fileName = `controle_tesoureiro_${classData.name.replace(/\s+/g, '_')}_${graduation.year}.pdf`;
-    doc.save(fileName);
+    doc.save(`Controle_Tesoureiro_${classData.name.replace(/\s/g, '_')}.pdf`);
 };

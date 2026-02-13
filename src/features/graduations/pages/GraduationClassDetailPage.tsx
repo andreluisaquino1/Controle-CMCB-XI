@@ -116,34 +116,50 @@ export default function GraduationClassDetailPage() {
         onError: (err: Error) => toast.error("Erro: " + err.message)
     });
 
-    const handleExportCarnets = () => {
-        if (!config || !students) return;
-        generateCarnetsByInstallmentPDF({
-            graduation: { name: graduation!.name, year: graduation!.year },
-            class: { name: classData!.name },
-            config: {
-                installment_value: config.installment_value,
-                installments_count: config.installments_count,
-                due_day: config.due_day,
-                start_month: config.start_month
-            },
-            students: students.map(s => ({ id: s.id, full_name: s.full_name, guardian_name: s.guardian_name }))
-        });
+    const handleExportCarnets = async () => {
+        if (!config || !students || students.length === 0) {
+            toast.error("Dados insuficientes para gerar carnês. Verifique se a turma possui alunos e se a configuração financeira foi salva.");
+            return;
+        }
+
+        const toastId = toast.loading("Gerando carnês em PDF...");
+        try {
+            await generateCarnetsByInstallmentPDF({
+                graduation: { name: graduation!.name, year: graduation!.year },
+                class: { name: classData!.name },
+                config: {
+                    installment_value: config.installment_value,
+                    installments_count: config.installments_count,
+                    due_day: config.due_day,
+                    start_month: config.start_month
+                },
+                students: students.map(s => ({ id: s.id, full_name: s.full_name, guardian_name: s.guardian_name }))
+            });
+            toast.success("Carnês gerados com sucesso!", { id: toastId });
+        } catch (error) {
+            console.error("Erro ao gerar carnês:", error);
+            toast.error("Falha ao gerar o arquivo PDF dos carnês.", { id: toastId });
+        }
     };
 
-    const handleExportTreasurer = () => {
-        if (!config || !students) return;
-        generateTreasurerControlPDF({
-            graduation: { name: graduation!.name, year: graduation!.year },
-            class: { name: classData!.name },
-            config: {
-                installment_value: config.installment_value,
-                installments_count: config.installments_count,
-                due_day: config.due_day,
-                start_month: config.start_month
-            },
-            students: students.map(s => ({ id: s.id, full_name: s.full_name, guardian_name: s.guardian_name }))
-        });
+    const handleExportTreasurer = async () => {
+        if (!students || students.length === 0) {
+            toast.error("Não há alunos nesta turma para gerar o controle.");
+            return;
+        }
+
+        const toastId = toast.loading("Gerando controle do tesoureiro...");
+        try {
+            await generateTreasurerControlPDF({
+                graduation: { name: graduation!.name, year: graduation!.year },
+                class: { name: classData!.name },
+                students: students.map(s => ({ id: s.id, full_name: s.full_name, guardian_name: s.guardian_name }))
+            });
+            toast.success("Controle gerado com sucesso!", { id: toastId });
+        } catch (error) {
+            console.error("Erro ao gerar controle do tesoureiro:", error);
+            toast.error("Falha ao gerar o arquivo PDF de controle.", { id: toastId });
+        }
     };
 
     const [searchTerm, setSearchTerm] = useState("");
